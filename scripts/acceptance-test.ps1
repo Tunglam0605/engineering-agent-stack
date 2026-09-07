@@ -105,19 +105,22 @@ if (-not $Offline) {
 
     $ActualCodexBin = $ResolvedCodexBin
 
-    # Live acceptance must be non-interactive and must not silently fall back to
-    # parent execution when a diagnostic explicitly requests one child role.
-    # Wrap the real Codex launcher with session-only CLI config overrides instead
-    # of changing the user's project or personal Codex configuration.
+    # Live acceptance is executed in a fresh temporary repository. Current Codex
+    # deliberately loads project-local .codex/config.toml as disabled until that
+    # project is trusted, so the acceptance-only V2 controls must be session flags
+    # rather than relying solely on the generated project config.
+    #
+    # We also expose spawn metadata during acceptance because V2 hides agent_type
+    # by default; named custom-role diagnostics need agent_type to be selectable.
     $AcceptanceCodexWrapper = Join-Path ([System.IO.Path]::GetTempPath()) ("engineering-agent-stack-codex-" + [guid]::NewGuid().ToString("N") + ".cmd")
 
     # IMPORTANT: this text is embedded inside a Windows .cmd quoted argument.
     # Do not put literal double quotes in the instruction value: cmd.exe does
     # not use backslash as a quote escape and would split the -c argument.
-    $AcceptanceDeveloperInstructions = 'Engineering Agent Stack acceptance policy. If and only if the user prompt begins with the literal prefix Acceptance test., the requested named custom agent is mandatory. Call spawn_agent exactly once for that role, set fork_turns to none, put the complete assignment in the child message, wait for the child result, and never perform the requested child task directly in the parent. If spawn_agent fails, report that failure instead of falling back. For prompts without that literal prefix, follow the normal repository orchestration policy and direct-first rule.'
+    $AcceptanceDeveloperInstructions = 'Engineering Agent Stack acceptance policy. The disposable acceptance sandbox changes requested by this harness are already authorized, so do not ask the user for confirmation. If and only if the user prompt begins with the literal prefix Acceptance test., the requested named custom agent is mandatory. Call spawn_agent exactly once for that role, set fork_turns to none, put the complete assignment in the child message, wait for the child result, and never perform the requested child task directly in the parent. If spawn_agent fails, report that failure instead of falling back. For prompts without that literal prefix, follow the normal repository orchestration policy and direct-first rule.'
     $WrapperLines = @(
         '@echo off',
-        ('"' + $ActualCodexBin + '" -c "approval_policy=''never''" -c "developer_instructions=''' + $AcceptanceDeveloperInstructions + '''" %*')
+        ('"' + $ActualCodexBin + '" -c "approval_policy=''never''" -c "agents.enabled=true" -c "features.multi_agent_v2.enabled=true" -c "features.multi_agent_v2.wait_agent_enabled=true" -c "features.multi_agent_v2.non_code_mode_only=true" -c "features.multi_agent_v2.hide_spawn_agent_metadata=false" -c "features.multi_agent_v2.expose_spawn_agent_model_overrides=true" -c "developer_instructions=''' + $AcceptanceDeveloperInstructions + '''" %*')
     )
     Set-Content -LiteralPath $AcceptanceCodexWrapper -Value $WrapperLines -Encoding ASCII
     $ResolvedCodexBin = $AcceptanceCodexWrapper
@@ -151,7 +154,7 @@ Write-Host "Python: $PythonVersion ($PythonExe $($PythonPrefix -join ' '))"
 Write-Host "Python text mode: UTF-8"
 if (-not $Offline) {
     Write-Host "Codex launcher: $ActualCodexBin"
-    Write-Host "Acceptance runtime: non-interactive approval + mandatory diagnostic delegation"
+    Write-Host "Acceptance runtime: non-interactive approval + forced Multi-Agent V2 + visible custom-role selector"
 }
 Write-Host "Mode: $(if ($Offline) { 'offline' } elseif ($Extended) { 'live-extended' } else { 'live' })"
 Write-Host ""
