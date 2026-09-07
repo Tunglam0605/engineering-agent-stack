@@ -8,12 +8,16 @@ ROOT = Path(__file__).resolve().parents[1]
 
 REQUIRED = [
     "README.md",
+    "ACKNOWLEDGEMENTS.md",
     "AGENTS.md",
     "CHANGELOG.md",
+    "CONTRIBUTING.md",
     "requirements-dev.txt",
     "docs/ARCHITECTURE.md",
     "docs/ROADMAP.md",
     "docs/EVALUATION.md",
+    "docs/INSTALL_CODEX.md",
+    "docs/PROVENANCE.md",
     "research/README.md",
     "research/matrix/repository-comparison.yaml",
     "research/patterns/wave-2-synthesis.md",
@@ -45,12 +49,15 @@ REQUIRED = [
     "adapters/codex/README.md",
     "adapters/codex/role-profiles.yaml",
     "adapters/codex/config.toml.example",
+    "scripts/validate_structure.py",
+    "scripts/validate_provenance.py",
     "scripts/validate_agents.py",
     "scripts/evaluate_routing.py",
     "scripts/validate_benchmarks.py",
     "scripts/validate_task_suite.py",
     "scripts/summarize_benchmarks.py",
     "scripts/generate_codex_adapter.py",
+    "scripts/install_codex.py",
     "scripts/codex_capture_lib.py",
     "scripts/benchmark_task_lib.py",
     "scripts/normalize_codex_exec.py",
@@ -126,8 +133,8 @@ def main() -> int:
         "OK: "
         f"{len(paths)} required artifacts present; "
         f"{len(CORE_ROLES)} core roles, {len(REFERENCE_NOTES)} research notes, "
-        f"{len(CONTROLLED_TASKS)} controlled benchmark tasks, capture tooling, "
-        "and generated Codex adapter artifacts are structurally complete."
+        f"{len(CONTROLLED_TASKS)} controlled benchmark tasks, provenance/attribution controls, "
+        "Codex installation tooling, capture tooling, and generated adapter artifacts are structurally complete."
     )
     return 0
 
