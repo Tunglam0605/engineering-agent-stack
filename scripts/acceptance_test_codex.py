@@ -36,6 +36,8 @@ CORE_ROLES = (
 )
 MANAGED_START = "<!-- engineering-agent-stack:start -->"
 MANAGED_END = "<!-- engineering-agent-stack:end -->"
+KNOWN_EPHEMERAL_FORK_ERROR = "collab spawn failed: no thread with id:"
+KNOWN_WAIT_TIMEOUT_ERROR = "timeout_ms must be at least 10000"
 
 
 @dataclass
@@ -74,6 +76,10 @@ def warn(checks: list[Check], name: str, detail: str) -> None:
 
 def skip(checks: list[Check], name: str, detail: str) -> None:
     checks.append(Check(name, "SKIP", detail))
+
+
+def progress(message: str) -> None:
+    print(f"[live] {message}", flush=True)
 
 
 def git(args: list[str], cwd: Path, timeout: int = 60) -> subprocess.CompletedProcess[str]:
@@ -191,6 +197,43 @@ def parse_jsonl_text(text: str) -> list[dict[str, Any]]:
     return events
 
 
+def timeout_text(value: str | bytes | None) -> str:
+    if value is None:
+        return ""
+    if isinstance(value, bytes):
+        return value.decode("utf-8", errors="replace")
+    return value
+
+
+def delegation_prompt(role: str, task: str) -> str:
+    """Build a bounded fresh-context delegation prompt for Codex V2 acceptance.
+
+    Current Codex releases have an upstream `exec --ephemeral` history-fork
+    defect when V2 spawn_agent inherits/forks parent history. The fresh-child
+    path (`fork_turns = "none"`) is also the intended stack policy for bounded
+    context deltas, so acceptance makes that contract explicit.
+    """
+    return (
+        f"Acceptance test. Use the {role} custom agent exactly once. "
+        "When invoking spawn_agent, explicitly set fork_turns to `none`; do not inherit or fork parent history. "
+        "Put the complete assignment and any required context in the child message. "
+        "If you use wait_agent, omit timeout_ms or set timeout_ms to at least 10000. "
+        f"{task}"
+    )
+
+
+def runtime_diagnostic(result: dict[str, Any]) -> str:
+    stderr = str(result.get("stderr") or "")
+    notes: list[str] = []
+    if result.get("timed_out"):
+        notes.append("Codex process timed out")
+    if KNOWN_EPHEMERAL_FORK_ERROR in stderr:
+        notes.append("known upstream Codex V2 ephemeral history-fork failure observed")
+    if KNOWN_WAIT_TIMEOUT_ERROR in stderr:
+        notes.append("Codex requested a V2 wait timeout below the runtime minimum")
+    return "; ".join(notes)
+
+
 def codex_exec(*, codex_bin: str, cwd: Path, prompt: str, main_model: str, reasoning_effort: str, sandbox_mode: str, timeout: int) -> dict[str, Any]:
     with tempfile.NamedTemporaryFile(prefix="engineering-agent-stack-last-message-", suffix=".txt", delete=False) as handle:
         last_message = Path(handle.name)
@@ -212,7 +255,17 @@ def codex_exec(*, codex_bin: str, cwd: Path, prompt: str, main_model: str, reaso
         ],
     )
     started = time.perf_counter()
-    result = run(command, cwd=cwd, input_text=prompt, timeout=timeout)
+    timed_out = False
+    try:
+        result = run(command, cwd=cwd, input_text=prompt, timeout=timeout)
+    except subprocess.TimeoutExpired as exc:
+        timed_out = True
+        result = subprocess.CompletedProcess(
+            command,
+            124,
+            stdout=timeout_text(exc.stdout),
+            stderr=timeout_text(exc.stderr),
+        )
     latency_ms = round((time.perf_counter() - started) * 1000.0, 3)
     events = parse_jsonl_text(result.stdout)
     summary = summarize_events(events) if events else None
@@ -228,6 +281,7 @@ def codex_exec(*, codex_bin: str, cwd: Path, prompt: str, main_model: str, reaso
         "last_message": last_text,
         "latency_ms": latency_ms,
         "summary": summary,
+        "timed_out": timed_out,
     }
 
 
@@ -259,6 +313,7 @@ def metrics(result: dict[str, Any]) -> dict[str, Any]:
         "reasoning_output_tokens": usage.get("reasoning_output_tokens", 0),
         "latency_ms": result.get("latency_ms"),
         "agent_spawns": spawns(result),
+        "timed_out": bool(result.get("timed_out")),
     }
 
 
@@ -288,11 +343,15 @@ def verify_install(checks: list[Check], sandbox: Path) -> bool:
 
 
 def live_scout(checks: list[Check], sandbox: Path, args: argparse.Namespace) -> None:
+    progress("[1/3] Scout: read-only child delegation")
     before = git(["status", "--porcelain"], sandbox).stdout
     result = codex_exec(
         codex_bin=args.codex_bin,
         cwd=sandbox,
-        prompt="Acceptance test. Use the scout custom agent exactly once to inspect README.md. Do not edit any file. Return concise evidence only.",
+        prompt=delegation_prompt(
+            "scout",
+            "Inspect README.md only. Do not edit any file. Return concise evidence only.",
+        ),
         main_model=args.main_model,
         reasoning_effort=args.reasoning_effort,
         sandbox_mode="read-only",
@@ -300,7 +359,14 @@ def live_scout(checks: list[Check], sandbox: Path, args: argparse.Namespace) -> 
     )
     after = git(["status", "--porcelain"], sandbox).stdout
     ok = result["returncode"] == 0 and bool(result.get("summary")) and spawns(result) >= 1
-    record(checks, "Live Scout invocation", ok, f"spawns={spawns(result)} roles={spawn_roles(result)} models={spawn_models(result)}; {trimmed(result['stderr'])}", metrics(result))
+    diagnostic = runtime_diagnostic(result)
+    detail = f"spawns={spawns(result)} roles={spawn_roles(result)} models={spawn_models(result)}"
+    if diagnostic:
+        detail += f"; {diagnostic}"
+    stderr = trimmed(result["stderr"])
+    if stderr:
+        detail += f"; {stderr}"
+    record(checks, "Live Scout invocation", ok, detail, metrics(result))
     record(checks, "Scout read-only behavior", before == after, "git status unchanged" if before == after else f"before={before!r}; after={after!r}")
     models = spawn_models(result)
     if models and "gpt-5.6-luna" not in models:
@@ -312,6 +378,7 @@ def live_scout(checks: list[Check], sandbox: Path, args: argparse.Namespace) -> 
 
 
 def live_direct(checks: list[Check], sandbox: Path, args: argparse.Namespace) -> None:
+    progress("[2/3] Direct-first: trivial edit without delegation")
     git(["reset", "--hard", "HEAD"], sandbox)
     result = codex_exec(
         codex_bin=args.codex_bin,
@@ -323,16 +390,21 @@ def live_direct(checks: list[Check], sandbox: Path, args: argparse.Namespace) ->
         timeout=args.timeout,
     )
     content_ok = (sandbox / "DIRECT.md").read_text(encoding="utf-8") == "This is the direct-path check.\n"
-    record(checks, "Direct-first trivial edit correctness", result["returncode"] == 0 and content_ok, trimmed(result["stderr"] or result["last_message"]), metrics(result))
-    record(checks, "Direct-first avoids unnecessary delegation", spawns(result) == 0, f"agent_spawns={spawns(result)}", metrics(result))
+    process_ok = result["returncode"] == 0 and not result.get("timed_out")
+    record(checks, "Direct-first trivial edit correctness", process_ok and content_ok, trimmed(result["stderr"] or result["last_message"]), metrics(result))
+    record(checks, "Direct-first avoids unnecessary delegation", process_ok and spawns(result) == 0, f"agent_spawns={spawns(result)}", metrics(result))
     git(["reset", "--hard", "HEAD"], sandbox)
 
 
 def live_implementer(checks: list[Check], sandbox: Path, args: argparse.Namespace) -> None:
+    progress("[3/3] Implementer: bounded child write")
     result = codex_exec(
         codex_bin=args.codex_bin,
         cwd=sandbox,
-        prompt="Acceptance test. Use the implementer custom agent exactly once. Change IMPLEMENT.md from `status: old` to `status: new`. Do not change any other tracked file.",
+        prompt=delegation_prompt(
+            "implementer",
+            "Change IMPLEMENT.md from `status: old` to `status: new`. Do not change any other tracked file.",
+        ),
         main_model=args.main_model,
         reasoning_effort=args.reasoning_effort,
         sandbox_mode="workspace-write",
@@ -341,7 +413,14 @@ def live_implementer(checks: list[Check], sandbox: Path, args: argparse.Namespac
     changed = (sandbox / "IMPLEMENT.md").read_text(encoding="utf-8") == "status: new\n"
     names = [line.strip() for line in git(["diff", "--name-only"], sandbox).stdout.splitlines() if line.strip()]
     ok = result["returncode"] == 0 and spawns(result) >= 1 and changed
-    record(checks, "Live Implementer invocation", ok, f"spawns={spawns(result)} changed={names} roles={spawn_roles(result)} models={spawn_models(result)}", metrics(result))
+    diagnostic = runtime_diagnostic(result)
+    detail = f"spawns={spawns(result)} changed={names} roles={spawn_roles(result)} models={spawn_models(result)}"
+    if diagnostic:
+        detail += f"; {diagnostic}"
+    stderr = trimmed(result["stderr"])
+    if stderr:
+        detail += f"; {stderr}"
+    record(checks, "Live Implementer invocation", ok, detail, metrics(result))
     record(checks, "Implementer write scope", names == ["IMPLEMENT.md"], f"changed={names}")
     models = spawn_models(result)
     if models and "gpt-5.6-terra" not in models:
@@ -361,17 +440,22 @@ def live_extended(checks: list[Check], sandbox: Path, args: argparse.Namespace) 
         ("reviewer", "Review src/retry.py for correctness defects. Do not edit files.", "gpt-5.6-terra"),
         ("architect", "Assess whether this tiny sandbox needs architectural restructuring. Do not edit files.", "gpt-5.6-sol"),
     ]
-    for role, task, expected_model in cases:
+    for index, (role, task, expected_model) in enumerate(cases, start=1):
+        progress(f"[extended {index}/{len(cases)}] {role}")
         result = codex_exec(
             codex_bin=args.codex_bin,
             cwd=sandbox,
-            prompt=f"Acceptance test. Use the {role} custom agent exactly once. {task}",
+            prompt=delegation_prompt(role, task),
             main_model=args.main_model,
             reasoning_effort=args.reasoning_effort,
             sandbox_mode="read-only",
             timeout=args.timeout,
         )
-        record(checks, f"Extended live role: {role}", result["returncode"] == 0 and spawns(result) >= 1, f"spawns={spawns(result)} roles={spawn_roles(result)} models={spawn_models(result)}", metrics(result))
+        diagnostic = runtime_diagnostic(result)
+        detail = f"spawns={spawns(result)} roles={spawn_roles(result)} models={spawn_models(result)}"
+        if diagnostic:
+            detail += f"; {diagnostic}"
+        record(checks, f"Extended live role: {role}", result["returncode"] == 0 and spawns(result) >= 1, detail, metrics(result))
         models = spawn_models(result)
         if models and expected_model not in models:
             warn(checks, f"{role} model telemetry", f"expected={expected_model}; observed={models}")
