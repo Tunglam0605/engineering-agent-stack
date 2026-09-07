@@ -52,6 +52,7 @@ def validate_meta(meta: dict[str, Any]) -> None:
 
 
 def receiver_roles(item: dict[str, Any]) -> list[str]:
+    """Extract optional role metadata from legacy/extended collaboration payloads."""
     roles: list[str] = []
     receivers = item.get("receiver_agents", [])
     if not isinstance(receivers, list):
@@ -62,6 +63,14 @@ def receiver_roles(item: dict[str, Any]) -> list[str]:
             if isinstance(role, str) and role:
                 roles.append(role)
     return roles
+
+
+def receiver_thread_ids(item: dict[str, Any]) -> list[str]:
+    """Extract receiver thread IDs exposed by current Codex exec JSONL collab items."""
+    values = item.get("receiver_thread_ids", [])
+    if not isinstance(values, list):
+        return []
+    return [value for value in values if isinstance(value, str) and value]
 
 
 def summarize_events(events: list[dict[str, Any]]) -> dict[str, Any]:
@@ -78,6 +87,7 @@ def summarize_events(events: list[dict[str, Any]]) -> dict[str, Any]:
     agent_spawn_models: list[str] = []
     agent_spawn_reasoning: list[str] = []
     agent_spawn_roles: list[str] = []
+    agent_spawn_thread_ids: list[str] = []
     item_type_counts: dict[str, int] = {}
 
     for event in events:
@@ -115,10 +125,20 @@ def summarize_events(events: list[dict[str, Any]]) -> dict[str, Any]:
                 changes = item.get("changes", [])
                 if isinstance(changes, (list, dict)):
                     file_changes += len(changes)
-            if item_type == "collab_agent_tool_call":
+
+            # Current Codex exec JSONL serializes collaboration calls as
+            # `collab_tool_call`. Older/experimental traces used
+            # `collab_agent_tool_call`. Accept both so real-machine acceptance
+            # does not report a false zero-spawn result across CLI revisions.
+            if item_type in {"collab_tool_call", "collab_agent_tool_call"}:
                 collab_tool_calls += 1
                 if item.get("tool") == "spawn_agent":
                     agent_spawns += 1
+                    agent_spawn_thread_ids.extend(receiver_thread_ids(item))
+
+                    # These fields are optional. Current codex exec JSONL
+                    # exposes receiver thread IDs but does not currently carry
+                    # child model/role/reasoning metadata in CollabToolCallItem.
                     model = item.get("model")
                     if isinstance(model, str) and model:
                         agent_spawn_models.append(model)
@@ -140,6 +160,7 @@ def summarize_events(events: list[dict[str, Any]]) -> dict[str, Any]:
             "file_changes": file_changes,
             "collab_tool_calls": collab_tool_calls,
             "agent_spawns": agent_spawns,
+            "agent_spawn_thread_ids": agent_spawn_thread_ids,
             "agent_spawn_models": agent_spawn_models,
             "agent_spawn_reasoning": agent_spawn_reasoning,
             "agent_spawn_roles": agent_spawn_roles,
