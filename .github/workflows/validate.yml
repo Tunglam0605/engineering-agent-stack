@@ -41,69 +41,57 @@ jobs:
       - name: Validate benchmark contracts
         run: python scripts/validate_benchmarks.py
 
-      - name: Smoke-test Codex installer
+      - name: Smoke-test Codex installer and parent instructions
         run: |
           mkdir -p /tmp/eas-codex-project
-          python scripts/install_codex.py --project /tmp/eas-codex-project --dry-run
-          python scripts/install_codex.py --project /tmp/eas-codex-project
-          python scripts/install_codex.py --project /tmp/eas-codex-project --check
+          git -C /tmp/eas-codex-project init
+          python scripts/install_codex.py --project /tmp/eas-codex-project --project-instructions --dry-run
+          python scripts/install_codex.py --project /tmp/eas-codex-project --project-instructions
+          python scripts/install_codex.py --project /tmp/eas-codex-project --project-instructions --check
 
       - name: Smoke-test controlled task tooling
         run: |
-          python scripts/grade_benchmark_task.py \
-            --task-id scout-symbol-001 \
-            --last-message benchmarks/tasks/scout-symbol-001/golden-answer.md \
-            --output /tmp/scout-grade.json
-
-          python scripts/grade_benchmark_task.py \
-            --task-id reviewer-regression-001 \
-            --last-message benchmarks/tasks/reviewer-regression-001/golden-answer.md \
-            --output /tmp/reviewer-grade.json
-
+          python scripts/grade_benchmark_task.py --task-id scout-symbol-001 --last-message benchmarks/tasks/scout-symbol-001/golden-answer.md --output /tmp/scout-grade.json
+          python scripts/grade_benchmark_task.py --task-id reviewer-regression-001 --last-message benchmarks/tasks/reviewer-regression-001/golden-answer.md --output /tmp/reviewer-grade.json
           cp -R benchmarks/tasks/implementer-bounded-bug-001/workspace /tmp/impl-workspace
           cp benchmarks/tasks/implementer-bounded-bug-001/golden/retry.py /tmp/impl-workspace/src/retry.py
-          python scripts/grade_benchmark_task.py \
-            --task-id implementer-bounded-bug-001 \
-            --workspace /tmp/impl-workspace \
-            --output /tmp/impl-grade.json
-
+          python scripts/grade_benchmark_task.py --task-id implementer-bounded-bug-001 --workspace /tmp/impl-workspace --output /tmp/impl-grade.json
           cp -R benchmarks/tasks/orchestrator-trivial-edit-001/workspace /tmp/direct-workspace
           cp benchmarks/tasks/orchestrator-trivial-edit-001/golden/README.md /tmp/direct-workspace/README.md
-          python scripts/grade_benchmark_task.py \
-            --task-id orchestrator-trivial-edit-001 \
-            --workspace /tmp/direct-workspace \
-            --output /tmp/direct-grade.json
-
-          python scripts/prepare_benchmark_task.py \
-            --task-id scout-symbol-001 \
-            --experiment-id scout-luna-vs-terra \
-            --model gpt-5.6-luna \
-            --reasoning-effort medium \
-            --profile cheap \
-            --destination /tmp/prepared-scout
-
-          python scripts/capture_codex_exec.py \
-            --manifest /tmp/prepared-scout/manifest.yaml \
-            --dry-run
+          python scripts/grade_benchmark_task.py --task-id orchestrator-trivial-edit-001 --workspace /tmp/direct-workspace --output /tmp/direct-grade.json
+          python scripts/prepare_benchmark_task.py --task-id scout-symbol-001 --experiment-id scout-luna-vs-terra --model gpt-5.6-luna --reasoning-effort medium --profile cheap --destination /tmp/prepared-scout
+          python scripts/capture_codex_exec.py --manifest /tmp/prepared-scout/manifest.yaml --dry-run
 
       - name: Smoke-test Codex run capture pipeline
         run: |
-          python scripts/capture_codex_exec.py \
-            --manifest benchmarks/run-manifest.example.yaml \
-            --dry-run
-          python scripts/normalize_codex_exec.py \
-            --events benchmarks/fixtures/codex-exec-events.jsonl \
-            --manifest benchmarks/run-manifest.example.yaml \
-            --latency-ms 1234.5 \
-            --started-at 2026-09-07T00:00:00+00:00 \
-            --finished-at 2026-09-07T00:00:01.234500+00:00 \
-            --output /tmp/capture.json
-          python scripts/promote_run_capture.py /tmp/capture.json \
-            --score 0.98 \
-            --threshold 0.95 \
-            --grader synthetic-ci-fixture \
-            --output /tmp/benchmark.jsonl
+          python scripts/capture_codex_exec.py --manifest benchmarks/run-manifest.example.yaml --dry-run
+          python scripts/normalize_codex_exec.py --events benchmarks/fixtures/codex-exec-events.jsonl --manifest benchmarks/run-manifest.example.yaml --latency-ms 1234.5 --started-at 2026-09-07T00:00:00+00:00 --finished-at 2026-09-07T00:00:01.234500+00:00 --output /tmp/capture.json
+          python -c "import json; d=json.load(open('/tmp/capture.json', encoding='utf-8')); e=d['event_summary']; assert e['agent_spawns'] == 1; assert e['agent_spawn_models'] == ['gpt-5.6-luna']; assert e['agent_spawn_roles'] == ['scout']"
+          python scripts/promote_run_capture.py /tmp/capture.json --score 0.98 --threshold 0.95 --grader synthetic-ci-fixture --output /tmp/benchmark.jsonl
           python scripts/summarize_benchmarks.py /tmp/benchmark.jsonl
+
+      - name: Smoke-test offline acceptance harness
+        run: python scripts/acceptance_test_codex.py --offline --report /tmp/acceptance.md
 
       - name: Check generated Codex adapter drift
         run: python scripts/generate_codex_adapter.py --check
+
+  windows-acceptance-offline:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install validation dependencies
+        run: python -m pip install -r requirements-dev.txt
+
+      - name: Run PowerShell acceptance wrapper offline
+        shell: pwsh
+        run: |
+          & .\scripts\acceptance-test.ps1 -Offline -Report "$env:RUNNER_TEMP\engineering-agent-stack-acceptance.md"
+          Get-Content "$env:RUNNER_TEMP\engineering-agent-stack-acceptance.md"
