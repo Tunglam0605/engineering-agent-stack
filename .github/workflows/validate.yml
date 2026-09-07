@@ -35,5 +35,8 @@ jobs:
       - name: Validate benchmark contracts
         run: python scripts/validate_benchmarks.py
 
+      - name: Smoke-test benchmark summarizer
+        run: python scripts/summarize_benchmarks.py benchmarks/fixtures/synthetic-records.jsonl
+
       - name: Check generated Codex adapter drift
         run: python scripts/generate_codex_adapter.py --check
