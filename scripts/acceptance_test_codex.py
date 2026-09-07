@@ -80,35 +80,56 @@ def git(args: list[str], cwd: Path, timeout: int = 60) -> subprocess.CompletedPr
     return run(["git", *args], cwd=cwd, timeout=timeout)
 
 
+def _prefer_windows_cmd_shim(path: Path) -> Path:
+    """Prefer an adjacent npm `.cmd` launcher over `.ps1` on Windows.
+
+    npm normally installs both launchers. Running the PowerShell shim through
+    `powershell.exe -File` is fragile for CLI arguments such as the lone `-`
+    stdin marker used by `codex exec`; PowerShell may try to parse that marker
+    itself before the npm shim can forward it. The `.cmd` shim forwards the
+    argument vector without that PowerShell parameter-binding ambiguity.
+    """
+    if os.name == "nt" and path.suffix.lower() == ".ps1":
+        cmd_sibling = path.with_suffix(".cmd")
+        if cmd_sibling.is_file():
+            return cmd_sibling
+    return path
+
+
 def resolve_command(command: str) -> str | None:
     """Resolve executables plus Windows npm launchers such as codex.cmd/codex.ps1."""
     raw = Path(command).expanduser()
     if raw.is_file():
-        return str(raw.resolve())
+        return str(_prefer_windows_cmd_shim(raw.resolve()))
 
-    found = shutil.which(command)
-    if found:
-        return found
-
+    # On Windows, explicitly prefer npm's .cmd shim before generic lookup.
+    # PowerShell commonly resolves the same command name to the .ps1 sibling.
     if os.name == "nt" and raw.suffix == "":
         for suffix in (".cmd", ".exe", ".bat"):
             found = shutil.which(command + suffix)
             if found:
                 return found
 
+    found = shutil.which(command)
+    if found:
+        return str(_prefer_windows_cmd_shim(Path(found).resolve()))
+
+    if os.name == "nt" and raw.suffix == "":
         # PowerShell scripts are not normally part of PATHEXT, so search PATH explicitly.
         for directory in os.environ.get("PATH", "").split(os.pathsep):
             if not directory:
                 continue
             candidate = Path(directory) / f"{command}.ps1"
             if candidate.is_file():
-                return str(candidate.resolve())
+                return str(_prefer_windows_cmd_shim(candidate.resolve()))
     return None
 
 
 def external_command(executable: str, args: list[str]) -> list[str]:
     """Build a subprocess-safe command for native binaries and Windows wrappers."""
-    suffix = Path(executable).suffix.lower()
+    executable_path = _prefer_windows_cmd_shim(Path(executable).expanduser())
+    executable = str(executable_path)
+    suffix = executable_path.suffix.lower()
     if os.name == "nt" and suffix == ".ps1":
         return [
             "powershell.exe",
