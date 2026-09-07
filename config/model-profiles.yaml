@@ -1,0 +1,45 @@
+version: 1
+status: candidate
+principle: role-and-compute-profile-are-independent
+profiles:
+  cheap:
+    purpose:
+      - repository scanning
+      - classification
+      - simple validation
+    reasoning: low
+    candidate_models:
+      openai: gpt-5.6-luna
+    escalation_to: standard
+  standard:
+    purpose:
+      - ordinary implementation
+      - ordinary debugging
+      - test authoring
+    reasoning: medium
+    candidate_models:
+      openai: gpt-5.6-terra
+    escalation_to: deep
+  deep:
+    purpose:
+      - difficult root-cause analysis
+      - complex implementation
+      - high-confidence review
+    reasoning: high
+    candidate_models:
+      openai: gpt-5.6-terra
+    escalation_to: critical
+  critical:
+    purpose:
+      - architecture
+      - security-sensitive decisions
+      - realtime and safety-critical review
+      - release-critical assurance
+    reasoning: high
+    candidate_models:
+      openai: gpt-5.6-sol
+    escalation_to: null
+notes:
+  - Candidate model mappings are not role identity.
+  - Mappings must be benchmarked and may change without changing canonical roles.
+  - Provider adapters may select equivalent models according to measured quality and cost.

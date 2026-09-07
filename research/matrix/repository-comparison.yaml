@@ -1,0 +1,42 @@
+version: 1
+status: preliminary
+repositories:
+  - name: msitarzewski/agency-agents
+    focus: specialist-role-design
+    decisions:
+      role_contracts: ADOPT
+      large_default_catalog: REJECT
+      specialist_taxonomy: ADAPT
+      personality_density: EXPERIMENT
+  - name: Yeachan-Heo/oh-my-codex
+    focus: codex-orchestration
+    decisions:
+      direct_first: ADOPT
+      leader_owned_verification: ADOPT
+      specialist_routing: ADAPT
+      mandatory_complex_modes: REJECT
+  - name: infiquetra/infiquetra-codex-plugins
+    focus: verified-workflows
+    decisions:
+      role_compute_separation: ADOPT
+      independent_review: ADOPT
+      disjoint_write_sets: ADOPT
+      typed_results: ADOPT
+      full_contract_for_every_task: ADAPT
+  - name: trailofbits/codex-config
+    focus: codex-configuration
+    decisions:
+      current_docs_before_config_changes: ADOPT
+      conservative_local_overrides: ADOPT
+  - name: KevinBigham/codex-safe-starter
+    focus: safe-codex-workflow
+    decisions:
+      readonly_explore_review: ADOPT
+      narrow_verification: ADOPT
+      reversible_setup: ADOPT
+  - name: awslabs/cli-agent-orchestrator
+    focus: multi-agent-cli-orchestration
+    decisions:
+      topology: EXPERIMENT
+      failure_recovery: EXPERIMENT
+      workspace_isolation: EXPERIMENT

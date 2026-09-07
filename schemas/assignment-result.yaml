@@ -1,0 +1,23 @@
+version: 1
+required_fields:
+  - assignment_id
+  - status
+  - summary
+  - evidence
+  - confidence
+  - changed_paths
+  - validation
+  - escalation
+status_values:
+  - completed
+  - blocked
+  - failed
+confidence_values:
+  - low
+  - medium
+  - high
+notes:
+  - Results should be concise and evidence-oriented.
+  - Raw transcripts are not a result contract.
+  - A writer must report all changed paths.
+  - A blocked/failed assignment must state the blocking evidence and recommended next action.

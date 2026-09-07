@@ -1,0 +1,53 @@
+version: 1
+status: draft
+default: direct
+rules:
+  - id: trivial-direct
+    when:
+      task_complexity: trivial
+      risk: low
+    action: direct
+  - id: discovery-cheap
+    when:
+      task_shape: discovery
+      risk: low
+    action: delegate
+    role: scout
+    profile: cheap
+  - id: research-cheap
+    when:
+      task_shape: external-research
+      risk: low
+    action: delegate
+    role: researcher
+    profile: cheap
+  - id: ordinary-implementation
+    when:
+      task_shape: implementation
+      risk: normal
+    action: delegate
+    role: implementer
+    profile: standard
+  - id: hard-debug
+    when:
+      task_shape: debugging
+      uncertainty: high
+    action: delegate
+    role: debugger
+    profile: deep
+  - id: critical-architecture
+    when:
+      risk: critical
+    action: delegate
+    role: architect
+    profile: critical
+quality_gate:
+  review_required_for:
+    - high-risk
+    - critical-risk
+    - release-critical
+  verify_every_change: true
+limits:
+  default_max_parallel_readers: 4
+  default_max_parallel_writers: 1
+  recursive_delegation: false

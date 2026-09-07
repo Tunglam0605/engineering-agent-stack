@@ -1,0 +1,21 @@
+version: 1
+required_fields:
+  - id
+  - mission
+  - non_goals
+  - access
+  - inputs
+  - output_contract
+  - compatible_profiles
+  - escalation
+  - completion_evidence
+field_notes:
+  id: stable provider-neutral role identifier
+  mission: one responsibility-oriented mission
+  non_goals: explicit boundaries that prevent scope creep
+  access: read/write/test/network intent; adapter enforces actual capabilities
+  inputs: minimum information needed to start
+  output_contract: bounded structured result
+  compatible_profiles: semantic compute tiers, never permanent provider model identity
+  escalation: evidence-based handoff conditions
+  completion_evidence: what must be proven before the assignment can close
