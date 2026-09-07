@@ -88,6 +88,17 @@ if (-not $Offline) {
     }
     if ($CodexCommand.Source) {
         $ResolvedCodexBin = $CodexCommand.Source
+
+        # npm installs sibling .ps1 and .cmd launchers. PowerShell normally
+        # resolves the .ps1 first, but `codex exec ... -` uses a lone '-' stdin
+        # marker that is fragile when a shim is re-entered via powershell -File.
+        # Prefer the .cmd sibling so the complete argv reaches Codex unchanged.
+        if ([System.IO.Path]::GetExtension($ResolvedCodexBin).ToLowerInvariant() -eq ".ps1") {
+            $CmdSibling = [System.IO.Path]::ChangeExtension($ResolvedCodexBin, ".cmd")
+            if (Test-Path -LiteralPath $CmdSibling) {
+                $ResolvedCodexBin = $CmdSibling
+            }
+        }
     }
 }
 
