@@ -6,37 +6,33 @@ All notable project changes will be documented here.
 
 ### Added
 - Research Wave 2 analysis covering OpenAI Agents SDK, Microsoft Agent Framework, AutoGen, LangGraph, Deep Agents, CrewAI, smolagents and OpenHands.
-- Authoritative `openai/codex` implementation/public-contract research note.
-- Current official Codex subagent and OpenAI model-palette source notes.
-- Research Wave 2 synthesis and over-orchestration anti-pattern guidance.
-- Seven provider-neutral core role definitions.
-- Semantic core-agent contract validator.
+- Authoritative `openai/codex` implementation/public-contract research notes.
+- Seven provider-neutral core role definitions and semantic contract validation.
 - Executable deterministic routing-policy evaluator.
-- Deterministic Codex adapter generator with `--check` drift mode.
+- Deterministic Codex adapter generator with drift checking.
 - Codex role-to-semantic-profile mapping separate from canonical roles.
-- Development dependency manifest for YAML-based validation/generation.
 - Normalized benchmark/run-capture contracts and Codex JSONL capture pipeline.
-- `controlled-v1` benchmark suite with scout, implementer, reviewer and trivial-orchestration tasks.
-- Deterministic text-evidence and command/test task graders.
-- Controlled workspace materializer that generates concrete Codex run manifests.
-- Safe Codex installer with project/personal scope, dry-run, drift check, conflict refusal, and backup-on-force behavior.
+- `controlled-v1` benchmark suite with deterministic text/test graders.
+- Safe Codex installer with project/personal scope, dry-run, drift check, conflict refusal, and backup behavior.
+- Managed parent-orchestration block for target-project `AGENTS.md`.
 - `ACKNOWLEDGEMENTS.md` with explicit credit to all repositories currently in the research matrix.
-- `docs/PROVENANCE.md` defining conceptual, adapted, vendored, and generated-material provenance classes.
-- Provenance validator that ensures all research-matrix repositories are acknowledged.
-- Dedicated Codex installation guide.
-- CI coverage for provenance, installer, controlled task validation, preparation, grading, capture, and adapter drift.
+- `docs/PROVENANCE.md` and provenance validation.
+- Windows Codex installation/acceptance documentation.
+- One-command PowerShell acceptance wrapper and cross-platform Python acceptance harness.
+- Disposable live acceptance sandbox covering Scout read-only, direct-first, and Implementer bounded-write behavior.
+- Optional extended live coverage for Researcher, Debugger, Test Engineer, Reviewer, and Architect.
+- Observable `collab_agent_tool_call` / `spawn_agent` telemetry normalization for child model, reasoning, and role metadata when exposed by Codex.
+- Offline Windows GitHub Actions acceptance job.
 
 ### Changed
 - Repository comparison matrix remains the source-of-truth list for acknowledged research inputs.
-- `config/model-profiles.yaml` uses the explicit `gpt-5.6-sol` model ID for the critical candidate while retaining Astra as benchmark-only.
-- Codex adapter follows current public standalone custom-agent discovery rather than internal/undocumented role-registration mechanisms.
-- Scout and researcher keep the Luna cost tier but default to medium reasoning in the Codex adapter as a quality floor.
-- Routing fixtures contain explicit classified signals; policy routing and natural-language classifier evaluation are separated.
-- Benchmark experiments reference concrete controlled task IDs.
-- Context budgeting is now explicitly adaptive across input context, work budget, and result budget instead of being interpreted as a hard total-token quota.
-- README now documents upstream research lineage, thanks, attribution rules, installation flow, and current benchmark status.
-- Contribution and repository-agent rules now require license-aware provenance for directly adapted or vendored third-party material.
-- Roadmap marks the Codex installer/provenance gates complete and real project smoke testing/repeated real runs as the next release gates.
+- `config/model-profiles.yaml` uses `gpt-5.6-sol` for the critical candidate while retaining Astra as benchmark-only.
+- Scout and researcher retain the Luna cost tier but use medium reasoning as the current quality-floor candidate.
+- Context budgeting is adaptive across input context, work budget, and result budget rather than a hard total-token quota.
+- Project-scoped installation can now install/refresh only the managed Engineering Agent Stack block inside an existing `AGENTS.md`.
+- README now makes Windows + Codex project-scoped acceptance the primary quick-start path and retains explicit upstream acknowledgements.
+- CI now asserts synthetic subagent-spawn telemetry, project parent instructions, and Windows offline acceptance.
+- v0.1 release gating now depends on a real Windows Codex live acceptance run rather than adding more agent prompts.
 
 ## [0.0.1] - 2026-09-07
 
