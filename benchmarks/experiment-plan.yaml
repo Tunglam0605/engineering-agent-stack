@@ -1,0 +1,87 @@
+version: 1
+status: planned
+objective: preserve-required-quality-while-minimizing-unnecessary-compute
+primary_metric: quality_per_cost_latency
+comparison_rule:
+  quality_gate_first: true
+  reject_below_threshold: true
+  prefer_lower_compute_when_quality_is_equivalent: true
+experiments:
+  - id: scout-luna-vs-terra
+    role: scout
+    task_families:
+      - repository-discovery
+      - call-flow-tracing
+    candidates:
+      - profile: cheap
+        model_family: luna
+        reasoning: low
+      - profile: cheap
+        model_family: luna
+        reasoning: medium
+      - profile: standard
+        model_family: terra
+        reasoning: medium
+    measures:
+      - quality_score
+      - input_tokens
+      - output_tokens
+      - latency_ms
+      - agent_invocations
+
+  - id: implementer-terra-effort
+    role: implementer
+    task_families:
+      - bounded-bug-fix
+      - small-refactor
+    candidates:
+      - profile: standard
+        model_family: terra
+        reasoning: medium
+      - profile: deep
+        model_family: terra
+        reasoning: high
+    measures:
+      - quality_score
+      - targeted_test_pass
+      - input_tokens
+      - output_tokens
+      - latency_ms
+
+  - id: reviewer-terra-vs-sol
+    role: reviewer
+    task_families:
+      - regression-review
+      - concurrency-review
+      - release-review
+    candidates:
+      - profile: deep
+        model_family: terra
+        reasoning: high
+      - profile: critical
+        model_family: sol
+        reasoning: high
+    measures:
+      - defect_recall
+      - false_positive_rate
+      - input_tokens
+      - output_tokens
+      - latency_ms
+
+  - id: direct-vs-delegate-overhead
+    role: orchestrator
+    task_families:
+      - trivial-edit
+      - obvious-single-file-fix
+    candidates:
+      - topology: direct
+      - topology: delegated
+    measures:
+      - quality_score
+      - total_tokens
+      - latency_ms
+      - agent_invocations
+acceptance:
+  min_repetitions_per_task: 3
+  no_default_change_from_single_run: true
+  record_environment_and_model_version: true
