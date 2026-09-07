@@ -37,7 +37,7 @@ The stack optimizes **routing, context, evidence, verification, and escalation**
 User / Task
     |
     v
-Orchestrator / Main Codex
+Orchestrator / Main Agent
     |
     +--> classify task shape + risk
     +--> DIRECT or DELEGATE
@@ -76,13 +76,11 @@ schemas/         Stable role/result/benchmark contracts
 evals/           Routing and quality evaluation fixtures
 benchmarks/      Controlled cost/latency/quality experiments
 adapters/        Provider/tool-specific integration layers
-scripts/         Validation, installation, acceptance, generation and evaluation tooling
+scripts/         Validation, installation, acceptance, probes and evaluation tooling
 docs/            Architecture, provenance, installation, acceptance and roadmap
 ```
 
 ## Quick start — Windows + Codex
-
-The current Codex adapter is a **v0.1 candidate** suitable for project-scoped testing.
 
 Install development dependencies:
 
@@ -90,7 +88,7 @@ Install development dependencies:
 py -m pip install -r requirements-dev.txt
 ```
 
-Validate the stack:
+Validate the repository:
 
 ```powershell
 py scripts\validate_structure.py
@@ -110,29 +108,39 @@ py scripts\install_codex.py `
   --project-instructions
 ```
 
-`--project-instructions` manages one clearly marked block inside the target project's `AGENTS.md`. Installing child roles alone does not teach the **parent** Codex session when to work directly, when to delegate, how to avoid writer collisions, or when independent review is required.
+`--project-instructions` manages one clearly marked Engineering Agent Stack block inside the target project's `AGENTS.md`.
 
-### One-command Windows acceptance
+### Stack-owned release acceptance
 
-Basic live acceptance:
+Normal live release gate:
 
 ```powershell
 .\scripts\acceptance-test.ps1
 ```
 
-Offline/no-model acceptance:
+Offline/no-model gate:
 
 ```powershell
 .\scripts\acceptance-test.ps1 -Offline
 ```
 
-Extended role coverage:
+The release gate checks repository, routing, installer, direct-first behavior, and exact bounded write scope in a disposable sandbox. It **does not require provider child spawning or child-model routing to pass**.
+
+### Codex provider/runtime probe
+
+Test `spawn_agent`, custom-role selection, Multi-Agent V2 behavior, and child-model telemetry separately:
 
 ```powershell
-.\scripts\acceptance-test.ps1 -Extended
+.\scripts\provider-probe.ps1
 ```
 
-The acceptance harness uses a disposable temporary Git repository; it does **not** test against your production project or install agents globally. It records PASS/WARN/SKIP/FAIL plus token, latency, and observable subagent-spawn telemetry.
+Extended role probe:
+
+```powershell
+.\scripts\provider-probe.ps1 -Extended
+```
+
+A provider probe may fail while the stack-owned release gate remains green. That separation prevents upstream Codex runtime behavior from falsely marking the stack itself as broken.
 
 See [`docs/ACCEPTANCE_WINDOWS.md`](docs/ACCEPTANCE_WINDOWS.md) and [`docs/INSTALL_CODEX.md`](docs/INSTALL_CODEX.md).
 
@@ -164,19 +172,22 @@ Suggested result sizes are **soft/adaptive**, not hard total-token quotas. Criti
 
 See [`policies/context-budget.md`](policies/context-budget.md).
 
-## Observable Codex subagent telemetry
+## Codex telemetry boundary
 
-The Codex JSONL normalizer records observable completed collaboration events when the current Codex build exposes them:
+Codex JSONL is treated as provider telemetry, not as a stack-owned release invariant. The normalizer accepts current `collab_tool_call` spawn items and older/experimental `collab_agent_tool_call` traces.
+
+When exposed, the capture pipeline records:
 
 ```text
-collab_agent_tool_call
-  tool = spawn_agent
-  model
-  reasoning_effort
-  receiver agent role
+agent_spawns
+agent_spawn_thread_ids
+agent_spawn_models
+agent_spawn_roles
+input/output/reasoning tokens
+latency
 ```
 
-This lets acceptance and benchmarks verify not only that a child was spawned, but—when runtime metadata is present—which model/reasoning profile actually executed it. Missing optional telemetry produces a warning rather than fabricated evidence.
+Current Codex builds may omit child model/role metadata. Missing optional telemetry is not fabricated and does not fail the stack-owned release gate.
 
 See [`research/sources/openai-codex-exec-jsonl.md`](research/sources/openai-codex-exec-jsonl.md).
 
@@ -220,12 +231,14 @@ Rules for conceptual references, adapted material, vendored material, generated 
 
 ## Validation
 
-GitHub Actions validates both Linux repository behavior and an **offline Windows acceptance run**. Current gates cover structure, provenance, canonical agent contracts, routing policy, controlled benchmarks, installer behavior, acceptance harness behavior, Codex JSONL capture, and generated adapter drift.
+GitHub Actions validates Linux repository behavior and an **offline Windows stack-owned acceptance run**. CI also includes a Windows UTF-8 subprocess regression so Codex JSONL capture cannot silently fall back to cp1252.
+
+Provider delegation probes are intentionally not executed as release-blocking CI because they depend on external authenticated Codex runtime behavior.
 
 ## Roadmap
 
 - **v0.0.x — Research foundation:** exit criteria reached; research remains continuous.
-- **v0.1.0 — Core agents:** candidate-complete; Windows/local live acceptance is the remaining release gate.
+- **v0.1.0 — Core agents:** stack-owned release acceptance, installer, routing and role contracts; provider delegation remains an observed adapter capability.
 - **v0.2.0 — Efficiency controls:** repeated real traces, context-budget measurement, compute-tier comparison, classifier/routing evaluation.
 - **v0.3.0 — Engineering specialists:** Embedded, STM32, ROS 2, Robotics, and tooling roles only when benchmarks justify them.
 - **v0.4.0 — Evaluation/portability:** multiple provider adapters, routing accuracy, compatibility checks, specialist-vs-core ablations.
