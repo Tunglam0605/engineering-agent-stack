@@ -1,179 +1,185 @@
-# Windows Codex Acceptance Test
+# Windows Acceptance and Codex Provider Probes
 
-This is the recommended first real-machine acceptance path for Engineering Agent Stack.
+Engineering Agent Stack now separates **stack-owned release acceptance** from **Codex provider/runtime diagnostics**.
 
-The harness is project-scoped and disposable: it creates a temporary Git repository, installs the seven custom agents there, validates the parent orchestration instructions, and only then invokes Codex.
+That boundary is intentional. Repository structure, routing policy, installer behavior, direct-first behavior, and bounded write scope are under this project's control. `spawn_agent`, Multi-Agent V2 role selection, child-model routing, and provider telemetry are controlled by the current Codex runtime and must not block the stack release gate.
 
 ## Prerequisites
 
 On Windows:
 
 - Git available on `PATH`
-- Python **3.9 or newer** available as `py` or `python`
-- Codex CLI available as `codex`
+- Python **3.9 or newer** available as `python` or `py`
+- Codex CLI available as `codex` for live checks
 - Codex authenticated through its normal CLI flow
 - development dependencies installed with `py -m pip install -r requirements-dev.txt`
 
-Python 3.9/3.10 are supported through the conditional `tomli` compatibility dependency; Python 3.11+ uses the standard-library `tomllib` module. Python 3.11/3.12 is still recommended for a fresh machine, but upgrading an existing Python 3.9 installation is not required just to run this acceptance harness.
+Python 3.11/3.12 is recommended for a fresh machine, but the validation path is kept compatible with Python 3.9.
 
-Before a live run, these commands should succeed:
+A typical npm Codex installation may expose both `codex.ps1` and `codex.cmd`. The Python launcher resolver prefers the adjacent `.cmd` shim on Windows because `codex exec ... -` is less fragile through that path.
 
-```powershell
-py --version
-Get-Command codex
-codex --version
-```
+## Release gate: stack-owned acceptance
 
-A typical npm Codex installation on Windows may resolve `codex` to a PowerShell launcher such as `codex.ps1`. The acceptance harness prefers the adjacent npm `codex.cmd` launcher when present so `codex exec ... -` receives its stdin marker without PowerShell parameter-binding interference.
-
-If `Get-Command codex` cannot resolve anything, the live acceptance cannot invoke Codex. Install/configure the Codex CLI or pass its exact executable/script path with `-CodexBin`.
-
-## One-command live acceptance
-
-From the Engineering Agent Stack repository in PowerShell:
+Run this for normal project acceptance:
 
 ```powershell
 .\scripts\acceptance-test.ps1
 ```
 
-This performs:
+This validates:
 
-1. repository validators
-2. generated-adapter drift check
-3. isolated sandbox creation
-4. project-scoped installation of all seven custom-agent TOMLs
-5. managed parent orchestration block installation into the sandbox `AGENTS.md`
-6. installation consistency check
-7. live Scout invocation
-8. direct-first trivial edit check
-9. live Implementer invocation
-10. token/latency/subagent-spawn telemetry capture
-11. Markdown acceptance report generation
+1. repository structure and provenance
+2. canonical agent contracts and deterministic routing policy
+3. controlled benchmark contracts
+4. generated Codex adapter drift
+5. Git availability
+6. isolated project-scoped installation of all seven role files
+7. parent orchestration instructions in the sandbox `AGENTS.md`
+8. installer consistency check
+9. direct-first trivial one-file edit behavior
+10. bounded one-file write correctness and exact scope
 
-The basic live acceptance intentionally avoids invoking every role because repeated child-agent calls consume model tokens.
+The live release gate **does not require a child agent to spawn**. Provider-owned delegation behavior is tested separately.
 
-The harness prints live progress markers before Scout, direct-first, and Implementer so a slow model call is distinguishable from a frozen wrapper. A single Codex call timing out is recorded as a failed test case instead of aborting the entire report.
-
-## Codex V2 ephemeral delegation compatibility
-
-Current Codex releases have a known upstream issue in `codex exec --ephemeral` when a V2 child spawn tries to inherit/fork parent history. The root thread exists in memory, but an ephemeral run intentionally has no persisted parent history, so the history-fork path can fail with:
-
-```text
-collab spawn failed: no thread with id: <root-thread-id>
-```
-
-Upstream tracking: <https://github.com/openai/codex/issues/41474>
-
-The acceptance harness therefore makes the intended Engineering Agent Stack context policy explicit: delegated smoke tests request `fork_turns = "none"` and put the complete bounded assignment in the child message. This is both a runtime compatibility measure and the desired minimal-context behavior for normal role delegation.
-
-If a real task genuinely requires inherited parent history, do not silently classify an ephemeral history-fork failure as an agent-quality failure. Use a persistent Codex session or wait for the upstream ephemeral fork path to be fixed, then test that history-dependent workflow separately.
-
-Some affected Codex V2 releases also reject short explicit `wait_agent` values with an error such as:
-
-```text
-timeout_ms must be at least 10000
-```
-
-The managed parent instructions and acceptance prompts therefore tell Codex to omit `timeout_ms` or use at least `10000` ms.
-
-## Offline acceptance
-
-Use this first when you only want to verify Windows compatibility and installation logic without consuming model tokens:
+Offline/no-model acceptance:
 
 ```powershell
 .\scripts\acceptance-test.ps1 -Offline
 ```
 
-The Python entry point defaults to offline mode:
+Direct Python entry point:
 
 ```powershell
-py scripts\acceptance_test_codex.py
+py scripts\acceptance_core.py --offline
 ```
 
-## Extended live acceptance
-
-After the basic test passes:
+The legacy Python path remains as a compatibility shim:
 
 ```powershell
-.\scripts\acceptance-test.ps1 -Extended
+py scripts\acceptance_test_codex.py --offline
 ```
 
-This additionally invokes Researcher, Debugger, Test Engineer, Reviewer, and Architect. Architect currently maps to the critical Sol candidate, so extended acceptance costs more than the basic test.
+## Provider/runtime diagnostic: child delegation
 
-## Custom Codex executable path
-
-If Codex is installed but is not exposed as `codex` on `PATH`, pass its exact executable or script path:
+Run this only when you explicitly want to test the current Codex runtime's multi-agent behavior:
 
 ```powershell
-.\scripts\acceptance-test.ps1 -CodexBin "C:\path\to\codex.cmd"
+.\scripts\provider-probe.ps1
 ```
 
-The harness supports normal executables plus Windows npm launchers such as `.cmd`, `.bat`, and `.ps1`.
+The basic provider probe tests:
 
-## Report
+- Scout custom-role spawn
+- Scout read-only behavior
+- Implementer custom-role spawn
+- Implementer bounded write scope
+- child model/role telemetry when the current JSONL schema exposes it
 
-By default reports are written under:
+Extended provider probe:
+
+```powershell
+.\scripts\provider-probe.ps1 -Extended
+```
+
+This additionally probes Researcher, Debugger, Test Engineer, Reviewer, and Architect.
+
+A provider probe can FAIL while the stack-owned release gate remains PASS. That means the current Codex runtime did not satisfy the requested provider capability; it is diagnostic evidence, not proof that repository routing/installation logic is broken.
+
+## Why the split exists
+
+The project previously mixed two different contracts:
+
+```text
+STACK-OWNED
+  repository -> roles -> routing -> installer -> direct/write invariants
+
+PROVIDER-OWNED
+  Codex runtime -> spawn_agent -> custom role selection -> child model -> telemetry
+```
+
+That made upstream Codex runtime changes look like stack release failures. The two paths are now isolated so debugging one does not repeatedly block the other.
+
+## UTF-8 subprocess handling
+
+Codex JSONL is UTF-8. Windows engineering environments can inherit legacy code pages such as cp1252 from Python distributions or toolchains.
+
+All subprocess capture in the acceptance core now explicitly uses:
+
+```python
+encoding="utf-8"
+errors="replace"
+```
+
+and the JSONL parser accepts `None`/empty output as a zero-event stream instead of crashing. The PowerShell wrappers also launch Python in UTF-8 mode as an additional defense.
+
+This prevents the previous failure chain:
+
+```text
+cp1252 UnicodeDecodeError
+    -> subprocess reader thread dies
+    -> stdout becomes None
+    -> JSONL parser crashes on splitlines()
+```
+
+CI includes Linux and Windows regression checks for UTF-8 subprocess capture.
+
+## Reports
+
+Release-gate reports:
 
 ```text
 acceptance-reports/acceptance-<UTC timestamp>.md
 ```
 
-The directory is ignored by Git.
-
-Statuses mean:
-
-- `PASS`: required condition observed
-- `WARN`: non-blocking telemetry difference/incomplete field
-- `SKIP`: intentionally not exercised
-- `FAIL`: blocking acceptance condition not met
-
-A basic live acceptance should not be called stable if it has any `FAIL`.
-
-## What the live test proves
+Provider-probe reports:
 
 ```text
-parent Codex
-    |
-    +-- trivial edit ----------> direct, expected 0 child spawns
-    |
-    +-- explicit Scout -------> fresh bounded child, no tracked file changes
-    |
-    +-- explicit Implementer -> fresh bounded child, bounded write
+acceptance-reports/provider-probe-<UTC timestamp>.md
 ```
 
-Current Codex `exec --json` serializes collaboration activity as `collab_tool_call` items. Older/experimental traces may use `collab_agent_tool_call`; the parser accepts both so CLI-version differences do not create false zero-spawn results.
+The report directory is ignored by Git.
 
-For a current `spawn_agent` item, the JSONL payload exposes receiver thread IDs, prompt/state, and status. It does **not** currently expose child model, reasoning effort, or custom role metadata in the `CollabToolCallItem` payload. The harness therefore records:
+Release-gate statuses:
 
-- `agent_spawns`
-- `agent_spawn_thread_ids`
-- input/output/reasoning token usage
-- latency
-- timeout state
-- model/role/reasoning metadata only when the CLI actually emits those optional fields
+- `PASS`: required stack-owned condition observed
+- `WARN`: optional runtime telemetry was unavailable
+- `SKIP`: intentionally not exercised
+- `FAIL`: repository/installer/direct-write invariant failed and blocks the release gate
 
-Missing model/role fields are reported as `WARN`, not guessed and not treated as proof that delegation failed. A successful spawn plus the behavioral checks is enough for the basic acceptance path; exact child model/role verification requires a runtime telemetry surface that exposes those fields.
+Provider-probe failures are intentionally separate from release-gate status.
 
 ## Safety
 
-The harness:
+Both paths use disposable temporary Git repositories. They do not:
 
-- never tests against your production project
-- uses a disposable temporary Git repository
-- does not install agents globally
-- does not overwrite your personal Codex configuration
-- does not copy raw Codex transcripts into the final Markdown report
-- resets write-test workspaces after each case
-- keeps live Codex runs ephemeral while avoiding inherited-history forks for normal bounded delegation
+- test against your production project
+- install agents globally
+- overwrite personal Codex configuration
+- commit raw Codex transcripts to the repository
 
-Use `--keep-sandbox` with the Python entry point only when you intentionally want to inspect the disposable repository after the run.
+Write tests reset their disposable workspace after each case.
+
+## Custom Codex executable path
+
+Release gate:
+
+```powershell
+.\scripts\acceptance-test.ps1 -CodexBin "C:\path\to\codex.cmd"
+```
+
+Provider probe:
+
+```powershell
+.\scripts\provider-probe.ps1 -CodexBin "C:\path\to\codex.cmd"
+```
 
 ## If PowerShell blocks local scripts
 
-Run the Python entry point directly:
+Run the Python entry points directly:
 
 ```powershell
-py scripts\acceptance_test_codex.py --live
+py scripts\acceptance_core.py --live
+py scripts\provider_probe_codex.py
 ```
 
 No permanent PowerShell execution-policy change is required.
