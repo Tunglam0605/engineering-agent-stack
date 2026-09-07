@@ -13,7 +13,7 @@ Status: **exit criteria reached; research remains continuous.**
 
 ## v0.1.0 — Core agents
 
-Status: **candidate complete; real Windows Codex acceptance remains before tag.**
+Status: **stack-owned candidate acceptance passed on Windows; provider delegation remains a known runtime limitation before tag review.**
 
 Completed:
 
@@ -25,17 +25,20 @@ Completed:
 - managed parent orchestration instructions for project `AGENTS.md` ✅
 - one-command Windows acceptance harness ✅
 - offline Windows GitHub Actions acceptance ✅
-- observable subagent spawn/model/reasoning telemetry normalization ✅
+- observable public-JSONL spawn-event/model/reasoning telemetry normalization ✅
 - acknowledgements/provenance CI gates ✅
+- live Windows stack-owned acceptance on `codex-cli 0.153.4` ✅
+- direct-first trivial edit with zero public JSONL spawn events observed ✅
+- bounded one-file write correctness and exact scope ✅
+- first real token/latency acceptance traces ✅
 
 Remaining before a v0.1.0 tag:
 
-- run basic live acceptance on the user's current Windows Codex build
-- confirm custom-agent discovery on that build
-- confirm Scout read-only and Implementer bounded-write behavior
-- confirm direct-first trivial edit produces zero child spawns
-- record first real token/latency traces
-- resolve any compatibility differences found by the live test
+- independently review the release-critical hardening changes
+- decide whether to tag with the documented Codex provider limitation or wait for an upstream fix
+- rerun the basic provider probe when the provider is healthy; on 2026-09-07 Scout returned a read-only summary but no public JSONL spawn item, while Implementer ended with a final provider message reporting `502 Bad Gateway` and no edit; both exposed collaboration calls but no completed `spawn_agent` item
+- confirm runtime custom-role selection and child model/role telemetry after a child spawn completes
+- run the extended role probe only after the basic provider probe is healthy
 
 ## v0.2.0 — Efficiency controls
 

@@ -29,6 +29,7 @@ jobs:
 
       - name: Smoke-test provider probe configuration
         run: |
+          python -m unittest tests/test_release_hardening.py
           python -c "import sys; from pathlib import Path; sys.path.insert(0,'scripts'); import provider_probe_codex as p; o=p.provider_overrides(Path('/tmp/eas-provider')); assert any(x.startswith('agents.scout.config_file=') for x in o); q=p.delegation_prompt('scout','inspect README'); assert 'agent_type `scout`' in q and 'fork_turns `none`' in q"
 
       - name: Validate repository structure

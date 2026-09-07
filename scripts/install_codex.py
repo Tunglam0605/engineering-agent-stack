@@ -16,12 +16,23 @@ from pathlib import Path
 import shutil
 import sys
 
+try:
+    import tomllib
+except ModuleNotFoundError:  # Python 3.9 compatibility.
+    import tomli as tomllib
+
 ROOT = Path(__file__).resolve().parents[1]
 SOURCE_AGENTS = ROOT / "adapters" / "codex" / "agents"
 CONFIG_EXAMPLE = ROOT / "adapters" / "codex" / "config.toml.example"
 PROJECT_INSTRUCTIONS_EXAMPLE = ROOT / "adapters" / "codex" / "AGENTS.md.example"
 MANAGED_START = "<!-- engineering-agent-stack:start -->"
 MANAGED_END = "<!-- engineering-agent-stack:end -->"
+REQUIRED_CONFIG_PATHS = (
+    ("agents", "enabled"),
+    ("features", "multi_agent_v2", "enabled"),
+    ("features", "multi_agent_v2", "wait_agent_enabled"),
+    ("features", "multi_agent_v2", "non_code_mode_only"),
+)
 
 
 def read_text(path: Path) -> str:
@@ -42,15 +53,40 @@ def source_roles() -> list[Path]:
     return roles
 
 
+def nested_value(config: object, path: tuple[str, ...]) -> object:
+    value = config
+    for key in path:
+        if not isinstance(value, dict) or key not in value:
+            raise KeyError(".".join(path))
+        value = value[key]
+    return value
+
+
+def required_config_values() -> list[tuple[tuple[str, ...], object]]:
+    generated = tomllib.loads(read_text(CONFIG_EXAMPLE))
+    return [(path, nested_value(generated, path)) for path in REQUIRED_CONFIG_PATHS]
+
+
 def validate_config(config_path: Path) -> list[str]:
     if not config_path.is_file():
         return [f"missing config: {config_path}"]
-    text = read_text(config_path)
+    try:
+        config = tomllib.loads(read_text(config_path))
+    except tomllib.TOMLDecodeError as exc:
+        return [f"{config_path}: malformed TOML: {exc}"]
+
     problems: list[str] = []
-    if "[agents]" not in text:
-        problems.append(f"{config_path}: missing [agents] table")
-    if "enabled = true" not in text:
-        problems.append(f"{config_path}: [agents] does not visibly enable agents")
+    for path, expected in required_config_values():
+        dotted = ".".join(path)
+        try:
+            actual = nested_value(config, path)
+        except KeyError:
+            problems.append(f"{config_path}: missing required {dotted}={expected!r}")
+            continue
+        if type(actual) is not type(expected) or actual != expected:
+            problems.append(
+                f"{config_path}: {dotted} must be {expected!r}, found {actual!r}"
+            )
     return problems
 
 
@@ -143,6 +179,7 @@ def install(root: Path, *, force: bool, dry_run: bool, project: Path | None = No
     agents_dir = root / "agents"
     config_path = root / "config.toml"
     roles = source_roles()
+    config_problems = validate_config(config_path) if config_path.exists() else []
     conflicts: list[Path] = []
     for src in roles:
         dest = agents_dir / src.name
@@ -154,6 +191,12 @@ def install(root: Path, *, force: bool, dry_run: bool, project: Path | None = No
             print(f"  - {path}")
         print("Re-run with --force only after reviewing the local files.")
         return 2
+    if config_problems:
+        print("REFUSED: existing Codex config is not compatible with this stack.")
+        for problem in config_problems:
+            print(f"  - {problem}")
+        print(f"Merge the required collaboration settings from: {CONFIG_EXAMPLE}")
+        return 2
 
     print(f"target: {root}")
     for src in roles:
@@ -162,7 +205,6 @@ def install(root: Path, *, force: bool, dry_run: bool, project: Path | None = No
         print(f"{state}: {dest}")
     if config_path.exists():
         print(f"preserve: {config_path}")
-        print(f"merge/check [agents] using: {CONFIG_EXAMPLE}")
     else:
         print(f"create: {config_path}")
     if project_instructions:
@@ -185,13 +227,6 @@ def install(root: Path, *, force: bool, dry_run: bool, project: Path | None = No
         root.mkdir(parents=True, exist_ok=True)
         shutil.copy2(CONFIG_EXAMPLE, config_path)
         print(f"created config from generated example: {config_path}")
-    else:
-        problems = validate_config(config_path)
-        if problems:
-            print("NOTICE: roles installed, but existing config requires manual merge:")
-            for problem in problems:
-                print(f"  - {problem}")
-            print(f"reference: {CONFIG_EXAMPLE}")
     if project_instructions and project is not None:
         install_project_instructions(project, dry_run=False)
     print(f"INSTALLED: {len(roles)} generated Codex role(s).")

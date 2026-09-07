@@ -49,3 +49,4 @@ notes:
   - Quality grading is deliberately separated from provider execution and usage capture.
   - Raw event streams may contain sensitive repository/tool output and should stay local by default.
   - Provider price is not embedded in capture records; derive cost from dated pricing snapshots.
+  - Provider-specific event counts describe events observed in the captured stream, not unobservable runtime ground truth; the compatibility field agent_spawns follows this rule.

@@ -24,6 +24,7 @@ import time
 from typing import Any, Dict, List, Optional
 
 from codex_capture_lib import summarize_events
+from install_codex import validate_config
 
 ROOT = Path(__file__).resolve().parents[1]
 CORE_ROLES = (
@@ -103,8 +104,141 @@ def progress(message: str) -> None:
     print("[live] " + message, flush=True)
 
 
-def git(args: List[str], cwd: Path, timeout: int = 60) -> subprocess.CompletedProcess:
-    return run(["git"] + args, cwd=cwd, timeout=timeout)
+def git(
+    args: List[str],
+    cwd: Path,
+    timeout: int = 60,
+    *,
+    text: bool = True,
+) -> subprocess.CompletedProcess:
+    if text:
+        return run(["git"] + args, cwd=cwd, timeout=timeout)
+    return subprocess.run(
+        ["git"] + args,
+        cwd=str(cwd),
+        capture_output=True,
+        check=False,
+        timeout=timeout,
+    )
+
+
+def _output_bytes(value: object) -> bytes:
+    if isinstance(value, bytes):
+        return value
+    if isinstance(value, str):
+        return value.encode("utf-8", errors="surrogateescape")
+    return b""
+
+
+def _git_z_records(result: subprocess.CompletedProcess) -> List[bytes]:
+    return [record for record in _output_bytes(result.stdout).split(b"\0") if record]
+
+
+def _git_path(raw_path: bytes) -> str:
+    """Decode Git's raw pathname bytes with the filesystem's lossless codec."""
+    return os.fsdecode(raw_path)
+
+
+def _index_flagged_paths(sandbox: Path) -> Dict[str, List[str]]:
+    result = git(["ls-files", "-v", "-z", "--"], sandbox, text=False)
+    if result.returncode != 0:
+        raise RuntimeError(
+            "unable to inspect sandbox index flags: "
+            + trimmed(os.fsdecode(_output_bytes(result.stderr or result.stdout)))
+        )
+
+    flagged: Dict[str, List[str]] = {
+        "assume-unchanged": [],
+        "skip-worktree": [],
+    }
+    for record in _git_z_records(result):
+        if len(record) < 3 or record[1:2] != b" ":
+            raise RuntimeError("unable to parse sandbox index flags losslessly")
+        tag = record[:1]
+        path = _git_path(record[2:])
+        if tag in (b"S", b"s"):
+            flagged["skip-worktree"].append(path)
+        if tag.islower():
+            flagged["assume-unchanged"].append(path)
+    return flagged
+
+
+def _raise_for_index_flags(sandbox: Path) -> None:
+    flagged = _index_flagged_paths(sandbox)
+    details = [
+        name + ": " + ", ".join(paths)
+        for name, paths in flagged.items()
+        if paths
+    ]
+    if details:
+        raise RuntimeError(
+            "refusing exact-scope check with abnormal index flags: " + "; ".join(details)
+        )
+
+
+def workspace_delta(sandbox: Path) -> List[str]:
+    """Return every tracked, staged, or untracked path changed in a sandbox."""
+    _raise_for_index_flags(sandbox)
+    commands = (
+        ["diff", "--name-only", "-z", "--"],
+        ["diff", "--cached", "--name-only", "-z", "--"],
+        ["ls-files", "--others", "-z", "--"],
+    )
+    changed = set()
+    for args in commands:
+        result = git(args, sandbox, text=False)
+        if result.returncode != 0:
+            raise RuntimeError(
+                "unable to inspect sandbox workspace delta: "
+                + trimmed(os.fsdecode(_output_bytes(result.stderr or result.stdout)))
+            )
+        for raw_path in _git_z_records(result):
+            changed.add(_git_path(raw_path))
+    return sorted(changed)
+
+
+def clean_sandbox_workspace(sandbox: Path) -> None:
+    """Restore HEAD and remove untracked content inside a disposable sandbox."""
+    expected = sandbox.resolve()
+    if expected == ROOT.resolve():
+        raise RuntimeError("refusing to clean the real repository as a disposable sandbox")
+    top_level = git(["rev-parse", "--show-toplevel"], expected)
+    if top_level.returncode != 0:
+        raise RuntimeError(
+            "refusing sandbox cleanup outside a Git worktree: "
+            + trimmed(top_level.stderr or top_level.stdout)
+        )
+    actual = Path((top_level.stdout or "").strip()).resolve()
+    if actual != expected:
+        raise RuntimeError(
+            "refusing sandbox cleanup because Git top level is {} not {}".format(
+                actual, expected
+            )
+        )
+    flagged = _index_flagged_paths(expected)
+    for flag_name, flagged_paths in flagged.items():
+        if not flagged_paths:
+            continue
+        clear_flags = git(
+            [
+                "update-index",
+                "--no-" + flag_name,
+                "--",
+            ]
+            + sorted(set(flagged_paths)),
+            expected,
+        )
+        if clear_flags.returncode != 0:
+            raise RuntimeError(
+                "sandbox cleanup failed to clear " + flag_name + ": "
+                + trimmed(clear_flags.stderr or clear_flags.stdout)
+            )
+    for args in (["reset", "--hard", "HEAD"], ["clean", "-ffdx"]):
+        result = git(args, expected)
+        if result.returncode != 0:
+            raise RuntimeError(
+                "sandbox cleanup failed: " + trimmed(result.stderr or result.stdout)
+            )
 
 
 def _prefer_windows_cmd_shim(path: Path) -> Path:
@@ -301,7 +435,8 @@ def event_summary(result: Dict[str, Any]) -> Dict[str, Any]:
     return ((result.get("summary") or {}).get("event_summary") or {})
 
 
-def spawns(result: Dict[str, Any]) -> int:
+def observed_spawn_events(result: Dict[str, Any]) -> int:
+    """Return spawn_agent events observed in public Codex exec JSONL."""
     value = event_summary(result).get("agent_spawns", 0)
     return value if isinstance(value, int) else 0
 
@@ -324,7 +459,9 @@ def metrics(result: Dict[str, Any]) -> Dict[str, Any]:
         "output_tokens": usage.get("output_tokens", 0),
         "reasoning_output_tokens": usage.get("reasoning_output_tokens", 0),
         "latency_ms": result.get("latency_ms"),
-        "agent_spawns": spawns(result),
+        # Retain the normalized compatibility key while treating it only as
+        # public JSONL evidence, not proof of runtime child activity.
+        "agent_spawns": observed_spawn_events(result),
         "timed_out": bool(result.get("timed_out")),
     }
 
@@ -345,9 +482,14 @@ def verify_install(checks: List[Check], sandbox: Path) -> bool:
     record(checks, "7/7 project-scoped custom-agent files", roles_ok, "installed=" + repr(installed))
 
     config = sandbox / ".codex" / "config.toml"
-    config_text = config.read_text(encoding="utf-8") if config.is_file() else ""
-    config_ok = "[agents]" in config_text and "enabled = true" in config_text
-    record(checks, "Codex [agents] configuration", config_ok, str(config))
+    config_problems = validate_config(config)
+    config_ok = not config_problems
+    record(
+        checks,
+        "Codex delegation configuration",
+        config_ok,
+        str(config) if config_ok else "; ".join(config_problems),
+    )
 
     agents_md = sandbox / "AGENTS.md"
     instructions = agents_md.read_text(encoding="utf-8") if agents_md.is_file() else ""
@@ -358,86 +500,100 @@ def verify_install(checks: List[Check], sandbox: Path) -> bool:
 
 def live_direct(checks: List[Check], sandbox: Path, args: argparse.Namespace) -> None:
     progress("[1/2] Direct-first: trivial one-file edit")
-    git(["reset", "--hard", "HEAD"], sandbox)
-    result = codex_exec(
-        codex_bin=args.codex_bin,
-        cwd=sandbox,
-        prompt=(
-            "Acceptance sandbox: this one-file edit is already authorized. "
-            "Fix only the typo `teh` to `the` in DIRECT.md, verify the exact diff, "
-            "and do not ask for confirmation. This task is trivial and should be handled directly."
-        ),
-        main_model=args.main_model,
-        reasoning_effort=args.reasoning_effort,
-        sandbox_mode="workspace-write",
-        timeout=args.timeout,
-    )
-    process_ok = result["returncode"] == 0 and not result.get("timed_out")
-    content_ok = (sandbox / "DIRECT.md").read_text(encoding="utf-8") == "This is the direct-path check.\n"
-    names = [line.strip() for line in (git(["diff", "--name-only"], sandbox).stdout or "").splitlines() if line.strip()]
-    diff_check = git(["diff", "--check"], sandbox)
+    clean_sandbox_workspace(sandbox)
+    try:
+        result = codex_exec(
+            codex_bin=args.codex_bin,
+            cwd=sandbox,
+            prompt=(
+                "Acceptance sandbox: this one-file edit is already authorized. "
+                "Fix only the typo `teh` to `the` in DIRECT.md, verify the exact diff, "
+                "and do not ask for confirmation. This task is trivial and should be handled directly."
+            ),
+            main_model=args.main_model,
+            reasoning_effort=args.reasoning_effort,
+            sandbox_mode="workspace-write",
+            timeout=args.timeout,
+        )
+        process_ok = result["returncode"] == 0 and not result.get("timed_out")
+        content_ok = (sandbox / "DIRECT.md").read_text(encoding="utf-8") == "This is the direct-path check.\n"
+        names = workspace_delta(sandbox)
+        unstaged_diff_check = git(["diff", "--check"], sandbox)
+        staged_diff_check = git(["diff", "--cached", "--check"], sandbox)
 
-    record(
-        checks,
-        "Direct-first trivial edit correctness",
-        process_ok and content_ok,
-        trimmed(result["stderr"] or result["last_message"]),
-        metrics(result),
-    )
-    record(
-        checks,
-        "Direct-first exact write scope",
-        process_ok and names == ["DIRECT.md"] and diff_check.returncode == 0,
-        "changed=" + repr(names),
-    )
-    if result.get("summary") is None:
-        warn(checks, "Direct-first delegation telemetry", "Codex JSONL did not expose parseable event telemetry")
-    else:
         record(
             checks,
-            "Direct-first avoids unnecessary delegation",
-            spawns(result) == 0,
-            "agent_spawns=" + str(spawns(result)),
+            "Direct-first trivial edit correctness",
+            process_ok and content_ok,
+            trimmed(result["stderr"] or result["last_message"]),
             metrics(result),
         )
-    git(["reset", "--hard", "HEAD"], sandbox)
+        record(
+            checks,
+            "Direct-first exact write scope",
+            process_ok
+            and names == ["DIRECT.md"]
+            and unstaged_diff_check.returncode == 0
+            and staged_diff_check.returncode == 0,
+            "changed=" + repr(names),
+        )
+        if result.get("summary") is None:
+            warn(checks, "Direct-first delegation telemetry", "Codex JSONL did not expose parseable event telemetry")
+        else:
+            record(
+                checks,
+                "Direct-first public JSONL spawn-event observation",
+                observed_spawn_events(result) == 0,
+                "observed_spawn_events="
+                + str(observed_spawn_events(result))
+                + "; public JSONL does not prove that no child was spawned",
+                metrics(result),
+            )
+    finally:
+        clean_sandbox_workspace(sandbox)
 
 
 def live_bounded_write(checks: List[Check], sandbox: Path, args: argparse.Namespace) -> None:
     progress("[2/2] Bounded write: exact one-file scope")
-    git(["reset", "--hard", "HEAD"], sandbox)
-    result = codex_exec(
-        codex_bin=args.codex_bin,
-        cwd=sandbox,
-        prompt=(
-            "Acceptance sandbox: this change is already authorized. "
-            "Change IMPLEMENT.md from `status: old` to `status: new`. "
-            "Do not change any other tracked file. Verify the final diff and do not ask for confirmation."
-        ),
-        main_model=args.main_model,
-        reasoning_effort=args.reasoning_effort,
-        sandbox_mode="workspace-write",
-        timeout=args.timeout,
-    )
-    process_ok = result["returncode"] == 0 and not result.get("timed_out")
-    content_ok = (sandbox / "IMPLEMENT.md").read_text(encoding="utf-8") == "status: new\n"
-    names = [line.strip() for line in (git(["diff", "--name-only"], sandbox).stdout or "").splitlines() if line.strip()]
-    diff_check = git(["diff", "--check"], sandbox)
+    clean_sandbox_workspace(sandbox)
+    try:
+        result = codex_exec(
+            codex_bin=args.codex_bin,
+            cwd=sandbox,
+            prompt=(
+                "Acceptance sandbox: this change is already authorized. "
+                "Change IMPLEMENT.md from `status: old` to `status: new`. "
+                "Do not change any other path. Verify the final diff and do not ask for confirmation."
+            ),
+            main_model=args.main_model,
+            reasoning_effort=args.reasoning_effort,
+            sandbox_mode="workspace-write",
+            timeout=args.timeout,
+        )
+        process_ok = result["returncode"] == 0 and not result.get("timed_out")
+        content_ok = (sandbox / "IMPLEMENT.md").read_text(encoding="utf-8") == "status: new\n"
+        names = workspace_delta(sandbox)
+        unstaged_diff_check = git(["diff", "--check"], sandbox)
+        staged_diff_check = git(["diff", "--cached", "--check"], sandbox)
 
-    record(
-        checks,
-        "Bounded write correctness",
-        process_ok and content_ok,
-        trimmed(result["stderr"] or result["last_message"]),
-        metrics(result),
-    )
-    record(
-        checks,
-        "Bounded write exact scope",
-        process_ok and names == ["IMPLEMENT.md"] and diff_check.returncode == 0,
-        "changed=" + repr(names),
-    )
-    git(["reset", "--hard", "HEAD"], sandbox)
+        record(
+            checks,
+            "Bounded write correctness",
+            process_ok and content_ok,
+            trimmed(result["stderr"] or result["last_message"]),
+            metrics(result),
+        )
+        record(
+            checks,
+            "Bounded write exact scope",
+            process_ok
+            and names == ["IMPLEMENT.md"]
+            and unstaged_diff_check.returncode == 0
+            and staged_diff_check.returncode == 0,
+            "changed=" + repr(names),
+        )
+    finally:
+        clean_sandbox_workspace(sandbox)
 
 
 def write_report(path: Path, checks: List[Check], *, mode: str, codex_version: Optional[str]) -> None:
@@ -490,6 +646,7 @@ def write_report(path: Path, checks: List[Check], *, mode: str, codex_version: O
             "- `WARN`: optional runtime telemetry was unavailable; the stack-owned condition still completed.",
             "- `SKIP`: intentionally not exercised in this mode.",
             "- `FAIL`: a repository/installer/direct-write invariant failed and blocks the release gate.",
+            "- `agent_spawns` in normalized metrics is a compatibility field counting `spawn_agent` events observed in public JSONL; zero is not proof that no child ran.",
             "",
             "Provider-specific child spawning, role selection, and child-model routing are tested separately by `scripts/provider-probe.ps1`.",
             "",

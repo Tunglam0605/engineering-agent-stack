@@ -37,7 +37,7 @@ This validates:
 7. parent orchestration instructions in the sandbox `AGENTS.md`
 8. installer consistency check
 9. direct-first trivial one-file edit behavior
-10. bounded one-file write correctness and exact scope
+10. bounded one-file write correctness and exact scope across unstaged, staged, and untracked paths
 
 The live release gate **does not require a child agent to spawn**. Provider-owned delegation behavior is tested separately.
 
@@ -69,9 +69,9 @@ Run this only when you explicitly want to test the current Codex runtime's multi
 
 The basic provider probe tests:
 
-- Scout custom-role spawn
+- Scout custom-role `spawn_agent` event observation
 - Scout read-only behavior
-- Implementer custom-role spawn
+- Implementer custom-role `spawn_agent` event observation
 - Implementer bounded write scope
 - child model/role telemetry when the current JSONL schema exposes it
 
@@ -84,6 +84,18 @@ Extended provider probe:
 This additionally probes Researcher, Debugger, Test Engineer, Reviewer, and Architect.
 
 A provider probe can FAIL while the stack-owned release gate remains PASS. That means the current Codex runtime did not satisfy the requested provider capability; it is diagnostic evidence, not proof that repository routing/installation logic is broken.
+
+## Retained local evidence example (2026-09-07)
+
+On Windows `10.0.26200` with Python `3.11.15` and `codex-cli 0.153.4`:
+
+- Stack-owned live acceptance: **PASS** with 0 failures, warnings, or skips. All seven generated roles installed consistently in the disposable project. Direct-first changed only `DIRECT.md`; bounded write changed only `IMPLEMENT.md`.
+- Public JSONL reported zero observed `spawn_agent` events in the direct-first case. This is observational telemetry only and does not prove that no child ran.
+- Basic provider probe: **FAIL** as a provider/runtime diagnostic. Scout remained read-only. The Implementer delegation path reported an upstream `502 Bad Gateway`, the parent did not silently perform the requested edit, and `changed=[]` remained intact.
+- Child role/model telemetry was unavailable in the public JSONL stream. Extended provider probing was not run because the basic probe was unhealthy.
+- Collaboration-call counts, token usage, latency, and other provider telemetry vary from run to run. Treat the Markdown report emitted by the current `acceptance-test.ps1` or `provider-probe.ps1` invocation as the authoritative source for exact measurements from that run.
+
+The generated adapter sets `non_code_mode_only = false`, so installed projects expose Multi-Agent V2 collaboration in code mode. The provider probe exercises that installation default rather than masking it with a probe-only override.
 
 ## Why the split exists
 
@@ -157,7 +169,7 @@ Both paths use disposable temporary Git repositories. They do not:
 - overwrite personal Codex configuration
 - commit raw Codex transcripts to the repository
 
-Write tests reset their disposable workspace after each case.
+Write tests verify the sandbox Git top level, refuse hidden `skip-worktree` or `assume-unchanged` index state during exact-scope checks, clear those flags before resetting tracked/index changes, and remove untracked or ignored content after each case.
 
 ## Custom Codex executable path
 

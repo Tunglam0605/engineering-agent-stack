@@ -2,10 +2,13 @@
 
 Canonical roles and policies are provider-neutral. Adapters translate them into each tool's native configuration format.
 
-Planned adapters:
+Available adapters:
 
 - Codex
+
+Planned adapters:
+
 - Claude Code
 - Gemini CLI
 
-The Codex adapter is planned first. Adapter code/config must not redefine canonical role semantics.
+The Codex adapter is generated, drift-checked, and installable. Adapter code/config must not redefine canonical role semantics.

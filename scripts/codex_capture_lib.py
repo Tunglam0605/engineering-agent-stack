@@ -83,7 +83,7 @@ def summarize_events(events: list[dict[str, Any]]) -> dict[str, Any]:
     tool_calls = 0
     file_changes = 0
     collab_tool_calls = 0
-    agent_spawns = 0
+    observed_spawn_events = 0
     agent_spawn_models: list[str] = []
     agent_spawn_reasoning: list[str] = []
     agent_spawn_roles: list[str] = []
@@ -133,7 +133,7 @@ def summarize_events(events: list[dict[str, Any]]) -> dict[str, Any]:
             if item_type in {"collab_tool_call", "collab_agent_tool_call"}:
                 collab_tool_calls += 1
                 if item.get("tool") == "spawn_agent":
-                    agent_spawns += 1
+                    observed_spawn_events += 1
                     agent_spawn_thread_ids.extend(receiver_thread_ids(item))
 
                     # These fields are optional. Current codex exec JSONL
@@ -159,7 +159,9 @@ def summarize_events(events: list[dict[str, Any]]) -> dict[str, Any]:
             "tool_calls": tool_calls,
             "file_changes": file_changes,
             "collab_tool_calls": collab_tool_calls,
-            "agent_spawns": agent_spawns,
+            # Compatibility field: this is the count of spawn_agent items
+            # observed in public Codex exec JSONL, not runtime ground truth.
+            "agent_spawns": observed_spawn_events,
             "agent_spawn_thread_ids": agent_spawn_thread_ids,
             "agent_spawn_models": agent_spawn_models,
             "agent_spawn_reasoning": agent_spawn_reasoning,

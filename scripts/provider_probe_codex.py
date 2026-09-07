@@ -23,6 +23,7 @@ from acceptance_core import (
     CORE_ROLES,
     ROOT,
     codex_exec,
+    clean_sandbox_workspace,
     commit_all,
     external_command,
     git,
@@ -31,12 +32,13 @@ from acceptance_core import (
     record,
     resolve_command,
     run,
+    observed_spawn_events,
     spawn_models,
     spawn_roles,
-    spawns,
     trimmed,
     verify_install,
     warn,
+    workspace_delta,
 )
 
 KNOWN_EPHEMERAL_FORK_ERROR = "collab spawn failed: no thread with id:"
@@ -98,8 +100,13 @@ def runtime_diagnostic(result: Dict) -> str:
 
 
 def result_detail(result: Dict, changed: Optional[List[str]] = None) -> str:
-    detail = "spawns={} roles={} models={}".format(
-        spawns(result), spawn_roles(result), spawn_models(result)
+    summary = ((result.get("summary") or {}).get("event_summary") or {})
+    observed_spawn_event_count = observed_spawn_events(result)
+    detail = "observed_spawn_events={} collab_calls={} roles={} models={}".format(
+        observed_spawn_event_count,
+        summary.get("collab_tool_calls", 0),
+        spawn_roles(result),
+        spawn_models(result),
     )
     if changed is not None:
         detail += " changed=" + repr(changed)
@@ -108,6 +115,10 @@ def result_detail(result: Dict, changed: Optional[List[str]] = None) -> str:
         detail += "; " + diagnostic
     if result.get("stderr"):
         detail += "; " + trimmed(str(result.get("stderr")))
+    if observed_spawn_event_count == 0:
+        detail += "; public JSONL does not prove that no child was spawned"
+        if result.get("last_message"):
+            detail += "; final_provider_message=" + trimmed(str(result.get("last_message")))
     return detail
 
 
@@ -152,8 +163,8 @@ def probe_readonly_role(
     after = git(["status", "--porcelain"], sandbox).stdout or ""
     record(
         checks,
-        label + " spawn",
-        result["returncode"] == 0 and spawns(result) >= 1,
+        label + " observed spawn event",
+        result["returncode"] == 0 and observed_spawn_events(result) >= 1,
         result_detail(result),
         metrics(result),
     )
@@ -172,41 +183,41 @@ def probe_implementer(
     args: argparse.Namespace,
     overrides: List[str],
 ) -> None:
-    git(["reset", "--hard", "HEAD"], sandbox)
-    result = codex_exec(
-        codex_bin=args.codex_bin,
-        cwd=sandbox,
-        prompt=delegation_prompt(
-            "implementer",
-            "Change IMPLEMENT.md from `status: old` to `status: new` and do not change any other tracked file.",
-        ),
-        main_model=args.main_model,
-        reasoning_effort=args.reasoning_effort,
-        sandbox_mode="workspace-write",
-        timeout=args.timeout,
-        config_overrides=overrides,
-    )
-    content_ok = (sandbox / "IMPLEMENT.md").read_text(encoding="utf-8") == "status: new\n"
-    names = [
-        line.strip()
-        for line in (git(["diff", "--name-only"], sandbox).stdout or "").splitlines()
-        if line.strip()
-    ]
-    record(
-        checks,
-        "Codex provider Implementer spawn",
-        result["returncode"] == 0 and spawns(result) >= 1 and content_ok,
-        result_detail(result, names),
-        metrics(result),
-    )
-    record(
-        checks,
-        "Codex provider Implementer write scope",
-        names == ["IMPLEMENT.md"],
-        "changed=" + repr(names),
-    )
-    check_model_route(checks, "implementer", "gpt-5.6-terra", result)
-    git(["reset", "--hard", "HEAD"], sandbox)
+    clean_sandbox_workspace(sandbox)
+    try:
+        result = codex_exec(
+            codex_bin=args.codex_bin,
+            cwd=sandbox,
+            prompt=delegation_prompt(
+                "implementer",
+                "Change IMPLEMENT.md from `status: old` to `status: new` and do not change any other path.",
+            ),
+            main_model=args.main_model,
+            reasoning_effort=args.reasoning_effort,
+            sandbox_mode="workspace-write",
+            timeout=args.timeout,
+            config_overrides=overrides,
+        )
+        content_ok = (sandbox / "IMPLEMENT.md").read_text(encoding="utf-8") == "status: new\n"
+        names = workspace_delta(sandbox)
+        record(
+            checks,
+            "Codex provider Implementer observed spawn event",
+            result["returncode"] == 0
+            and observed_spawn_events(result) >= 1
+            and content_ok,
+            result_detail(result, names),
+            metrics(result),
+        )
+        record(
+            checks,
+            "Codex provider Implementer write scope",
+            names == ["IMPLEMENT.md"],
+            "changed=" + repr(names),
+        )
+        check_model_route(checks, "implementer", "gpt-5.6-terra", result)
+    finally:
+        clean_sandbox_workspace(sandbox)
 
 
 def write_report(
@@ -249,6 +260,8 @@ def write_report(
             "",
             "A FAIL here means the current Codex provider/runtime did not satisfy the requested delegation capability.",
             "It does not fail Engineering Agent Stack's stack-owned release gate.",
+            "`observed_spawn_events` counts `spawn_agent` items present in public `codex exec --json` output; zero does not prove that no child was spawned.",
+            "Collaboration-call counts and the final provider message are retained when spawn-event evidence is absent.",
             "",
             "Raw Codex transcripts are intentionally not copied into this report.",
         ]

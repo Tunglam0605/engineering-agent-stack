@@ -57,6 +57,8 @@ Normal session settings such as `model`, `model_reasoning_effort`, and `sandbox_
 
 Global subagent controls remain under `[agents]` in `.codex/config.toml` or the personal config. The example intentionally contains only those public global controls; it does not depend on internal role-registration mechanisms.
 
+The generated Multi-Agent V2 example sets `non_code_mode_only = false`. Engineering and coding are this stack's primary use case, so installed projects must expose collaboration in code mode; role instructions and delegation policy determine when a child is warranted.
+
 ## Safe installation
 
 Recommended first trial:
@@ -73,7 +75,7 @@ After project-scoped validation, personal installation is available with:
 python scripts/install_codex.py --personal
 ```
 
-The installer refuses to overwrite differing role files unless `--force` is supplied; forced replacement creates `.bak` files. Existing `config.toml` files are never rewritten automatically.
+The installer refuses to overwrite differing role files unless `--force` is supplied; forced replacement creates `.bak` files. Existing `config.toml` files are never rewritten automatically. They are parsed and checked for agents, Multi-Agent V2, wait support, and CodeMode collaboration; `--check` fails until incompatible preserved settings are merged manually. Spawn metadata visibility and spawn-agent model-override exposure remain optional telemetry/diagnostic knobs even though the generated example recommends values for them.
 
 See [`../../docs/INSTALL_CODEX.md`](../../docs/INSTALL_CODEX.md).
 

@@ -142,6 +142,8 @@ Extended role probe:
 
 A provider probe may fail while the stack-owned release gate remains green. That separation prevents upstream Codex runtime behavior from falsely marking the stack itself as broken.
 
+Retained local evidence from 2026-09-07 shows the stack-owned live gate passing on Windows with `codex-cli 0.153.4`, while the basic provider probe remained diagnostic-only and unhealthy because public spawn evidence was unavailable and the Implementer path reported an upstream `502 Bad Gateway`. Scout remained read-only, the parent did not silently perform the failed delegated edit, and Extended was not run after the basic probe failed. Collaboration counts, token usage, latency, and other provider telemetry are run-specific; use the report produced by the current acceptance/probe command for exact measurements. See [`docs/ACCEPTANCE_WINDOWS.md`](docs/ACCEPTANCE_WINDOWS.md).
+
 See [`docs/ACCEPTANCE_WINDOWS.md`](docs/ACCEPTANCE_WINDOWS.md) and [`docs/INSTALL_CODEX.md`](docs/INSTALL_CODEX.md).
 
 ## Core roles — v0.1 candidate
@@ -179,7 +181,7 @@ Codex JSONL is treated as provider telemetry, not as a stack-owned release invar
 When exposed, the capture pipeline records:
 
 ```text
-agent_spawns
+agent_spawns  # compatibility name: spawn_agent events observed in public JSONL
 agent_spawn_thread_ids
 agent_spawn_models
 agent_spawn_roles
@@ -187,7 +189,7 @@ input/output/reasoning tokens
 latency
 ```
 
-Current Codex builds may omit child model/role metadata. Missing optional telemetry is not fabricated and does not fail the stack-owned release gate.
+Current Codex builds may omit child model/role metadata or other internal activity from public JSONL. Missing optional telemetry is not fabricated, and `agent_spawns = 0` means only that zero spawn events were observed in that stream; it does not prove no child was spawned. Provider/runtime diagnostics remain separate from the stack-owned release gate.
 
 See [`research/sources/openai-codex-exec-jsonl.md`](research/sources/openai-codex-exec-jsonl.md).
 

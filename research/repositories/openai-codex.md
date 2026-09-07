@@ -21,6 +21,7 @@ Authoritative implementation and public configuration behavior for Codex subagen
 - Public examples use narrow agents and commonly place read-heavy mapping/research work on lower-cost models while using higher reasoning for review/debug roles.
 - Current Codex source still contains legacy/V1 depth configuration, but `agents.max_depth` is documented in source as ignored by V2. This project therefore does not rely on it to block recursive delegation.
 - Internal source paths expose additional role-loading mechanisms. The adapter follows the public standalone-agent contract rather than depending on undocumented/internal registration behavior.
+- The local `codex-cli 0.153.4` accepts `features.multi_agent_v2.non_code_mode_only`; official public documentation does not establish a reason for an engineering/code-mode stack to restrict collaboration to non-code mode.
 
 ## Decisions
 
@@ -38,5 +39,6 @@ Authoritative implementation and public configuration behavior for Codex subagen
 
 - `adapters/codex/agents/*.toml` is generated from canonical provider-neutral YAML.
 - `adapters/codex/config.toml.example` contains only public global `[agents]` controls.
+- The generated Multi-Agent V2 block sets `non_code_mode_only = false` so project installations expose collaboration in this stack's code-mode use case.
 - Recursive-delegation limits remain policy/instruction constraints until a current runtime-enforced V2 control is documented and verified.
 - Adapter compatibility must be rechecked against current public Codex docs before release.

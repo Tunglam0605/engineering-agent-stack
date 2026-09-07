@@ -27,7 +27,7 @@ This installs generated roles into `<project>/.codex/agents/*.toml` and, with `-
 
 The parent-orchestration block is important: child roles alone do not teach the parent Codex session the direct-first, selective-delegation, independent-review, and write-ownership policy.
 
-If `<project>/.codex/config.toml` does not exist, the installer creates it from the generated example. If a config already exists, the installer does not rewrite it; it prints the generated `[agents]` reference that must be merged/reviewed manually.
+If `<project>/.codex/config.toml` does not exist, the installer creates it from the generated example. If a config already exists, the installer does not rewrite it; dry-run and installation reject malformed or incompatible TOML before writing roles or project instructions and point to the generated example for a manual merge. `--check` parses the effective TOML and requires agents, Multi-Agent V2, wait support, and code-mode delegation. The generated example also enables spawn-agent model overrides and visible spawn metadata for diagnostics, but those knobs are optional and do not determine named-role CodeMode compatibility.
 
 If `AGENTS.md` already exists, only the managed Engineering Agent Stack block is added or refreshed. The original file is preserved and a backup named `AGENTS.md.engineering-agent-stack.bak` is created before a managed-block write.
 
@@ -46,10 +46,11 @@ No-model/offline mode:
 .\scripts\acceptance-test.ps1 -Offline
 ```
 
-Extended live role coverage:
+Provider-owned child delegation is tested separately from release acceptance:
 
 ```powershell
-.\scripts\acceptance-test.ps1 -Extended
+.\scripts\provider-probe.ps1
+.\scripts\provider-probe.ps1 -Extended
 ```
 
 See [`ACCEPTANCE_WINDOWS.md`](ACCEPTANCE_WINDOWS.md).
@@ -76,18 +77,17 @@ The managed `AGENTS.md` block uses explicit markers so stack instructions can be
 
 ## Automated smoke-test sequence
 
-The Windows acceptance test checks:
+The Windows stack-owned acceptance test checks:
 
 1. repository validators and generated adapter drift
 2. seven project-scoped custom-agent files
 3. parent orchestration instructions
 4. project-scoped installer consistency
-5. explicit Scout invocation with read-only behavior
-6. trivial direct-first edit with zero expected child spawns
-7. explicit Implementer invocation with bounded write scope
-8. token, latency, and observable subagent-spawn telemetry
+5. trivial direct-first edit with zero `spawn_agent` events observed in public JSONL (not proof that no child ran)
+6. bounded write correctness and exact one-file scope across unstaged, staged, and untracked paths
+7. token and latency telemetry for the live model calls
 
-Extended mode additionally invokes Researcher, Debugger, Test Engineer, Reviewer, and Architect.
+The separate basic provider probe invokes Scout and Implementer children. Its extended mode additionally invokes Researcher, Debugger, Test Engineer, Reviewer, and Architect. Provider probe results diagnose the current Codex runtime and do not change the stack-owned release result.
 
 ## Current candidate mapping
 

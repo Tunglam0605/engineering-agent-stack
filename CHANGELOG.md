@@ -33,6 +33,16 @@ All notable project changes will be documented here.
 - CI asserts synthetic subagent telemetry, project parent instructions, Windows offline acceptance, and locale-independent UTF-8 subprocess handling.
 - Stack-owned release acceptance no longer forces or gates on Codex child-agent spawning/model routing; those provider capabilities are observed by a separate diagnostic command.
 - Legacy `scripts/acceptance_test_codex.py` is now a compatibility entry point for the stack-owned acceptance core.
+- Generated Codex installations enable Multi-Agent V2 collaboration in code mode (`non_code_mode_only = false`), matching this engineering stack's intended execution surface.
+- Provider failure reports now preserve concise final-provider-message evidence and collaboration-call counts when public JSONL contains no observed spawn event.
+- Windows acceptance, installation, roadmap, and adapter documentation now reflect the split live-test architecture and the 2026-09-07 `codex-cli 0.153.4` results.
+
+### Fixed
+- Generated installations no longer hide `spawn_agent` from code-mode sessions through `non_code_mode_only = true`.
+- Spawn telemetry and reports no longer treat zero public JSONL `spawn_agent` items as proof that no child was spawned.
+- The installation guide no longer directs extended provider coverage through the stack-owned acceptance wrapper.
+- Exact write-scope checks now include unstaged, staged, and untracked paths and fully clean disposable sandboxes between cases.
+- Installer and acceptance checks now parse TOML and reject preserved configurations that disable required Multi-Agent V2 custom-role delegation, including code-mode delegation.
 
 ### Removed
 - The temporary acceptance normalization gate that downgraded provider failures after the fact; release/provider scope is now separated before execution.

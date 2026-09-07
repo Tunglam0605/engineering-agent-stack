@@ -22,7 +22,7 @@ Completed items include command execution, file changes, MCP tool calls, web sea
 
 ## Subagent telemetry
 
-Current Codex protocol represents collaboration activity as a `collab_agent_tool_call` turn item. A completed `spawn_agent` item can expose:
+Public `codex exec --json` output observed on `codex-cli 0.153.4` represents collaboration activity as a `collab_tool_call` item. Older/experimental traces used `collab_agent_tool_call`; the normalizer accepts both. A completed `spawn_agent` item can expose:
 
 - effective child `model`
 - effective `reasoning_effort`
@@ -31,7 +31,7 @@ Current Codex protocol represents collaboration activity as a `collab_agent_tool
 
 The current spawn implementation emits the effective model and reasoning effort after role/profile resolution. This makes the event useful for acceptance and routing audits.
 
-The local parser counts collaboration calls and `spawn_agent` items and records observed child model, reasoning, and role metadata when supplied.
+The local parser counts collaboration calls and `spawn_agent` items observed in public JSONL and records observed child model, reasoning, and role metadata when supplied. The serialized `agent_spawns` name is retained for capture compatibility, but its value is an observed event count rather than runtime ground truth.
 
 ## Local decision
 
@@ -43,7 +43,7 @@ The local parser counts collaboration calls and `spawn_agent` items and records 
 
 ## Limits
 
-Subagent telemetry is best-effort. Optional model/role fields may vary across Codex versions or execution modes, and not every hidden/internal action is guaranteed to be separately observable in the public exec stream.
+Subagent telemetry is best-effort. Optional model/role fields may vary across Codex versions or execution modes, and not every hidden/internal action is guaranteed to be separately observable in the public exec stream. In particular, `agent_spawns = 0` means "0 spawn events observed in public JSONL"; it is not definitive proof that no child was spawned.
 
 Acceptance therefore distinguishes:
 
