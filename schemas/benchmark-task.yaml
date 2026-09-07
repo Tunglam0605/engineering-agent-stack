@@ -1,0 +1,24 @@
+version: 1
+status: candidate
+purpose: controlled-repeatable-engineering-task-definition
+required_fields:
+  - id
+  - role
+  - family
+  - mode
+  - prompt_file
+  - workspace
+  - quality_threshold
+  - grader
+allowed_modes:
+  - read-only
+  - write
+grader_types:
+  text_evidence:
+    description: grade the final message against required evidence tokens/groups
+  command:
+    description: grade the modified workspace by executing a deterministic command
+notes:
+  - Task fixtures must be synthetic or redistributable and must not contain secrets.
+  - A quality threshold applies before token, latency, or cost comparisons.
+  - Read-only tasks should declare max_file_changes: 0 when capture telemetry is available.

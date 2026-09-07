@@ -13,6 +13,7 @@ ROOT = Path(__file__).resolve().parents[1]
 SCHEMA_PATH = ROOT / "schemas" / "benchmark-record.yaml"
 PLAN_PATH = ROOT / "benchmarks" / "experiment-plan.yaml"
 MODEL_PROFILES_PATH = ROOT / "config" / "model-profiles.yaml"
+TASK_INDEX_PATH = ROOT / "benchmarks" / "tasks" / "index.yaml"
 
 
 def load_yaml(path: Path) -> dict[str, Any]:
@@ -28,6 +29,7 @@ def main() -> int:
         schema = load_yaml(SCHEMA_PATH)
         plan = load_yaml(PLAN_PATH)
         profiles = load_yaml(MODEL_PROFILES_PATH)
+        task_index = load_yaml(TASK_INDEX_PATH)
     except (OSError, ValueError, yaml.YAMLError) as exc:
         print(f"ERROR: {exc}")
         return 2
@@ -37,6 +39,13 @@ def main() -> int:
     required_fields = schema.get("required_fields", [])
     if not isinstance(required_fields, list) or len(required_fields) < 8:
         failures.append("benchmark record schema must define a non-trivial required_fields list")
+
+    indexed_tasks = task_index.get("tasks", [])
+    if not isinstance(indexed_tasks, list):
+        failures.append("controlled task index must contain a tasks list")
+        known_task_ids: set[str] = set()
+    else:
+        known_task_ids = {str(item["id"]) for item in indexed_tasks if isinstance(item, dict) and isinstance(item.get("id"), str)}
 
     experiments = plan.get("experiments", [])
     if not isinstance(experiments, list) or not experiments:
@@ -58,10 +67,17 @@ def main() -> int:
 
             candidates = experiment.get("candidates", [])
             measures = experiment.get("measures", [])
+            task_ids = experiment.get("task_ids", [])
             if not isinstance(candidates, list) or len(candidates) < 2:
                 failures.append(f"{exp_id}: requires at least two candidates")
             if not isinstance(measures, list) or "quality_score" not in measures:
                 failures.append(f"{exp_id}: quality_score must be measured")
+            if not isinstance(task_ids, list) or not task_ids:
+                failures.append(f"{exp_id}: must reference at least one controlled task")
+            else:
+                for task_id in task_ids:
+                    if task_id not in known_task_ids:
+                        failures.append(f"{exp_id}: unknown controlled task {task_id!r}")
 
             for candidate in candidates if isinstance(candidates, list) else []:
                 if not isinstance(candidate, dict):
@@ -84,7 +100,7 @@ def main() -> int:
             print(f"  - {failure}")
         return 1
 
-    print(f"PASS: benchmark contract valid with {len(experiments)} planned experiment(s).")
+    print(f"PASS: benchmark contract valid with {len(experiments)} planned experiment(s) and {len(known_task_ids)} controlled task(s).")
     return 0
 
 

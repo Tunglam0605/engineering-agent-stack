@@ -1,0 +1,15 @@
+version: 1
+id: orchestrator-trivial-edit-001
+role: orchestrator
+family: trivial-edit
+mode: write
+prompt_file: prompt.md
+workspace: workspace
+quality_threshold: 1.0
+grader:
+  type: command
+  command:
+    - python
+    - -c
+    - "from pathlib import Path; t=Path('README.md').read_text(encoding='utf-8'); assert 'teh controller' not in t; assert 'the controller' in t"
+  timeout_seconds: 10

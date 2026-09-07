@@ -1,0 +1,2 @@
+- `src/metrics.py`: `average()` can raise a division by zero error for empty samples because it divides by `len(samples)` without a guard.
+- `src/cache.py`: the TTL comparison is inverted. `age < ttl` means the item is still valid, so returning that as `is_expired()` reverses expiration behavior.

@@ -1,0 +1,26 @@
+version: 1
+id: reviewer-regression-001
+role: reviewer
+family: regression-review
+mode: read-only
+prompt_file: prompt.md
+workspace: workspace
+quality_threshold: 1.0
+grader:
+  type: text_evidence
+  max_file_changes: 0
+  required_all:
+    - src/metrics.py
+    - src/cache.py
+  required_any_groups:
+    -
+      - division by zero
+      - empty samples
+      - zero-length
+      - len(samples)
+    -
+      - inverted
+      - reversed
+      - age < ttl
+      - ttl comparison
+      - not expired

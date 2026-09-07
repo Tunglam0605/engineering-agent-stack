@@ -1,0 +1,13 @@
+version: 1
+suite_id: controlled-v1
+status: candidate
+description: Small deterministic task suite for initial model-tier and orchestration benchmarks.
+tasks:
+  - id: scout-symbol-001
+    path: scout-symbol-001/task.yaml
+  - id: implementer-bounded-bug-001
+    path: implementer-bounded-bug-001/task.yaml
+  - id: reviewer-regression-001
+    path: reviewer-regression-001/task.yaml
+  - id: orchestrator-trivial-edit-001
+    path: orchestrator-trivial-edit-001/task.yaml

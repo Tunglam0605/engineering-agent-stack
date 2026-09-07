@@ -1,0 +1,19 @@
+version: 1
+id: implementer-bounded-bug-001
+role: implementer
+family: bounded-bug-fix
+mode: write
+prompt_file: prompt.md
+workspace: workspace
+quality_threshold: 1.0
+grader:
+  type: command
+  command:
+    - python
+    - -m
+    - unittest
+    - discover
+    - -s
+    - tests
+    - -q
+  timeout_seconds: 20

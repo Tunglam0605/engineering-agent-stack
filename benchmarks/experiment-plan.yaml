@@ -12,6 +12,8 @@ experiments:
     task_families:
       - repository-discovery
       - call-flow-tracing
+    task_ids:
+      - scout-symbol-001
     candidates:
       - profile: cheap
         model_family: luna
@@ -34,6 +36,8 @@ experiments:
     task_families:
       - bounded-bug-fix
       - small-refactor
+    task_ids:
+      - implementer-bounded-bug-001
     candidates:
       - profile: standard
         model_family: terra
@@ -54,6 +58,8 @@ experiments:
       - regression-review
       - concurrency-review
       - release-review
+    task_ids:
+      - reviewer-regression-001
     candidates:
       - profile: deep
         model_family: terra
@@ -74,6 +80,8 @@ experiments:
     task_families:
       - trivial-edit
       - obvious-single-file-fix
+    task_ids:
+      - orchestrator-trivial-edit-001
     candidates:
       - topology: direct
       - topology: delegated

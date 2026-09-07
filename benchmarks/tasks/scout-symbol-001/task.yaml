@@ -1,0 +1,15 @@
+version: 1
+id: scout-symbol-001
+role: scout
+family: call-flow-tracing
+mode: read-only
+prompt_file: prompt.md
+workspace: workspace
+quality_threshold: 1.0
+grader:
+  type: text_evidence
+  max_file_changes: 0
+  required_all:
+    - src/main_window.py
+    - MainWindow.refresh_metadata
+    - flash_completed

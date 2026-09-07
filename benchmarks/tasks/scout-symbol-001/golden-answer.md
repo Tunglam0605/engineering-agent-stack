@@ -1,0 +1,1 @@
+The wiring is in `src/main_window.py`: `MainWindow.__init__` subscribes the `flash_completed` event to `MainWindow.refresh_metadata`. Therefore the exact metadata refresh handler is `MainWindow.refresh_metadata`.
