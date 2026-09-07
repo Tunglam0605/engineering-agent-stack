@@ -1,5 +1,6 @@
 # GENERATED EXAMPLE — merge this global block into `.codex/config.toml` or `~/.codex/config.toml`.
 # Custom roles are discovered from sibling `agents/*.toml` files by current public Codex releases.
+# Multi-Agent V2 is explicit because current public Codex releases keep that feature disabled by default.
 
 [agents]
 enabled = true
@@ -7,6 +8,12 @@ max_concurrent_threads_per_session = 4
 default_subagent_model = "gpt-5.6-terra"
 default_subagent_reasoning_effort = "medium"
 interrupt_message = true
+
+[features.multi_agent_v2]
+enabled = true
+max_concurrent_threads_per_session = 4
+wait_agent_enabled = true
+non_code_mode_only = true
 
 # Recursive delegation is constrained by role instructions and repository policy.
 # Do not rely on legacy/V1 depth controls for current V2 behavior.
