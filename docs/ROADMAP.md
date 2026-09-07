@@ -4,67 +4,66 @@
 
 Status: **exit criteria reached; research remains continuous.**
 
-Exit criteria:
-
-- at least 6 reference repositories analyzed with one matrix ✅
+- reference repositories analyzed with comparison matrix ✅
 - common patterns and anti-patterns documented ✅
 - provider-neutral role/result schemas drafted ✅
 - routing, context, escalation and verification policies documented ✅
-- repository validation runs in CI ✅
-- upstream research lineage/acknowledgements are explicit ✅
-- provenance policy exists for adapted/vendored material ✅
+- upstream research lineage/acknowledgements explicit ✅
+- provenance policy for adapted/vendored material ✅
 
 ## v0.1.0 — Core agents
 
-Status: **candidate complete; real Codex project smoke test before tag.**
+Status: **candidate complete; real Windows Codex acceptance remains before tag.**
 
-Exit criteria:
+Completed:
 
-- seven core roles implemented ✅
-- canonical roles receive semantic contract validation ✅
-- bounded result contract referenced by all roles and generated adapter instructions ✅
-- Codex adapter generated deterministically from canonical definitions ✅
-- generated adapter drift check runs in CI ✅
-- direct-vs-delegate policy fixtures run through an executable evaluator ✅
-- current public Codex custom-agent behavior recorded as an authoritative source ✅
-- safe project/personal Codex installer implemented and CI-smoke-tested ✅
-- acknowledgements/provenance gates run in CI ✅
+- seven core roles ✅
+- semantic contract validation ✅
+- deterministic Codex adapter generation/drift gate ✅
+- direct-vs-delegate routing fixtures ✅
+- safe project-scoped installer ✅
+- managed parent orchestration instructions for project `AGENTS.md` ✅
+- one-command Windows acceptance harness ✅
+- offline Windows GitHub Actions acceptance ✅
+- observable subagent spawn/model/reasoning telemetry normalization ✅
+- acknowledgements/provenance CI gates ✅
 
 Remaining before a v0.1.0 tag:
 
-- smoke-test installation in a real user Codex project
-- confirm custom-agent discovery/permissions on the user's current Codex build
-- record first real task traces for v0.2 benchmark input
-- resolve any compatibility differences found in the real install
+- run basic live acceptance on the user's current Windows Codex build
+- confirm custom-agent discovery on that build
+- confirm Scout read-only and Implementer bounded-write behavior
+- confirm direct-first trivial edit produces zero child spawns
+- record first real token/latency traces
+- resolve any compatibility differences found by the live test
 
 ## v0.2.0 — Efficiency controls
 
-Status: **in progress; infrastructure operational.**
+Status: **in progress; controlled tasks, capture, graders, and acceptance telemetry are operational.**
 
-Implemented foundation:
+Completed foundation:
 
-- normalized benchmark record contract ✅
-- experiment plan linked to concrete controlled tasks ✅
-- four controlled synthetic engineering tasks ✅
+- normalized benchmark/run-capture contracts ✅
+- experiment plan linked to controlled tasks ✅
+- controlled synthetic engineering tasks ✅
 - deterministic text/test graders ✅
 - clean workspace materialization ✅
 - Codex `exec --json` usage/latency capture ✅
-- raw-trace/local-workspace ignore policy ✅
+- observable `spawn_agent` telemetry normalization ✅
 - adaptive input/work/result budget policy ✅
-- CI smoke tests for installation, task preparation, grading and capture normalization ✅
+- raw-trace/local-workspace safety policy ✅
 
-Remaining exit criteria:
+Remaining:
 
-- collect repeated real Codex runs on representative tasks
-- measure explicit context/result budgets against real runs
-- benchmark semantic compute tiers
-- evaluate natural-language routing/classifier accuracy separately from policy routing
-- test escalation rules against difficult/critical fixtures
-- record token, latency, quality, rework, and escalation measurements
-- enforce over-delegation regression cases
-- support task-level cost comparison for Luna/Terra/Sol defaults
-- add repeated experiment matrix runner and decision report
-- at least three repetitions per candidate/task before changing defaults
+- repeated real Codex runs
+- explicit context/result-budget measurements
+- semantic compute-tier benchmark
+- natural-language routing/classifier evaluation
+- escalation regression cases
+- token, latency, quality, rework, and escalation measurements
+- task-level Luna/Terra/Sol cost comparison
+- repeated experiment matrix runner and decision report
+- at least three repetitions per candidate/task before default changes
 
 ## v0.3.0 — Engineering specialists
 
@@ -77,7 +76,7 @@ Candidates:
 - Robotics Integration Engineer
 - Developer Tooling Engineer
 
-A specialist is accepted only if it outperforms the generic core stack on repeated domain tasks enough to justify its maintenance and routing complexity.
+A specialist is accepted only if repeated domain tasks show enough improvement over the generic core stack to justify routing and maintenance complexity.
 
 ## v0.4.0 — Evaluation and portability
 
