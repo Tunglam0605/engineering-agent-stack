@@ -1,0 +1,39 @@
+version: 1
+status: candidate
+purpose: normalized-record-for-quality-cost-latency-experiments
+required_fields:
+  - experiment_id
+  - task_id
+  - provider
+  - model
+  - reasoning_effort
+  - role
+  - profile
+  - quality
+  - latency_ms
+  - usage
+  - outcome
+quality:
+  required:
+    - score
+    - threshold
+    - passed
+  score_range: [0.0, 1.0]
+usage:
+  required:
+    - input_tokens
+    - output_tokens
+  optional:
+    - cached_input_tokens
+    - tool_calls
+    - agent_invocations
+    - estimated_cost_usd
+outcome_values:
+  - completed
+  - blocked
+  - failed
+notes:
+  - Quality is evaluated before cost efficiency is compared.
+  - A lower-cost run cannot win if it fails the task quality threshold.
+  - estimated_cost_usd is optional because provider pricing changes over time.
+  - Raw provider traces should not be committed when a normalized record is sufficient.
