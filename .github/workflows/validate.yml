@@ -90,6 +90,18 @@ jobs:
       - name: Install validation dependencies
         run: python -m pip install -r requirements-dev.txt
 
+      - name: Smoke-test npm Codex shim resolution
+        shell: pwsh
+        run: |
+          $shimDir = Join-Path $env:RUNNER_TEMP "codex-shim-test"
+          New-Item -ItemType Directory -Force -Path $shimDir | Out-Null
+          $ps1 = Join-Path $shimDir "codex.ps1"
+          $cmd = Join-Path $shimDir "codex.cmd"
+          Set-Content -LiteralPath $ps1 -Value 'Write-Output "ps1-shim"'
+          Set-Content -LiteralPath $cmd -Value '@echo off`r`necho %*'
+          $env:EAS_TEST_CODEX_PS1 = $ps1
+          python -c "import os,sys; sys.path.insert(0,'scripts'); import acceptance_test_codex as a; r=a.resolve_command(os.environ['EAS_TEST_CODEX_PS1']); print(r); assert r.lower().endswith('codex.cmd'); p=a.run(a.external_command(r,['exec','-'])); print(p.stdout); assert p.returncode == 0 and 'exec -' in p.stdout"
+
       - name: Run PowerShell acceptance wrapper offline
         shell: pwsh
         run: |
