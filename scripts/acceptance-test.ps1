@@ -25,7 +25,7 @@ function Test-PythonCandidate {
             return $null
         }
         $parts = $version.Trim().Split('.')
-        if ([int]$parts[0] -gt 3 -or ([int]$parts[0] -eq 3 -and [int]$parts[1] -ge 10)) {
+        if ([int]$parts[0] -gt 3 -or ([int]$parts[0] -eq 3 -and [int]$parts[1] -ge 9)) {
             return $version.Trim()
         }
     }
@@ -46,9 +46,10 @@ if (Get-Command python -ErrorAction SilentlyContinue) {
 }
 
 # If PATH's Python is old/missing, use the newest supported Windows py-launcher
-# interpreter. This is useful on developer machines that still default to 3.9.
+# interpreter. Python 3.9 is intentionally supported because the repository
+# uses a conditional `tomli` compatibility dependency for pre-3.11 runtimes.
 if (-not $PythonExe -and (Get-Command py -ErrorAction SilentlyContinue)) {
-    foreach ($minor in 13, 12, 11, 10) {
+    foreach ($minor in 13, 12, 11, 10, 9) {
         $candidatePrefix = @("-3.$minor")
         $candidateVersion = Test-PythonCandidate -Exe "py" -Prefix $candidatePrefix
         if ($candidateVersion) {
@@ -62,12 +63,12 @@ if (-not $PythonExe -and (Get-Command py -ErrorAction SilentlyContinue)) {
 
 if (-not $PythonExe) {
     Write-Host "A supported Python interpreter was not found." -ForegroundColor Red
-    Write-Host "Engineering Agent Stack requires Python 3.10 or newer; Python 3.11/3.12 is recommended."
+    Write-Host "Engineering Agent Stack requires Python 3.9 or newer; Python 3.11/3.12 is recommended for new installations."
     if (Get-Command py -ErrorAction SilentlyContinue) {
         Write-Host "Installed Python versions:"
         & py -0p
     }
-    Write-Host "Recommended Windows install command:"
+    Write-Host "Recommended Windows install command for a new interpreter:"
     Write-Host "winget install -e --id Python.Python.3.12"
     exit 2
 }
