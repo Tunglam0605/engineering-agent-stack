@@ -10,31 +10,65 @@ $ErrorActionPreference = "Stop"
 
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $RepoRoot = Split-Path -Parent $ScriptDir
-$Python = $null
+$PythonExe = $null
+$PythonPrefix = @()
+$PythonVersion = $null
+
+function Test-PythonCandidate {
+    param(
+        [string]$Exe,
+        [string[]]$Prefix
+    )
+    try {
+        $version = & $Exe @Prefix -c "import sys; print('.'.join(map(str, sys.version_info[:3])))" 2>$null
+        if ($LASTEXITCODE -ne 0 -or -not $version) {
+            return $null
+        }
+        $parts = $version.Trim().Split('.')
+        if ([int]$parts[0] -gt 3 -or ([int]$parts[0] -eq 3 -and [int]$parts[1] -ge 10)) {
+            return $version.Trim()
+        }
+    }
+    catch {
+        return $null
+    }
+    return $null
+}
 
 if (Get-Command py -ErrorAction SilentlyContinue) {
-    $Python = "py"
+    foreach ($minor in 13, 12, 11, 10) {
+        $candidatePrefix = @("-3.$minor")
+        $candidateVersion = Test-PythonCandidate -Exe "py" -Prefix $candidatePrefix
+        if ($candidateVersion) {
+            $PythonExe = "py"
+            $PythonPrefix = $candidatePrefix
+            $PythonVersion = $candidateVersion
+            break
+        }
+    }
 }
-elseif (Get-Command python -ErrorAction SilentlyContinue) {
-    $Python = "python"
+
+if (-not $PythonExe -and (Get-Command python -ErrorAction SilentlyContinue)) {
+    $candidateVersion = Test-PythonCandidate -Exe "python" -Prefix @()
+    if ($candidateVersion) {
+        $PythonExe = "python"
+        $PythonVersion = $candidateVersion
+    }
 }
-else {
-    Write-Error "Python was not found. Install Python 3.10+ and ensure 'py' or 'python' is on PATH."
+
+if (-not $PythonExe) {
+    Write-Host "A supported Python interpreter was not found." -ForegroundColor Red
+    Write-Host "Engineering Agent Stack requires Python 3.10 or newer; Python 3.11/3.12 is recommended."
+    if (Get-Command py -ErrorAction SilentlyContinue) {
+        Write-Host "Installed Python versions:"
+        & py -0p
+    }
+    Write-Host "Recommended Windows install command:"
+    Write-Host "winget install -e --id Python.Python.3.12"
     exit 2
 }
 
-$PythonVersion = & $Python -c "import sys; print('.'.join(map(str, sys.version_info[:3])))"
-if ($LASTEXITCODE -ne 0) {
-    Write-Error "Unable to execute Python through '$Python'."
-    exit 2
-}
-
-$VersionParts = $PythonVersion.Trim().Split('.')
-if ([int]$VersionParts[0] -lt 3 -or ([int]$VersionParts[0] -eq 3 -and [int]$VersionParts[1] -lt 10)) {
-    Write-Error "Python $PythonVersion is too old. Engineering Agent Stack requires Python 3.10 or newer."
-    exit 2
-}
-
+$ResolvedCodexBin = $CodexBin
 if (-not $Offline) {
     $CodexCommand = Get-Command $CodexBin -ErrorAction SilentlyContinue
     if (-not $CodexCommand) {
@@ -46,6 +80,9 @@ if (-not $Offline) {
         Write-Host "You can still run the non-model acceptance with:"
         Write-Host ".\scripts\acceptance-test.ps1 -Offline"
         exit 2
+    }
+    if ($CodexCommand.Source) {
+        $ResolvedCodexBin = $CodexCommand.Source
     }
 }
 
@@ -66,18 +103,21 @@ if ($Extended) {
     $ArgsList += "--extended"
 }
 
-$ArgsList += @("--codex-bin", $CodexBin)
+$ArgsList += @("--codex-bin", $ResolvedCodexBin)
 if ($Report -ne "") {
     $ArgsList += @("--report", $Report)
 }
 
 Write-Host "Engineering Agent Stack - Windows acceptance"
 Write-Host "Repository: $RepoRoot"
-Write-Host "Python: $PythonVersion"
+Write-Host "Python: $PythonVersion ($PythonExe $($PythonPrefix -join ' '))"
+if (-not $Offline) {
+    Write-Host "Codex launcher: $ResolvedCodexBin"
+}
 Write-Host "Mode: $(if ($Offline) { 'offline' } elseif ($Extended) { 'live-extended' } else { 'live' })"
 Write-Host ""
 
-& $Python @ArgsList
+& $PythonExe @PythonPrefix @ArgsList
 $ExitCode = $LASTEXITCODE
 
 if ($ExitCode -eq 0) {
