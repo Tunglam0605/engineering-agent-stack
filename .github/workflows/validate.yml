@@ -35,8 +35,24 @@ jobs:
       - name: Validate benchmark contracts
         run: python scripts/validate_benchmarks.py
 
-      - name: Smoke-test benchmark summarizer
-        run: python scripts/summarize_benchmarks.py benchmarks/fixtures/synthetic-records.jsonl
+      - name: Smoke-test Codex run capture pipeline
+        run: |
+          python scripts/capture_codex_exec.py \
+            --manifest benchmarks/run-manifest.example.yaml \
+            --dry-run
+          python scripts/normalize_codex_exec.py \
+            --events benchmarks/fixtures/codex-exec-events.jsonl \
+            --manifest benchmarks/run-manifest.example.yaml \
+            --latency-ms 1234.5 \
+            --started-at 2026-09-07T00:00:00+00:00 \
+            --finished-at 2026-09-07T00:00:01.234500+00:00 \
+            --output /tmp/capture.json
+          python scripts/promote_run_capture.py /tmp/capture.json \
+            --score 0.98 \
+            --threshold 0.95 \
+            --grader synthetic-ci-fixture \
+            --output /tmp/benchmark.jsonl
+          python scripts/summarize_benchmarks.py /tmp/benchmark.jsonl
 
       - name: Check generated Codex adapter drift
         run: python scripts/generate_codex_adapter.py --check

@@ -1,0 +1,51 @@
+version: 1
+status: candidate
+purpose: normalized-provider-run-capture-before-quality-grading
+required_fields:
+  - capture_id
+  - experiment_id
+  - task_id
+  - provider
+  - source
+  - model
+  - reasoning_effort
+  - role
+  - profile
+  - latency_ms
+  - usage
+  - outcome
+  - event_summary
+usage:
+  required:
+    - input_tokens
+    - cached_input_tokens
+    - cache_write_input_tokens
+    - output_tokens
+    - reasoning_output_tokens
+event_summary:
+  required:
+    - event_count
+    - turns_completed
+    - turns_failed
+    - top_level_errors
+    - completed_items
+    - tool_calls
+    - file_changes
+outcome_values:
+  - completed
+  - blocked
+  - failed
+optional_fields:
+  - thread_id
+  - topology
+  - started_at
+  - finished_at
+  - process
+  - environment
+  - artifacts
+  - quality_threshold
+notes:
+  - A run capture is measurement evidence, not yet a benchmark winner.
+  - Quality grading is deliberately separated from provider execution and usage capture.
+  - Raw event streams may contain sensitive repository/tool output and should stay local by default.
+  - Provider price is not embedded in capture records; derive cost from dated pricing snapshots.

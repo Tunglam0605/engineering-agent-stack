@@ -1,0 +1,15 @@
+version: 1
+experiment_id: scout-luna-vs-terra
+task_id: example-repository-discovery-001
+provider: openai-codex
+role: scout
+profile: cheap
+model: gpt-5.6-luna
+reasoning_effort: medium
+topology: delegated
+quality_threshold: 0.95
+cwd: .
+prompt: |
+  Inspect the repository and identify the exact file and symbol responsible for
+  a specified behavior. Return concise evidence only; do not edit files.
+codex_args: []

@@ -13,11 +13,13 @@ REQUIRED = [
     "requirements-dev.txt",
     "docs/ARCHITECTURE.md",
     "docs/ROADMAP.md",
+    "docs/EVALUATION.md",
     "research/README.md",
     "research/matrix/repository-comparison.yaml",
     "research/patterns/wave-2-synthesis.md",
     "research/anti-patterns/over-orchestration.md",
     "research/sources/openai-codex-subagents.md",
+    "research/sources/openai-codex-exec-jsonl.md",
     "research/sources/openai-models-2026-09-07.md",
     "config/model-profiles.yaml",
     "config/routing-policy.yaml",
@@ -27,17 +29,28 @@ REQUIRED = [
     "policies/quality-gates.md",
     "schemas/agent-contract.yaml",
     "schemas/assignment-result.yaml",
+    "schemas/benchmark-record.yaml",
+    "schemas/run-capture.yaml",
     "agents/core/README.md",
     "agents/specialists/README.md",
     "evals/README.md",
     "evals/routing-cases.yaml",
     "benchmarks/README.md",
+    "benchmarks/experiment-plan.yaml",
+    "benchmarks/run-manifest.example.yaml",
+    "benchmarks/fixtures/codex-exec-events.jsonl",
     "adapters/codex/README.md",
     "adapters/codex/role-profiles.yaml",
     "adapters/codex/config.toml.example",
     "scripts/validate_agents.py",
     "scripts/evaluate_routing.py",
+    "scripts/validate_benchmarks.py",
+    "scripts/summarize_benchmarks.py",
     "scripts/generate_codex_adapter.py",
+    "scripts/codex_capture_lib.py",
+    "scripts/normalize_codex_exec.py",
+    "scripts/capture_codex_exec.py",
+    "scripts/promote_run_capture.py",
 ]
 
 CORE_ROLES = [
@@ -101,7 +114,7 @@ def main() -> int:
         "OK: "
         f"{len(paths)} required artifacts present; "
         f"{len(CORE_ROLES)} core roles, {len(REFERENCE_NOTES)} research notes, "
-        "and generated Codex adapter artifacts are structurally complete."
+        "benchmark capture tooling, and generated Codex adapter artifacts are structurally complete."
     )
     return 0
 

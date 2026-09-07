@@ -36,24 +36,28 @@ Remaining before a v0.1.0 tag:
 
 Status: **in progress.**
 
-Foundation completed:
+Implemented foundation:
 
-- normalized benchmark-record contract ✅
-- benchmark experiment plan covering Scout, Implementer, Reviewer and direct-vs-delegate overhead ✅
-- benchmark-plan validator in CI ✅
-- JSONL benchmark summarizer + synthetic smoke-test fixture ✅
-- evaluation/benchmark discipline documented ✅
+- benchmark record schema ✅
+- experiment plan for Luna/Terra/Sol and direct-vs-delegate comparisons ✅
+- benchmark contract validation ✅
+- benchmark JSONL summarizer ✅
+- provider-neutral pre-grade run-capture schema ✅
+- Codex `exec --json` normalizer ✅
+- Codex local real-run wrapper with latency/token capture ✅
+- explicit quality-promotion step from capture -> benchmark record ✅
+- synthetic CI smoke test for the capture/promotion/summarization pipeline ✅
 
 Remaining exit criteria:
 
-- explicit context budgets measured against real runs
-- semantic compute tiers benchmarked on repeated real tasks
-- natural-language routing/classifier accuracy evaluated separately from policy routing
-- escalation rules tested against difficult/critical fixtures
-- token, latency and quality measurements recorded from real Codex runs
-- over-delegation regression cases enforced with measured overhead
-- task-level cost comparison supports Luna/Terra/Sol default decisions
-- dated provider/model/version metadata captured for reproducibility
+- collect repeated real Codex runs on representative tasks
+- measure explicit context budgets against real runs
+- benchmark semantic compute tiers
+- evaluate natural-language routing/classifier accuracy separately from policy routing
+- test escalation rules against difficult/critical fixtures
+- record token, latency and quality measurements
+- enforce over-delegation regression cases
+- support task-level cost comparison for Luna/Terra/Sol defaults
 
 ## v0.3.0 — Engineering specialists
 
