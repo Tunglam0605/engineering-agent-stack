@@ -1,6 +1,6 @@
 # Codex Adapter
 
-Status: **v0.1 candidate — generated and drift-checked**
+Status: **v0.1 candidate — generated, drift-checked, and installable**
 
 Last checked against current public Codex subagent documentation and `openai/codex` source: **2026-09-07**.
 
@@ -57,22 +57,25 @@ Normal session settings such as `model`, `model_reasoning_effort`, and `sandbox_
 
 Global subagent controls remain under `[agents]` in `.codex/config.toml` or the personal config. The example intentionally contains only those public global controls; it does not depend on internal role-registration mechanisms.
 
-## Project installation
+## Safe installation
 
-From the repository that will use these agents:
+Recommended first trial:
 
 ```bash
-mkdir -p .codex/agents
-cp /path/to/engineering-agent-stack/adapters/codex/agents/*.toml .codex/agents/
+python scripts/install_codex.py --project /path/to/project --dry-run
+python scripts/install_codex.py --project /path/to/project
+python scripts/install_codex.py --project /path/to/project --check
 ```
 
-Then merge the `[agents]` block from:
+After project-scoped validation, personal installation is available with:
 
-```text
-adapters/codex/config.toml.example
+```bash
+python scripts/install_codex.py --personal
 ```
 
-into that project's `.codex/config.toml`.
+The installer refuses to overwrite differing role files unless `--force` is supplied; forced replacement creates `.bak` files. Existing `config.toml` files are never rewritten automatically.
+
+See [`../../docs/INSTALL_CODEX.md`](../../docs/INSTALL_CODEX.md).
 
 ## Routing posture
 
