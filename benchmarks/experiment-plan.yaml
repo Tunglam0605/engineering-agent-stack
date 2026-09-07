@@ -1,0 +1,155 @@
+version: 2
+status: candidate
+objective: preserve-required-quality-then-minimize-token-cost-and-latency
+protocol:
+  screening_repeats: 3
+  confirmation_repeats: 10
+  promotion_requires:
+    - all hard safety checks pass
+    - quality threshold is met across confirmation runs
+    - no material regression in defect-detection or task correctness
+    - cost or latency improvement is material enough to justify a routing change
+  stop_rules:
+    - stop an underpowered variant early after a hard safety failure
+    - do not spend confirmation runs on a variant that repeatedly misses the quality threshold
+    - do not promote a cheaper variant from synthetic fixtures
+cases:
+  - id: scout-call-path
+    version: 1
+    role: scout
+    risk: low
+    quality_threshold: 0.95
+    hard_fail_on_safety_violation: false
+    purpose: Compare repository mapping accuracy with minimal read-heavy context.
+    rubric:
+      evidence_accuracy: 0.50
+      call_path_correctness: 0.30
+      scope_discipline: 0.20
+    variants:
+      - id: luna-low
+        provider: openai
+        model: gpt-5.6-luna
+        reasoning: low
+      - id: luna-medium
+        provider: openai
+        model: gpt-5.6-luna
+        reasoning: medium
+      - id: terra-medium
+        provider: openai
+        model: gpt-5.6-terra
+        reasoning: medium
+
+  - id: researcher-current-docs
+    version: 1
+    role: researcher
+    risk: normal
+    quality_threshold: 0.95
+    hard_fail_on_safety_violation: false
+    purpose: Compare freshness and primary-source accuracy for version-sensitive research.
+    rubric:
+      factual_accuracy: 0.35
+      source_authority: 0.35
+      freshness_and_version_match: 0.30
+    variants:
+      - id: luna-medium
+        provider: openai
+        model: gpt-5.6-luna
+        reasoning: medium
+      - id: terra-medium
+        provider: openai
+        model: gpt-5.6-terra
+        reasoning: medium
+
+  - id: implementer-bounded-change
+    version: 1
+    role: implementer
+    risk: normal
+    quality_threshold: 0.98
+    hard_fail_on_safety_violation: false
+    purpose: Compare correctness for a known-scope implementation with targeted tests.
+    rubric:
+      acceptance_correctness: 0.50
+      regression_safety: 0.25
+      scope_discipline: 0.15
+      validation_quality: 0.10
+    variants:
+      - id: terra-medium
+        provider: openai
+        model: gpt-5.6-terra
+        reasoning: medium
+      - id: terra-high
+        provider: openai
+        model: gpt-5.6-terra
+        reasoning: high
+
+  - id: debugger-hard-root-cause
+    version: 1
+    role: debugger
+    risk: high
+    quality_threshold: 0.98
+    hard_fail_on_safety_violation: false
+    purpose: Compare root-cause accuracy on ambiguous concurrency or integration failures.
+    rubric:
+      root_cause_correctness: 0.50
+      reproduction_or_falsifiability: 0.20
+      remediation_correctness: 0.20
+      uncertainty_calibration: 0.10
+    variants:
+      - id: terra-high
+        provider: openai
+        model: gpt-5.6-terra
+        reasoning: high
+      - id: sol-high
+        provider: openai
+        model: gpt-5.6-sol
+        reasoning: high
+
+  - id: reviewer-release-defects
+    version: 1
+    role: reviewer
+    risk: high
+    quality_threshold: 0.99
+    hard_fail_on_safety_violation: false
+    purpose: Compare independent defect detection on release-candidate diffs.
+    rubric:
+      defect_recall: 0.50
+      finding_precision: 0.25
+      severity_accuracy: 0.15
+      coverage_transparency: 0.10
+    variants:
+      - id: terra-high
+        provider: openai
+        model: gpt-5.6-terra
+        reasoning: high
+      - id: sol-high
+        provider: openai
+        model: gpt-5.6-sol
+        reasoning: high
+
+  - id: architect-critical-realtime
+    version: 1
+    role: architect
+    risk: critical
+    quality_threshold: 0.99
+    hard_fail_on_safety_violation: true
+    purpose: Compare system decisions for realtime, bootloader, memory-safety, or release-critical work.
+    rubric:
+      safety_and_correctness: 0.40
+      constraint_coverage: 0.20
+      tradeoff_quality: 0.15
+      interface_robustness: 0.15
+      validation_and_rollback: 0.10
+    variants:
+      - id: sol-high
+        provider: openai
+        model: gpt-5.6-sol
+        reasoning: high
+      - id: astra-high
+        provider: openai
+        model: gpt-6-astra
+        reasoning: high
+notes:
+  - This plan defines comparisons, not winners.
+  - Domain-specific task fixtures and reference answers are added separately so the same model plan can be reused.
+  - Rubric dimension weights are candidate starting points and must be versioned with each case.
+  - Critical variants are never accepted on cost savings alone.

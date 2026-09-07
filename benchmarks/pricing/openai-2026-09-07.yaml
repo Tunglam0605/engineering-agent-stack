@@ -1,0 +1,28 @@
+version: 1
+status: point-in-time-research-input
+retrieved: 2026-09-07
+currency: USD
+unit_tokens: 1000000
+cost_basis: normalized-api-list-price
+assumptions:
+  - Prices are used as a normalized comparison proxy when actual Codex billing data is unavailable.
+  - This file does not claim that ChatGPT/Codex subscription usage is billed at these API rates.
+  - Cached-input discounts, batch discounts, plan quotas, credits, and provider-specific billing are not modeled.
+models:
+  gpt-5.6-luna:
+    input_per_unit: 0.20
+    output_per_unit: 1.20
+  gpt-5.6-terra:
+    input_per_unit: 2.00
+    output_per_unit: 12.00
+  gpt-5.6-sol:
+    input_per_unit: 4.00
+    output_per_unit: 20.00
+  gpt-6-astra:
+    input_per_unit: 10.00
+    output_per_unit: 50.00
+sources:
+  - https://developers.openai.com/api/docs/models
+notes:
+  - Revalidate before a benchmark campaign that will influence defaults.
+  - Prefer actual billed/usage data when a provider exposes trustworthy per-run cost.

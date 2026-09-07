@@ -14,7 +14,7 @@ Exit criteria:
 
 ## v0.1.0 — Core agents
 
-Status: **candidate complete; release hardening before tag.**
+Status: **candidate complete; real Codex smoke test remains before tag.**
 
 Exit criteria:
 
@@ -24,27 +24,44 @@ Exit criteria:
 - Codex adapter generated deterministically from canonical definitions ✅
 - generated adapter drift check runs in CI ✅
 - direct-vs-delegate policy fixtures run through an executable evaluator ✅
+- critical-risk routing precedence covered by regression fixtures ✅
 - current public Codex custom-agent behavior recorded as an authoritative source ✅
 
 Remaining before a v0.1.0 tag:
 
 - smoke-test installation in a real Codex project
 - confirm custom-agent discovery/permissions on the user's current Codex build
-- record the first real task traces for v0.2 benchmark input
+- record initial real task traces
 
 ## v0.2.0 — Efficiency controls
 
-Status: **next active milestone.**
+Status: **measurement foundation implemented; real campaigns pending.**
 
-Exit criteria:
+Foundation:
 
-- explicit context budgets measured against real runs
-- semantic compute tiers benchmarked
-- natural-language routing/classifier accuracy evaluated separately from policy routing
-- escalation rules tested against difficult/critical fixtures
-- token, latency and quality measurements recorded
-- over-delegation regression cases enforced
-- task-level cost comparison supports Luna/Terra/Sol default decisions
+- benchmark-result-v1 contract ✅
+- machine-readable model comparison plan ✅
+- weighted quality rubrics + per-case quality thresholds ✅
+- critical-case hard-safety gate ✅
+- point-in-time normalized OpenAI price snapshot ✅
+- benchmark plan/fixture validator ✅
+- quality-gated cost/latency report ✅
+- synthetic fixtures isolated from real evidence ✅
+- two-stage screening/confirmation protocol ✅
+
+Remaining:
+
+- collect real Codex token/latency traces
+- run Luna low vs medium vs Terra for Scout
+- run Luna vs Terra for Researcher
+- run Terra medium vs high for Implementer
+- run Terra high vs Sol for Debugger/Reviewer
+- run Sol vs Astra only on critical cases
+- benchmark bounded context against full-context delegation
+- benchmark direct vs one-worker vs bounded parallel-read topologies
+- natural-language routing/classifier accuracy evaluation
+- escalation regression suite using real/deterministic task fixtures
+- promote defaults only after confirmation evidence
 
 ## v0.3.0 — Engineering specialists
 

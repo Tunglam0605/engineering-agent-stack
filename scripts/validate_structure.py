@@ -13,6 +13,7 @@ REQUIRED = [
     "requirements-dev.txt",
     "docs/ARCHITECTURE.md",
     "docs/ROADMAP.md",
+    "docs/BENCHMARKING.md",
     "research/README.md",
     "research/matrix/repository-comparison.yaml",
     "research/patterns/wave-2-synthesis.md",
@@ -27,17 +28,24 @@ REQUIRED = [
     "policies/quality-gates.md",
     "schemas/agent-contract.yaml",
     "schemas/assignment-result.yaml",
+    "schemas/benchmark-result.yaml",
     "agents/core/README.md",
     "agents/specialists/README.md",
     "evals/README.md",
     "evals/routing-cases.yaml",
     "benchmarks/README.md",
+    "benchmarks/experiment-plan.yaml",
+    "benchmarks/pricing/openai-2026-09-07.yaml",
+    "benchmarks/fixtures/sample-results.jsonl",
+    "benchmarks/results/README.md",
     "adapters/codex/README.md",
     "adapters/codex/role-profiles.yaml",
     "adapters/codex/config.toml.example",
     "scripts/validate_agents.py",
     "scripts/evaluate_routing.py",
     "scripts/generate_codex_adapter.py",
+    "scripts/validate_benchmarks.py",
+    "scripts/benchmark_report.py",
 ]
 
 CORE_ROLES = [
@@ -101,7 +109,7 @@ def main() -> int:
         "OK: "
         f"{len(paths)} required artifacts present; "
         f"{len(CORE_ROLES)} core roles, {len(REFERENCE_NOTES)} research notes, "
-        "and generated Codex adapter artifacts are structurally complete."
+        "generated Codex adapter artifacts, and benchmark foundations are structurally complete."
     )
     return 0
 

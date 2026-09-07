@@ -2,7 +2,7 @@
 
 > Research-driven, provider-aware engineering agents focused on **quality per unit of cost**, not maximum agent count.
 
-[![Status](https://img.shields.io/badge/status-v0.1%20candidate-orange)](#roadmap)
+[![Status](https://img.shields.io/badge/status-v0.2%20measurement%20foundation-orange)](#roadmap)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
 ## Why this project exists
@@ -72,12 +72,12 @@ agents/          Provider-neutral role definitions and specialist catalog
 config/          Semantic compute profiles and routing policy
 policies/        Delegation, escalation, context and quality rules
 research/        Source analysis, primary-source notes, patterns and anti-patterns
-schemas/         Stable role/result contracts
+schemas/         Stable role/result/benchmark contracts
 evals/           Routing and quality evaluation fixtures
-benchmarks/      Cost/latency/quality experiments
+benchmarks/      Cost/latency/quality plans, fixtures and results
 adapters/        Provider/tool-specific generated integration layers
-scripts/         Validation, generation and evaluation tooling
-docs/            Architecture and roadmap
+scripts/         Validation, generation, evaluation and benchmark tooling
+docs/            Architecture, benchmarking protocol and roadmap
 ```
 
 ## Research method
@@ -129,7 +129,7 @@ See [`config/model-profiles.yaml`](config/model-profiles.yaml).
 python scripts/evaluate_routing.py
 ```
 
-Natural-language classifier quality will be evaluated separately in v0.2.
+Natural-language classifier quality will be evaluated separately.
 
 ## Codex adapter
 
@@ -152,6 +152,37 @@ global controls [agents] in config.toml
 
 See [`adapters/codex/README.md`](adapters/codex/README.md).
 
+## Measurement foundation
+
+The v0.2 benchmark layer is now machine-readable and deliberately refuses to equate “cheaper” with “better”.
+
+```text
+benchmark-result-v1
+       |
+       +--> quality threshold + validation gate
+       |
+       +--> token counts + latency
+       |
+       +--> actual cost when available
+       |
+       +--> otherwise normalized API-price estimate
+```
+
+Initial comparisons are defined for:
+
+```text
+Scout       Luna low vs Luna medium vs Terra medium
+Researcher  Luna medium vs Terra medium
+Implementer Terra medium vs Terra high
+Debugger    Terra high vs Sol high
+Reviewer    Terra high vs Sol high
+Critical    Sol high vs Astra high
+```
+
+The included `sample-results.jsonl` is synthetic and can never promote a default.
+
+See [`benchmarks/README.md`](benchmarks/README.md) and [`docs/BENCHMARKING.md`](docs/BENCHMARKING.md).
+
 ## Validation
 
 Install development dependencies:
@@ -167,6 +198,8 @@ python scripts/validate_structure.py
 python scripts/validate_agents.py
 python scripts/evaluate_routing.py
 python scripts/generate_codex_adapter.py --check
+python scripts/validate_benchmarks.py
+python scripts/benchmark_report.py benchmarks/fixtures/sample-results.jsonl --allow-synthetic
 ```
 
 GitHub Actions runs the same gates on pushes and pull requests.
@@ -174,8 +207,8 @@ GitHub Actions runs the same gates on pushes and pull requests.
 ## Roadmap
 
 - **v0.0.x — Research foundation:** exit criteria reached; research remains continuous.
-- **v0.1.0 — Core agents:** canonical roles, semantic validation, deterministic policy eval and generated Codex adapter are now present; release hardening remains.
-- **v0.2.0 — Efficiency controls:** token/cost/latency capture, model-tier benchmarks, classifier evals, escalation regressions.
+- **v0.1.0 — Core agents:** canonical roles, semantic validation, deterministic policy eval and generated Codex adapter are present; real Codex smoke testing remains.
+- **v0.2.0 — Efficiency controls:** benchmark contracts, quality rubrics, cost normalization and reporting foundation are present; real repeated model/context/orchestration runs are next.
 - **v0.3.0 — Engineering specialists:** Embedded, STM32, ROS 2, Robotics and tooling roles only when benchmark evidence justifies them.
 - **v0.4.0 — Evaluation/portability:** multiple adapters, routing accuracy and specialist-vs-core ablation.
 - **v1.0.0 — Stable stack:** benchmark-backed defaults, reproducible installer, migration strategy and compatibility policy.
@@ -184,7 +217,7 @@ See [`docs/ROADMAP.md`](docs/ROADMAP.md).
 
 ## Current status
 
-**v0.1 core infrastructure candidate.** The next priority is not more agents: it is measuring whether Luna/Terra/Sol routing preserves quality while reducing token and latency cost.
+**v0.1 core candidate + v0.2 measurement foundation.** The next engineering step is to collect real Codex traces and compare Luna/Terra/Sol under fixed quality gates before changing any default or adding specialist agents.
 
 ## License
 

@@ -34,3 +34,9 @@ jobs:
 
       - name: Check generated Codex adapter drift
         run: python scripts/generate_codex_adapter.py --check
+
+      - name: Validate benchmark contracts
+        run: python scripts/validate_benchmarks.py
+
+      - name: Exercise benchmark report with synthetic fixture
+        run: python scripts/benchmark_report.py benchmarks/fixtures/sample-results.jsonl --allow-synthetic
