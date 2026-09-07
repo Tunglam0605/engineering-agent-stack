@@ -23,9 +23,13 @@ jobs:
       - name: Compile scripts
         run: python -m compileall -q scripts
 
-      - name: Smoke-test live delegation compatibility prompt
+      - name: Smoke-test locale-independent subprocess capture
         run: |
-          python -c "import sys; sys.path.insert(0,'scripts'); import acceptance_test_codex as a; p=a.delegation_prompt('scout','inspect README'); assert 'fork_turns' in p and '`none`' in p and '10000' in p"
+          python -c "import sys; sys.path.insert(0,'scripts'); import acceptance_core as a; p=a.run([sys.executable,'-c','import sys; sys.stdout.buffer.write(bytes([0xe2,0x9c,0x93,0x20,0xe2,0x82,0xac]))']); assert p.stdout == '\u2713 \u20ac'; assert a.parse_jsonl_text(None) == []"
+
+      - name: Smoke-test provider probe configuration
+        run: |
+          python -c "import sys; from pathlib import Path; sys.path.insert(0,'scripts'); import provider_probe_codex as p; o=p.provider_overrides(Path('/tmp/eas-provider')); assert any(x.startswith('agents.scout.config_file=') for x in o); q=p.delegation_prompt('scout','inspect README'); assert 'agent_type `scout`' in q and 'fork_turns `none`' in q"
 
       - name: Validate repository structure
         run: python scripts/validate_structure.py
@@ -74,8 +78,10 @@ jobs:
           python scripts/promote_run_capture.py /tmp/capture.json --score 0.98 --threshold 0.95 --grader synthetic-ci-fixture --output /tmp/benchmark.jsonl
           python scripts/summarize_benchmarks.py /tmp/benchmark.jsonl
 
-      - name: Smoke-test offline acceptance harness
-        run: python scripts/acceptance_test_codex.py --offline --report /tmp/acceptance.md
+      - name: Smoke-test stack-owned offline acceptance
+        run: |
+          python scripts/acceptance_core.py --offline --report /tmp/acceptance.md
+          python scripts/acceptance_test_codex.py --offline --report /tmp/acceptance-compat.md
 
       - name: Check generated Codex adapter drift
         run: python scripts/generate_codex_adapter.py --check
@@ -94,6 +100,11 @@ jobs:
       - name: Install validation dependencies
         run: python -m pip install -r requirements-dev.txt
 
+      - name: Smoke-test UTF-8 subprocess capture on Windows
+        shell: pwsh
+        run: |
+          python -c "import sys; sys.path.insert(0,'scripts'); import acceptance_core as a; p=a.run([sys.executable,'-c','import sys; sys.stdout.buffer.write(bytes([0xe2,0x9c,0x93]))']); assert p.stdout == '\u2713'; assert a.parse_jsonl_text(None) == []"
+
       - name: Smoke-test npm Codex shim resolution
         shell: pwsh
         run: |
@@ -102,11 +113,11 @@ jobs:
           $ps1 = Join-Path $shimDir "codex.ps1"
           $cmd = Join-Path $shimDir "codex.cmd"
           Set-Content -LiteralPath $ps1 -Value 'Write-Output "ps1-shim"'
-          Set-Content -LiteralPath $cmd -Value '@echo off`r`necho %*'
+          Set-Content -LiteralPath $cmd -Value @('@echo off','echo %*') -Encoding ASCII
           $env:EAS_TEST_CODEX_PS1 = $ps1
-          python -c "import os,sys; sys.path.insert(0,'scripts'); import acceptance_test_codex as a; r=a.resolve_command(os.environ['EAS_TEST_CODEX_PS1']); print(r); assert r.lower().endswith('codex.cmd'); p=a.run(a.external_command(r,['exec','-'])); print(p.stdout); assert p.returncode == 0 and 'exec -' in p.stdout"
+          python -c "import os,sys; sys.path.insert(0,'scripts'); import acceptance_core as a; r=a.resolve_command(os.environ['EAS_TEST_CODEX_PS1']); print(r); assert r.lower().endswith('codex.cmd'); p=a.run(a.external_command(r,['exec','-'])); print(p.stdout); assert p.returncode == 0 and 'exec -' in p.stdout"
 
-      - name: Run PowerShell acceptance wrapper offline
+      - name: Run PowerShell stack-owned acceptance offline
         shell: pwsh
         run: |
           & .\scripts\acceptance-test.ps1 -Offline -Report "$env:RUNNER_TEMP\engineering-agent-stack-acceptance.md"
