@@ -107,20 +107,25 @@ if (-not $Offline) {
 
     # Live acceptance is executed in a fresh temporary repository. Current Codex
     # deliberately loads project-local .codex/config.toml as disabled until that
-    # project is trusted, so the acceptance-only V2 controls must be session flags
-    # rather than relying solely on the generated project config.
-    #
-    # We also expose spawn metadata during acceptance because V2 hides agent_type
-    # by default; named custom-role diagnostics need agent_type to be selectable.
+    # project is trusted. Session flags therefore enable V2 and, when the harness
+    # is running inside its installed sandbox, explicitly register all seven role
+    # files by absolute path. This keeps the test isolated from personal trust/config.
     $AcceptanceCodexWrapper = Join-Path ([System.IO.Path]::GetTempPath()) ("engineering-agent-stack-codex-" + [guid]::NewGuid().ToString("N") + ".cmd")
 
     # IMPORTANT: this text is embedded inside a Windows .cmd quoted argument.
     # Do not put literal double quotes in the instruction value: cmd.exe does
     # not use backslash as a quote escape and would split the -c argument.
-    $AcceptanceDeveloperInstructions = 'Engineering Agent Stack acceptance policy. The disposable acceptance sandbox changes requested by this harness are already authorized, so do not ask the user for confirmation. If and only if the user prompt begins with the literal prefix Acceptance test., the requested named custom agent is mandatory. Call spawn_agent exactly once for that role, set fork_turns to none, put the complete assignment in the child message, wait for the child result, and never perform the requested child task directly in the parent. If spawn_agent fails, report that failure instead of falling back. For prompts without that literal prefix, follow the normal repository orchestration policy and direct-first rule.'
+    $AcceptanceDeveloperInstructions = 'Engineering Agent Stack acceptance policy. The disposable acceptance sandbox changes requested by this harness are already authorized, so do not ask the user for confirmation. If and only if the user prompt begins with the literal prefix Acceptance test., the requested named custom agent is mandatory. Call spawn_agent exactly once for that role, set agent_type to the requested custom role, set fork_turns to none, put the complete assignment in the child message, wait for the child result, and never perform the requested child task directly in the parent. If spawn_agent fails, report that failure instead of falling back. For prompts without that literal prefix, follow the normal repository orchestration policy and direct-first rule.'
+    $BaseInvocation = ('"' + $ActualCodexBin + '" -c "approval_policy=''never''" -c "agents.enabled=true" -c "features.multi_agent_v2.enabled=true" -c "features.multi_agent_v2.wait_agent_enabled=true" -c "features.multi_agent_v2.non_code_mode_only=true" -c "features.multi_agent_v2.hide_spawn_agent_metadata=false" -c "features.multi_agent_v2.expose_spawn_agent_model_overrides=true" -c "developer_instructions=''' + $AcceptanceDeveloperInstructions + '''"')
+    $RoleOverrides = '-c "agents.scout.config_file=''%CD%\.codex\agents\scout.toml''" -c "agents.researcher.config_file=''%CD%\.codex\agents\researcher.toml''" -c "agents.implementer.config_file=''%CD%\.codex\agents\implementer.toml''" -c "agents.debugger.config_file=''%CD%\.codex\agents\debugger.toml''" -c "agents.test-engineer.config_file=''%CD%\.codex\agents\test-engineer.toml''" -c "agents.reviewer.config_file=''%CD%\.codex\agents\reviewer.toml''" -c "agents.architect.config_file=''%CD%\.codex\agents\architect.toml''"'
     $WrapperLines = @(
         '@echo off',
-        ('"' + $ActualCodexBin + '" -c "approval_policy=''never''" -c "agents.enabled=true" -c "features.multi_agent_v2.enabled=true" -c "features.multi_agent_v2.wait_agent_enabled=true" -c "features.multi_agent_v2.non_code_mode_only=true" -c "features.multi_agent_v2.hide_spawn_agent_metadata=false" -c "features.multi_agent_v2.expose_spawn_agent_model_overrides=true" -c "developer_instructions=''' + $AcceptanceDeveloperInstructions + '''" %*')
+        'if exist "%CD%\.codex\agents\scout.toml" goto with_roles',
+        ($BaseInvocation + ' %*'),
+        'exit /b %ERRORLEVEL%',
+        ':with_roles',
+        ($BaseInvocation + ' ' + $RoleOverrides + ' %*'),
+        'exit /b %ERRORLEVEL%'
     )
     Set-Content -LiteralPath $AcceptanceCodexWrapper -Value $WrapperLines -Encoding ASCII
     $ResolvedCodexBin = $AcceptanceCodexWrapper
@@ -154,7 +159,7 @@ Write-Host "Python: $PythonVersion ($PythonExe $($PythonPrefix -join ' '))"
 Write-Host "Python text mode: UTF-8"
 if (-not $Offline) {
     Write-Host "Codex launcher: $ActualCodexBin"
-    Write-Host "Acceptance runtime: non-interactive approval + forced Multi-Agent V2 + visible custom-role selector"
+    Write-Host "Acceptance runtime: non-interactive approval + forced Multi-Agent V2 + explicit session role registration"
 }
 Write-Host "Mode: $(if ($Offline) { 'offline' } elseif ($Extended) { 'live-extended' } else { 'live' })"
 Write-Host ""
