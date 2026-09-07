@@ -66,7 +66,7 @@ jobs:
         run: |
           python scripts/capture_codex_exec.py --manifest benchmarks/run-manifest.example.yaml --dry-run
           python scripts/normalize_codex_exec.py --events benchmarks/fixtures/codex-exec-events.jsonl --manifest benchmarks/run-manifest.example.yaml --latency-ms 1234.5 --started-at 2026-09-07T00:00:00+00:00 --finished-at 2026-09-07T00:00:01.234500+00:00 --output /tmp/capture.json
-          python -c "import json; d=json.load(open('/tmp/capture.json', encoding='utf-8')); e=d['event_summary']; assert e['agent_spawns'] == 1; assert e['agent_spawn_models'] == ['gpt-5.6-luna']; assert e['agent_spawn_roles'] == ['scout']"
+          python -c "import json; d=json.load(open('/tmp/capture.json', encoding='utf-8')); e=d['event_summary']; assert e['agent_spawns'] == 1; assert e['agent_spawn_thread_ids'] == ['fixture-child-001']; assert e['agent_spawn_models'] == []; assert e['agent_spawn_roles'] == []; assert e['item_type_counts']['collab_tool_call'] == 1"
           python scripts/promote_run_capture.py /tmp/capture.json --score 0.98 --threshold 0.95 --grader synthetic-ci-fixture --output /tmp/benchmark.jsonl
           python scripts/summarize_benchmarks.py /tmp/benchmark.jsonl
 
