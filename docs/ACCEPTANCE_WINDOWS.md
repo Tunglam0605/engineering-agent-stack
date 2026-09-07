@@ -52,6 +52,30 @@ This performs:
 
 The basic live acceptance intentionally avoids invoking every role because repeated child-agent calls consume model tokens.
 
+The harness prints live progress markers before Scout, direct-first, and Implementer so a slow model call is distinguishable from a frozen wrapper. A single Codex call timing out is recorded as a failed test case instead of aborting the entire report.
+
+## Codex V2 ephemeral delegation compatibility
+
+Current Codex releases have a known upstream issue in `codex exec --ephemeral` when a V2 child spawn tries to inherit/fork parent history. The root thread exists in memory, but an ephemeral run intentionally has no persisted parent history, so the history-fork path can fail with:
+
+```text
+collab spawn failed: no thread with id: <root-thread-id>
+```
+
+Upstream tracking: <https://github.com/openai/codex/issues/41474>
+
+The acceptance harness therefore makes the intended Engineering Agent Stack context policy explicit: delegated smoke tests request `fork_turns = "none"` and put the complete bounded assignment in the child message. This is both a runtime compatibility measure and the desired minimal-context behavior for normal role delegation.
+
+If a real task genuinely requires inherited parent history, do not silently classify an ephemeral history-fork failure as an agent-quality failure. Use a persistent Codex session or wait for the upstream ephemeral fork path to be fixed, then test that history-dependent workflow separately.
+
+Some affected Codex V2 releases also reject short explicit `wait_agent` values with an error such as:
+
+```text
+timeout_ms must be at least 10000
+```
+
+The managed parent instructions and acceptance prompts therefore tell Codex to omit `timeout_ms` or use at least `10000` ms.
+
 ## Offline acceptance
 
 Use this first when you only want to verify Windows compatibility and installation logic without consuming model tokens:
@@ -112,9 +136,9 @@ parent Codex
     |
     +-- trivial edit ----------> direct, expected 0 child spawns
     |
-    +-- explicit Scout -------> child spawn, no tracked file changes
+    +-- explicit Scout -------> fresh bounded child, no tracked file changes
     |
-    +-- explicit Implementer -> child spawn, bounded write
+    +-- explicit Implementer -> fresh bounded child, bounded write
 ```
 
 Current Codex `exec --json` serializes collaboration activity as `collab_tool_call` items. Older/experimental traces may use `collab_agent_tool_call`; the parser accepts both so CLI-version differences do not create false zero-spawn results.
@@ -125,6 +149,7 @@ For a current `spawn_agent` item, the JSONL payload exposes receiver thread IDs,
 - `agent_spawn_thread_ids`
 - input/output/reasoning token usage
 - latency
+- timeout state
 - model/role/reasoning metadata only when the CLI actually emits those optional fields
 
 Missing model/role fields are reported as `WARN`, not guessed and not treated as proof that delegation failed. A successful spawn plus the behavioral checks is enough for the basic acceptance path; exact child model/role verification requires a runtime telemetry surface that exposes those fields.
@@ -139,6 +164,7 @@ The harness:
 - does not overwrite your personal Codex configuration
 - does not copy raw Codex transcripts into the final Markdown report
 - resets write-test workspaces after each case
+- keeps live Codex runs ephemeral while avoiding inherited-history forks for normal bounded delegation
 
 Use `--keep-sandbox` with the Python entry point only when you intentionally want to inspect the disposable repository after the run.
 
