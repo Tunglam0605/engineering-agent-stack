@@ -9,21 +9,24 @@ The harness is project-scoped and disposable: it creates a temporary Git reposit
 On Windows:
 
 - Git available on `PATH`
-- Python **3.10 or newer** available as `py` or `python`
+- Python **3.9 or newer** available as `py` or `python`
 - Codex CLI available as `codex`
 - Codex authenticated through its normal CLI flow
 - development dependencies installed with `py -m pip install -r requirements-dev.txt`
 
-Python 3.10 is supported through the conditional `tomli` compatibility dependency; Python 3.11+ uses the standard-library `tomllib` module.
+Python 3.9/3.10 are supported through the conditional `tomli` compatibility dependency; Python 3.11+ uses the standard-library `tomllib` module. Python 3.11/3.12 is still recommended for a fresh machine, but upgrading an existing Python 3.9 installation is not required just to run this acceptance harness.
 
-Before a live run, these two commands should succeed:
+Before a live run, these commands should succeed:
 
 ```powershell
 py --version
 Get-Command codex
+codex --version
 ```
 
-If `Get-Command codex` cannot resolve an executable, the live acceptance cannot invoke Codex. Install/configure the Codex CLI or pass its exact executable path with `-CodexBin`.
+A typical npm Codex installation on Windows may resolve `codex` to a PowerShell launcher such as `codex.ps1`. The acceptance harness resolves that launcher and invokes it through PowerShell when needed.
+
+If `Get-Command codex` cannot resolve anything, the live acceptance cannot invoke Codex. Install/configure the Codex CLI or pass its exact executable/script path with `-CodexBin`.
 
 ## One-command live acceptance
 
@@ -75,13 +78,13 @@ This additionally invokes Researcher, Debugger, Test Engineer, Reviewer, and Arc
 
 ## Custom Codex executable path
 
-If Codex is installed but is not exposed as `codex` on `PATH`, pass its exact executable path:
+If Codex is installed but is not exposed as `codex` on `PATH`, pass its exact executable or script path:
 
 ```powershell
-.\scripts\acceptance-test.ps1 -CodexBin "C:\path\to\codex.exe"
+.\scripts\acceptance-test.ps1 -CodexBin "C:\path\to\codex.cmd"
 ```
 
-The PowerShell wrapper performs this preflight before starting a live run and reports a focused error instead of a generic Windows process-launch failure.
+The harness supports normal executables plus Windows npm launchers such as `.cmd`, `.bat`, and `.ps1`.
 
 ## Report
 
