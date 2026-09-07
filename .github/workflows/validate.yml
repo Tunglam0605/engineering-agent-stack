@@ -23,6 +23,10 @@ jobs:
       - name: Compile scripts
         run: python -m compileall -q scripts
 
+      - name: Smoke-test live delegation compatibility prompt
+        run: |
+          python -c "import sys; sys.path.insert(0,'scripts'); import acceptance_test_codex as a; p=a.delegation_prompt('scout','inspect README'); assert 'fork_turns' in p and '`none`' in p and '10000' in p"
+
       - name: Validate repository structure
         run: python scripts/validate_structure.py
 
