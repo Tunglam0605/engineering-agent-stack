@@ -12,8 +12,10 @@ import argparse
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 import json
+import os
 from pathlib import Path
 import platform
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -78,6 +80,50 @@ def git(args: list[str], cwd: Path, timeout: int = 60) -> subprocess.CompletedPr
     return run(["git", *args], cwd=cwd, timeout=timeout)
 
 
+def resolve_command(command: str) -> str | None:
+    """Resolve executables plus Windows npm launchers such as codex.cmd/codex.ps1."""
+    raw = Path(command).expanduser()
+    if raw.is_file():
+        return str(raw.resolve())
+
+    found = shutil.which(command)
+    if found:
+        return found
+
+    if os.name == "nt" and raw.suffix == "":
+        for suffix in (".cmd", ".exe", ".bat"):
+            found = shutil.which(command + suffix)
+            if found:
+                return found
+
+        # PowerShell scripts are not normally part of PATHEXT, so search PATH explicitly.
+        for directory in os.environ.get("PATH", "").split(os.pathsep):
+            if not directory:
+                continue
+            candidate = Path(directory) / f"{command}.ps1"
+            if candidate.is_file():
+                return str(candidate.resolve())
+    return None
+
+
+def external_command(executable: str, args: list[str]) -> list[str]:
+    """Build a subprocess-safe command for native binaries and Windows wrappers."""
+    suffix = Path(executable).suffix.lower()
+    if os.name == "nt" and suffix == ".ps1":
+        return [
+            "powershell.exe",
+            "-NoProfile",
+            "-ExecutionPolicy",
+            "Bypass",
+            "-File",
+            executable,
+            *args,
+        ]
+    if os.name == "nt" and suffix in {".cmd", ".bat"}:
+        return ["cmd.exe", "/d", "/s", "/c", executable, *args]
+    return [executable, *args]
+
+
 def init_sandbox(path: Path) -> None:
     path.mkdir(parents=True, exist_ok=True)
     result = git(["init"], path)
@@ -127,21 +173,23 @@ def parse_jsonl_text(text: str) -> list[dict[str, Any]]:
 def codex_exec(*, codex_bin: str, cwd: Path, prompt: str, main_model: str, reasoning_effort: str, sandbox_mode: str, timeout: int) -> dict[str, Any]:
     with tempfile.NamedTemporaryFile(prefix="engineering-agent-stack-last-message-", suffix=".txt", delete=False) as handle:
         last_message = Path(handle.name)
-    command = [
+    command = external_command(
         codex_bin,
-        "-c",
-        f"model_reasoning_effort={reasoning_effort}",
-        "exec",
-        "--json",
-        "--ephemeral",
-        "--model",
-        main_model,
-        "--sandbox",
-        sandbox_mode,
-        "--output-last-message",
-        str(last_message),
-        "-",
-    ]
+        [
+            "-c",
+            f"model_reasoning_effort={reasoning_effort}",
+            "exec",
+            "--json",
+            "--ephemeral",
+            "--model",
+            main_model,
+            "--sandbox",
+            sandbox_mode,
+            "--output-last-message",
+            str(last_message),
+            "-",
+        ],
+    )
     started = time.perf_counter()
     result = run(command, cwd=cwd, input_text=prompt, timeout=timeout)
     latency_ms = round((time.perf_counter() - started) * 1000.0, 3)
@@ -429,17 +477,22 @@ def main() -> int:
             record(checks, "Installed adapter consistency check", check_install.returncode == 0, trimmed(check_install.stdout if check_install.returncode == 0 else check_install.stderr or check_install.stdout))
 
         if live and install_ok:
-            version = run([args.codex_bin, "--version"], timeout=30)
-            if version.returncode != 0:
-                record(checks, "Codex CLI available", False, trimmed(version.stderr or version.stdout or "codex executable not found"))
+            resolved_codex = resolve_command(args.codex_bin)
+            if not resolved_codex:
+                record(checks, "Codex CLI available", False, f"unable to resolve {args.codex_bin!r} from PATH")
             else:
-                codex_version = trimmed(version.stdout or version.stderr)
-                record(checks, "Codex CLI available", True, codex_version)
-                live_scout(checks, sandbox, args)
-                live_direct(checks, sandbox, args)
-                live_implementer(checks, sandbox, args)
-                if args.extended:
-                    live_extended(checks, sandbox, args)
+                args.codex_bin = resolved_codex
+                version = run(external_command(args.codex_bin, ["--version"]), timeout=30)
+                if version.returncode != 0:
+                    record(checks, "Codex CLI available", False, trimmed(version.stderr or version.stdout or "Codex CLI failed to execute"))
+                else:
+                    codex_version = trimmed(version.stdout or version.stderr)
+                    record(checks, "Codex CLI available", True, f"{codex_version} via {args.codex_bin}")
+                    live_scout(checks, sandbox, args)
+                    live_direct(checks, sandbox, args)
+                    live_implementer(checks, sandbox, args)
+                    if args.extended:
+                        live_extended(checks, sandbox, args)
         else:
             skip(checks, "Live Codex model tests", "offline mode; pass --live or run scripts/acceptance-test.ps1 on Windows")
     except (OSError, RuntimeError, subprocess.TimeoutExpired) as exc:
