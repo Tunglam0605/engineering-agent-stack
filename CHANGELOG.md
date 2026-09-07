@@ -18,10 +18,9 @@ All notable project changes will be documented here.
 - `ACKNOWLEDGEMENTS.md` with explicit credit to all repositories currently in the research matrix.
 - `docs/PROVENANCE.md` and provenance validation.
 - Windows Codex installation/acceptance documentation.
-- One-command PowerShell acceptance wrapper and cross-platform Python acceptance harness.
-- Disposable live acceptance sandbox covering Scout read-only, direct-first, and Implementer bounded-write behavior.
-- Optional extended live coverage for Researcher, Debugger, Test Engineer, Reviewer, and Architect.
-- Observable `collab_agent_tool_call` / `spawn_agent` telemetry normalization for child model, reasoning, and role metadata when exposed by Codex.
+- Stack-owned acceptance core covering repository validation, isolated installation, direct-first behavior, and exact bounded-write scope.
+- Separate Codex provider/runtime probe for `spawn_agent`, custom-role selection, Multi-Agent V2 behavior, and child-model telemetry.
+- Locale-independent UTF-8 subprocess capture with Windows regression coverage.
 - Offline Windows GitHub Actions acceptance job.
 
 ### Changed
@@ -31,8 +30,12 @@ All notable project changes will be documented here.
 - Context budgeting is adaptive across input context, work budget, and result budget rather than a hard total-token quota.
 - Project-scoped installation can now install/refresh only the managed Engineering Agent Stack block inside an existing `AGENTS.md`.
 - README now makes Windows + Codex project-scoped acceptance the primary quick-start path and retains explicit upstream acknowledgements.
-- CI now asserts synthetic subagent-spawn telemetry, project parent instructions, and Windows offline acceptance.
-- v0.1 release gating now depends on a real Windows Codex live acceptance run rather than adding more agent prompts.
+- CI asserts synthetic subagent telemetry, project parent instructions, Windows offline acceptance, and locale-independent UTF-8 subprocess handling.
+- Stack-owned release acceptance no longer forces or gates on Codex child-agent spawning/model routing; those provider capabilities are observed by a separate diagnostic command.
+- Legacy `scripts/acceptance_test_codex.py` is now a compatibility entry point for the stack-owned acceptance core.
+
+### Removed
+- The temporary acceptance normalization gate that downgraded provider failures after the fact; release/provider scope is now separated before execution.
 
 ## [0.0.1] - 2026-09-07
 
