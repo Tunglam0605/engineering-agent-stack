@@ -110,7 +110,11 @@ if (-not $Offline) {
     # Wrap the real Codex launcher with session-only CLI config overrides instead
     # of changing the user's project or personal Codex configuration.
     $AcceptanceCodexWrapper = Join-Path ([System.IO.Path]::GetTempPath()) ("engineering-agent-stack-codex-" + [guid]::NewGuid().ToString("N") + ".cmd")
-    $AcceptanceDeveloperInstructions = 'Engineering Agent Stack acceptance policy. If and only if the user prompt begins with "Acceptance test.", the requested named custom agent is mandatory. Call spawn_agent exactly once for that role, set fork_turns to "none", put the complete assignment in the child message, wait for the child result, and never perform the requested child task directly in the parent. If spawn_agent fails, report that failure instead of falling back. For prompts that do not begin with "Acceptance test.", follow the normal repository orchestration policy and direct-first rule.'
+
+    # IMPORTANT: this text is embedded inside a Windows .cmd quoted argument.
+    # Do not put literal double quotes in the instruction value: cmd.exe does
+    # not use backslash as a quote escape and would split the -c argument.
+    $AcceptanceDeveloperInstructions = 'Engineering Agent Stack acceptance policy. If and only if the user prompt begins with the literal prefix Acceptance test., the requested named custom agent is mandatory. Call spawn_agent exactly once for that role, set fork_turns to none, put the complete assignment in the child message, wait for the child result, and never perform the requested child task directly in the parent. If spawn_agent fails, report that failure instead of falling back. For prompts without that literal prefix, follow the normal repository orchestration policy and direct-first rule.'
     $WrapperLines = @(
         '@echo off',
         ('"' + $ActualCodexBin + '" -c "approval_policy=''never''" -c "developer_instructions=''' + $AcceptanceDeveloperInstructions + '''" %*')
