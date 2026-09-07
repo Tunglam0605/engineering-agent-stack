@@ -35,7 +35,19 @@ function Test-PythonCandidate {
     return $null
 }
 
-if (Get-Command py -ErrorAction SilentlyContinue) {
+# Prefer the active `python` on PATH first. This preserves virtualenv/setup-python
+# environments where dependencies were installed into that interpreter.
+if (Get-Command python -ErrorAction SilentlyContinue) {
+    $candidateVersion = Test-PythonCandidate -Exe "python" -Prefix @()
+    if ($candidateVersion) {
+        $PythonExe = "python"
+        $PythonVersion = $candidateVersion
+    }
+}
+
+# If PATH's Python is old/missing, use the newest supported Windows py-launcher
+# interpreter. This is useful on developer machines that still default to 3.9.
+if (-not $PythonExe -and (Get-Command py -ErrorAction SilentlyContinue)) {
     foreach ($minor in 13, 12, 11, 10) {
         $candidatePrefix = @("-3.$minor")
         $candidateVersion = Test-PythonCandidate -Exe "py" -Prefix $candidatePrefix
@@ -45,14 +57,6 @@ if (Get-Command py -ErrorAction SilentlyContinue) {
             $PythonVersion = $candidateVersion
             break
         }
-    }
-}
-
-if (-not $PythonExe -and (Get-Command python -ErrorAction SilentlyContinue)) {
-    $candidateVersion = Test-PythonCandidate -Exe "python" -Prefix @()
-    if ($candidateVersion) {
-        $PythonExe = "python"
-        $PythonVersion = $candidateVersion
     }
 }
 
