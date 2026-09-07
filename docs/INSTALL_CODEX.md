@@ -4,40 +4,67 @@ The Codex adapter is generated from provider-neutral roles and semantic compute 
 
 ## 1. Generate and validate
 
-```bash
-python scripts/generate_codex_adapter.py
-python scripts/generate_codex_adapter.py --check
+```powershell
+py scripts\generate_codex_adapter.py
+py scripts\generate_codex_adapter.py --check
 ```
+
+On Linux/macOS, use `python` instead of `py`.
 
 ## 2. Project-scoped installation
 
-Recommended for the first real-world trial:
+Recommended for the first real-world trial.
 
-```bash
-python scripts/install_codex.py --project /path/to/your/project --dry-run
-python scripts/install_codex.py --project /path/to/your/project
-python scripts/install_codex.py --project /path/to/your/project --check
+Windows PowerShell:
+
+```powershell
+py scripts\install_codex.py --project C:\path\to\your\project --dry-run --project-instructions
+py scripts\install_codex.py --project C:\path\to\your\project --project-instructions
+py scripts\install_codex.py --project C:\path\to\your\project --project-instructions --check
 ```
 
-This installs generated roles into:
+This installs generated roles into `<project>/.codex/agents/*.toml` and, with `--project-instructions`, manages one clearly marked Engineering Agent Stack block inside `<project>/AGENTS.md`.
 
-```text
-<project>/.codex/agents/*.toml
+The parent-orchestration block is important: child roles alone do not teach the parent Codex session the direct-first, selective-delegation, independent-review, and write-ownership policy.
+
+If `<project>/.codex/config.toml` does not exist, the installer creates it from the generated example. If a config already exists, the installer does not rewrite it; it prints the generated `[agents]` reference that must be merged/reviewed manually.
+
+If `AGENTS.md` already exists, only the managed Engineering Agent Stack block is added or refreshed. The original file is preserved and a backup named `AGENTS.md.engineering-agent-stack.bak` is created before a managed-block write.
+
+## 3. Windows one-command acceptance
+
+After installing development dependencies:
+
+```powershell
+py -m pip install -r requirements-dev.txt
+.\scripts\acceptance-test.ps1
 ```
 
-If `<project>/.codex/config.toml` does not exist, the installer creates it from the generated example. If a config already exists, the installer **does not rewrite it**; it prints the generated `[agents]` reference that must be merged/reviewed manually.
+No-model/offline mode:
 
-## 3. Personal installation
-
-After project-scoped smoke tests pass:
-
-```bash
-python scripts/install_codex.py --personal --dry-run
-python scripts/install_codex.py --personal
-python scripts/install_codex.py --personal --check
+```powershell
+.\scripts\acceptance-test.ps1 -Offline
 ```
 
-This installs generated roles into `~/.codex/agents/`.
+Extended live role coverage:
+
+```powershell
+.\scripts\acceptance-test.ps1 -Extended
+```
+
+See [`ACCEPTANCE_WINDOWS.md`](ACCEPTANCE_WINDOWS.md).
+
+## 4. Personal installation
+
+Only after project-scoped smoke tests pass:
+
+```powershell
+py scripts\install_codex.py --personal --dry-run
+py scripts\install_codex.py --personal
+py scripts\install_codex.py --personal --check
+```
+
+Project orchestration instructions are intentionally not installed for personal scope because each target repository may already have different project constraints.
 
 ## Safe overwrite behavior
 
@@ -45,16 +72,22 @@ Existing differing role files cause installation to stop before writes. Use `--f
 
 The installer never force-merges an existing `config.toml` because silently rewriting unrelated Codex configuration is unsafe.
 
-## Smoke-test sequence
+The managed `AGENTS.md` block uses explicit markers so stack instructions can be refreshed without replacing unrelated project instructions.
 
-Use a non-critical repository first and check four behaviors:
+## Automated smoke-test sequence
 
-1. a trivial single-file edit is handled directly without unnecessary delegation
-2. repository discovery can delegate to `scout`
-3. bounded implementation can delegate to `implementer` and receive targeted verification
-4. high-risk review can invoke an independent `reviewer` or `architect` route
+The Windows acceptance test checks:
 
-Then collect real traces with the benchmark capture tooling before changing default model mappings.
+1. repository validators and generated adapter drift
+2. seven project-scoped custom-agent files
+3. parent orchestration instructions
+4. project-scoped installer consistency
+5. explicit Scout invocation with read-only behavior
+6. trivial direct-first edit with zero expected child spawns
+7. explicit Implementer invocation with bounded write scope
+8. token, latency, and observable subagent-spawn telemetry
+
+Extended mode additionally invokes Researcher, Debugger, Test Engineer, Reviewer, and Architect.
 
 ## Current candidate mapping
 
