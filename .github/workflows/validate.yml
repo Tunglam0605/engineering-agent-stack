@@ -26,6 +26,9 @@ jobs:
       - name: Validate repository structure
         run: python scripts/validate_structure.py
 
+      - name: Validate acknowledgements and provenance
+        run: python scripts/validate_provenance.py
+
       - name: Validate canonical agent contracts
         run: python scripts/validate_agents.py
 
@@ -37,6 +40,13 @@ jobs:
 
       - name: Validate benchmark contracts
         run: python scripts/validate_benchmarks.py
+
+      - name: Smoke-test Codex installer
+        run: |
+          mkdir -p /tmp/eas-codex-project
+          python scripts/install_codex.py --project /tmp/eas-codex-project --dry-run
+          python scripts/install_codex.py --project /tmp/eas-codex-project
+          python scripts/install_codex.py --project /tmp/eas-codex-project --check
 
       - name: Smoke-test controlled task tooling
         run: |
