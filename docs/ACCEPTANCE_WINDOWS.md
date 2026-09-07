@@ -24,7 +24,7 @@ Get-Command codex
 codex --version
 ```
 
-A typical npm Codex installation on Windows may resolve `codex` to a PowerShell launcher such as `codex.ps1`. The acceptance harness resolves that launcher and invokes it through PowerShell when needed.
+A typical npm Codex installation on Windows may resolve `codex` to a PowerShell launcher such as `codex.ps1`. The acceptance harness prefers the adjacent npm `codex.cmd` launcher when present so `codex exec ... -` receives its stdin marker without PowerShell parameter-binding interference.
 
 If `Get-Command codex` cannot resolve anything, the live acceptance cannot invoke Codex. Install/configure the Codex CLI or pass its exact executable/script path with `-CodexBin`.
 
@@ -112,21 +112,22 @@ parent Codex
     |
     +-- trivial edit ----------> direct, expected 0 child spawns
     |
-    +-- explicit Scout -------> custom child spawn, read-only
+    +-- explicit Scout -------> child spawn, no tracked file changes
     |
-    +-- explicit Implementer -> custom child spawn, bounded write
+    +-- explicit Implementer -> child spawn, bounded write
 ```
 
-Current Codex completed collaboration items can expose `collab_agent_tool_call` events. When available, the harness records:
+Current Codex `exec --json` serializes collaboration activity as `collab_tool_call` items. Older/experimental traces may use `collab_agent_tool_call`; the parser accepts both so CLI-version differences do not create false zero-spawn results.
+
+For a current `spawn_agent` item, the JSONL payload exposes receiver thread IDs, prompt/state, and status. It does **not** currently expose child model, reasoning effort, or custom role metadata in the `CollabToolCallItem` payload. The harness therefore records:
 
 - `agent_spawns`
-- child `model`
-- child `reasoning_effort`
-- child role metadata
+- `agent_spawn_thread_ids`
 - input/output/reasoning token usage
 - latency
+- model/role/reasoning metadata only when the CLI actually emits those optional fields
 
-If a Codex build omits optional model/role fields, the harness reports `WARN` rather than inventing evidence.
+Missing model/role fields are reported as `WARN`, not guessed and not treated as proof that delegation failed. A successful spawn plus the behavioral checks is enough for the basic acceptance path; exact child model/role verification requires a runtime telemetry surface that exposes those fields.
 
 ## Safety
 
