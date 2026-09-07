@@ -2,6 +2,7 @@
 param(
     [switch]$Offline,
     [switch]$Extended,
+    [switch]$StrictDelegation,
     [string]$CodexBin = "codex",
     [string]$Report = ""
 )
@@ -76,6 +77,11 @@ if (-not $PythonExe) {
     exit 2
 }
 
+if ($Offline -and $StrictDelegation) {
+    Write-Error "-StrictDelegation requires live Codex execution and cannot be combined with -Offline."
+    exit 2
+}
+
 if (-not $Offline) {
     $CodexCommand = Get-Command $CodexBin -ErrorAction SilentlyContinue
     if (-not $CodexCommand) {
@@ -131,7 +137,7 @@ if (-not $Offline) {
     $ResolvedCodexBin = $AcceptanceCodexWrapper
 }
 
-$ArgsList = @((Join-Path $RepoRoot "scripts\acceptance_test_codex.py"))
+$ArgsList = @((Join-Path $RepoRoot "scripts\acceptance_gate.py"))
 
 if ($Offline) {
     $ArgsList += "--offline"
@@ -148,6 +154,10 @@ if ($Extended) {
     $ArgsList += "--extended"
 }
 
+if ($StrictDelegation) {
+    $ArgsList += "--strict-delegation"
+}
+
 $ArgsList += @("--codex-bin", $ResolvedCodexBin)
 if ($Report -ne "") {
     $ArgsList += @("--report", $Report)
@@ -160,6 +170,12 @@ Write-Host "Python text mode: UTF-8"
 if (-not $Offline) {
     Write-Host "Codex launcher: $ActualCodexBin"
     Write-Host "Acceptance runtime: non-interactive approval + forced Multi-Agent V2 + explicit session role registration"
+    if ($StrictDelegation) {
+        Write-Host "Delegation gate: strict (provider child-spawn failures are blocking)"
+    }
+    else {
+        Write-Host "Delegation gate: provider-observational (provider child-spawn failures are warnings)"
+    }
 }
 Write-Host "Mode: $(if ($Offline) { 'offline' } elseif ($Extended) { 'live-extended' } else { 'live' })"
 Write-Host ""
