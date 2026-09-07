@@ -34,17 +34,26 @@ Remaining before a v0.1.0 tag:
 
 ## v0.2.0 — Efficiency controls
 
-Status: **next active milestone.**
+Status: **in progress.**
 
-Exit criteria:
+Foundation completed:
+
+- normalized benchmark-record contract ✅
+- benchmark experiment plan covering Scout, Implementer, Reviewer and direct-vs-delegate overhead ✅
+- benchmark-plan validator in CI ✅
+- JSONL benchmark summarizer + synthetic smoke-test fixture ✅
+- evaluation/benchmark discipline documented ✅
+
+Remaining exit criteria:
 
 - explicit context budgets measured against real runs
-- semantic compute tiers benchmarked
+- semantic compute tiers benchmarked on repeated real tasks
 - natural-language routing/classifier accuracy evaluated separately from policy routing
 - escalation rules tested against difficult/critical fixtures
-- token, latency and quality measurements recorded
-- over-delegation regression cases enforced
+- token, latency and quality measurements recorded from real Codex runs
+- over-delegation regression cases enforced with measured overhead
 - task-level cost comparison supports Luna/Terra/Sol default decisions
+- dated provider/model/version metadata captured for reproducibility
 
 ## v0.3.0 — Engineering specialists
 
