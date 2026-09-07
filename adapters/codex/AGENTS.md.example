@@ -31,4 +31,10 @@ Delegate when the task benefits from isolated context, specialist evidence, inde
 - Token/result targets are adaptive. Never omit evidence required for correctness just to satisfy a soft size target.
 - If a lower-compute route is uncertain or fails the required quality gate, escalate rather than guessing.
 - Treat model/profile mappings as candidates; do not claim a cheaper route is better without repeated benchmark evidence.
+
+### Codex V2 context handoff compatibility
+
+- Prefer `fork_turns = "none"` for normal bounded child delegation and pass the complete task/context delta explicitly in the child message. This matches the stack's minimal-context policy and avoids unnecessary parent-history coupling.
+- Request inherited parent history only when the task materially depends on it. Current Codex `exec --ephemeral` releases have an upstream V2 history-fork limitation, so a history-dependent child spawn may fail before the child starts.
+- When using Codex V2 `wait_agent`, omit `timeout_ms` unless a specific wait is needed; if it is explicit, use at least `10000` ms for compatibility with affected releases.
 <!-- engineering-agent-stack:end -->
