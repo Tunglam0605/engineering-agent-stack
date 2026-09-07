@@ -62,6 +62,7 @@ experiments:
         model_family: sol
         reasoning: high
     measures:
+      - quality_score
       - defect_recall
       - false_positive_rate
       - input_tokens
