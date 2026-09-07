@@ -9,6 +9,8 @@ ROOT = Path(__file__).resolve().parents[1]
 REQUIRED = [
     "README.md",
     "AGENTS.md",
+    "CHANGELOG.md",
+    "requirements-dev.txt",
     "docs/ARCHITECTURE.md",
     "docs/ROADMAP.md",
     "research/README.md",
@@ -31,7 +33,11 @@ REQUIRED = [
     "evals/routing-cases.yaml",
     "benchmarks/README.md",
     "adapters/codex/README.md",
+    "adapters/codex/role-profiles.yaml",
     "adapters/codex/config.toml.example",
+    "scripts/validate_agents.py",
+    "scripts/evaluate_routing.py",
+    "scripts/generate_codex_adapter.py",
 ]
 
 CORE_ROLES = [
@@ -45,6 +51,7 @@ CORE_ROLES = [
 ]
 
 REFERENCE_NOTES = [
+    "openai-codex",
     "agency-agents",
     "oh-my-codex",
     "infiquetra-codex-plugins",
@@ -66,15 +73,18 @@ def required_paths() -> list[str]:
     paths = list(REQUIRED)
     paths.extend(f"agents/core/{role}.yaml" for role in CORE_ROLES)
     paths.extend(f"research/repositories/{name}.md" for name in REFERENCE_NOTES)
-    codex_names = ["scout", "researcher", "implementer", "debugger", "test-engineer", "reviewer", "architect"]
-    paths.extend(f"adapters/codex/agents/{name}.toml" for name in codex_names)
+    paths.extend(f"adapters/codex/agents/{role}.toml" for role in CORE_ROLES)
     return paths
 
 
 def main() -> int:
     paths = required_paths()
     missing = [path for path in paths if not (ROOT / path).is_file()]
-    empty = [path for path in paths if (ROOT / path).is_file() and (ROOT / path).stat().st_size == 0]
+    empty = [
+        path
+        for path in paths
+        if (ROOT / path).is_file() and (ROOT / path).stat().st_size == 0
+    ]
 
     if missing or empty:
         if missing:
@@ -91,7 +101,7 @@ def main() -> int:
         "OK: "
         f"{len(paths)} required artifacts present; "
         f"{len(CORE_ROLES)} core roles, {len(REFERENCE_NOTES)} research notes, "
-        "and Codex adapter candidates are structurally complete."
+        "and generated Codex adapter artifacts are structurally complete."
     )
     return 0
 

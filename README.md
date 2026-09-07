@@ -2,32 +2,34 @@
 
 > Research-driven, provider-aware engineering agents focused on **quality per unit of cost**, not maximum agent count.
 
-[![Status](https://img.shields.io/badge/status-v0.1%20experimental-orange)](#roadmap)
+[![Status](https://img.shields.io/badge/status-v0.1%20candidate-orange)](#roadmap)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
 ## Why this project exists
 
-AI coding systems can become wasteful when every task receives the strongest model, every problem spawns multiple agents, or every worker inherits a large context. This repository studies strong community and official implementations, extracts measurable patterns, and turns them into a small engineering stack.
+AI coding systems become wasteful when every task receives the strongest model, every problem spawns multiple agents, or every worker inherits a large context. This repository studies strong community and official implementations, extracts measurable patterns, and turns them into a small engineering stack.
 
-The target is not "minimum tokens" and not "maximum intelligence everywhere". The target is:
+The objective is:
 
 ```text
 maximize:   quality / (cost × latency)
 subject to: quality >= required threshold for the task risk
 ```
 
+The project therefore optimizes **routing and evidence**, not agent count.
+
 ## Design principles
 
-1. **Direct-first** — do not delegate trivial work.
-2. **Role != compute profile != provider** — expertise, budget, and runtime are separate dimensions.
-3. **Risk-adjusted routing** — escalate compute only when complexity or failure cost requires it.
-4. **Bounded/isolated context** — pass the smallest useful task context; return evidence, not transcripts.
-5. **Deterministic coordination, bounded autonomy** — the orchestrator owns topology and integration.
-6. **Independent verification** — implementation and final review are separate for meaningful changes.
-7. **Safe parallelism** — parallelize read-heavy work; partition or serialize writes.
-8. **Runtime-enforced permissions** — sandbox/tool boundaries are security controls; prompts are not.
-9. **Evidence before completion** — the narrowest sufficient validation must support the claim.
-10. **Benchmark before belief** — routing/model choices remain hypotheses until measured.
+1. **Direct-first** — trivial/reversible work should not pay delegation overhead.
+2. **Role != compute profile != provider** — expertise, budget, and runtime remain separate.
+3. **Risk-adjusted routing** — escalate only when uncertainty or failure cost justifies it.
+4. **Bounded/isolated context** — send the smallest useful context and return evidence, not transcripts.
+5. **Deterministic coordination, bounded autonomy** — the parent owns decomposition, integration and stop/escalate decisions.
+6. **Independent verification** — meaningful changes are checked by a separate verification/review path.
+7. **Safe parallelism** — parallelize independent read-heavy work; partition or serialize writes.
+8. **Runtime-enforced permissions** — sandbox/tool controls are security boundaries; prompts are not.
+9. **Evidence before completion** — use the narrowest validation that can prove the claim.
+10. **Benchmark before belief** — model/routing choices remain candidates until measured.
 
 ## Architecture
 
@@ -35,12 +37,13 @@ subject to: quality >= required threshold for the task risk
 User / Task
     |
     v
-Orchestrator / Control Plane
+Orchestrator / Main Agent
     |
     +--> classify task shape + risk
-    +--> choose direct execution or delegation
-    +--> choose role + semantic compute profile + provider adapter
-    +--> allocate bounded context + write ownership
+    +--> direct vs delegate
+    +--> role + semantic compute profile
+    +--> provider adapter
+    +--> bounded context + write ownership
     |
     +--> Scout / Researcher       [read-heavy]
     +--> Implementer / Debugger   [bounded write]
@@ -51,13 +54,15 @@ Orchestrator / Control Plane
 Quality Gate -> Result / Escalation / Block
 ```
 
-The project separates four concerns:
+The canonical layers are:
 
 ```text
 ROLE             What expertise/responsibility is needed?
-COMPUTE PROFILE  How much reasoning/model budget is justified?
-PROVIDER         Which runtime/model implementation executes it?
+COMPUTE PROFILE  How much model/reasoning budget is justified?
+PROVIDER         Which runtime/model executes it?
 POLICY           When may it run, write, escalate, or stop?
+EVAL             Does the route preserve required quality?
+BENCHMARK        At what token, cost and latency budget?
 ```
 
 ## Repository layout
@@ -67,96 +72,119 @@ agents/          Provider-neutral role definitions and specialist catalog
 config/          Semantic compute profiles and routing policy
 policies/        Delegation, escalation, context and quality rules
 research/        Source analysis, primary-source notes, patterns and anti-patterns
-schemas/         Stable contracts for roles/results/configuration
-evals/           Quality and routing evaluation cases
+schemas/         Stable role/result contracts
+evals/           Routing and quality evaluation fixtures
 benchmarks/      Cost/latency/quality experiments
-adapters/        Provider/tool-specific integration layers
-scripts/         Validation and repository tooling
+adapters/        Provider/tool-specific generated integration layers
+scripts/         Validation, generation and evaluation tooling
 docs/            Architecture and roadmap
 ```
 
 ## Research method
 
-Every reference implementation is evaluated using the same dimensions: taxonomy, role contract, delegation, routing/model selection, context, concurrency/write ownership, verification, escalation, cost control, observability and portability.
+Every source is evaluated on taxonomy, role contract, delegation, model routing, context, concurrency/write ownership, verification, escalation, cost control, observability and portability.
 
-A pattern is classified as **ADOPT**, **ADAPT**, **EXPERIMENT**, or **REJECT**. Historical sources can also be marked **HISTORICAL** when a maintained successor supersedes them.
+Patterns are classified as **ADOPT**, **ADAPT**, **EXPERIMENT**, or **REJECT**. Historical sources may also be marked **HISTORICAL**.
 
-### Research Wave 2 sources
+The current matrix covers fifteen sources, including `agency-agents`, `oh-my-codex`, OpenAI Codex/Agents SDK, Microsoft Agent Framework, LangGraph/Deep Agents, CrewAI, smolagents, OpenHands, and CLI Agent Orchestrator.
 
-The matrix now covers fourteen sources, including:
+See:
 
-- `msitarzewski/agency-agents`
-- `Yeachan-Heo/oh-my-codex`
-- `infiquetra/infiquetra-codex-plugins`
-- `trailofbits/codex-config`
-- `KevinBigham/codex-safe-starter`
-- `awslabs/cli-agent-orchestrator`
-- `openai/openai-agents-python`
-- `microsoft/agent-framework` and historical `microsoft/autogen`
-- `langchain-ai/langgraph` and `langchain-ai/deepagents`
-- `crewAIInc/crewAI`
-- `huggingface/smolagents`
-- `OpenHands/OpenHands`
+- [`research/matrix/repository-comparison.yaml`](research/matrix/repository-comparison.yaml)
+- [`research/patterns/wave-2-synthesis.md`](research/patterns/wave-2-synthesis.md)
+- [`research/repositories/openai-codex.md`](research/repositories/openai-codex.md)
 
-These are references, not upstream code dependencies. Prompts are not copied wholesale; patterns are re-designed behind our own contracts and evals.
-
-See [`research/matrix/repository-comparison.yaml`](research/matrix/repository-comparison.yaml) and [`research/patterns/wave-2-synthesis.md`](research/patterns/wave-2-synthesis.md).
-
-## Core roles — experimental v0.1
+## Core roles — v0.1 candidate
 
 | Role | Primary responsibility | Default access | Codex candidate |
 |---|---|---|---|
 | Scout | repository discovery/call-flow mapping | read-only | Luna / medium |
-| Researcher | current primary-source technical evidence | read-only + network | Luna / medium |
-| Implementer | bounded approved implementation | workspace write | Terra / medium |
-| Debugger | evidence-first root cause/remediation | workspace write | Terra / high |
+| Researcher | current primary-source technical evidence | read-only + network intent | Luna / medium |
+| Implementer | bounded approved implementation | workspace-write | Terra / medium |
+| Debugger | evidence-first root cause/remediation | workspace-write | Terra / high |
 | Test Engineer | targeted validation/failure evidence | test/build | Terra / medium |
 | Reviewer | independent correctness/regression review | read-only | Terra / high |
-| Architect | high-risk system decisions/tradeoffs | read-only | GPT-5.6 / high |
+| Architect | high-risk system decisions/tradeoffs | read-only | Sol / high |
 
-Canonical role definitions live in [`agents/core/`](agents/core/). Codex-specific candidates live separately under [`adapters/codex/`](adapters/codex/), preserving `role != model`.
+Canonical definitions live under [`agents/core/`](agents/core/). Model names never appear in canonical role identity.
 
 ## Compute profiles
 
 ```text
-cheap     -> scanning, classification, high-volume bounded work
-standard  -> ordinary implementation, testing and research
-deep      -> difficult debugging and high-confidence review
-critical  -> architecture, realtime/safety/security/release-critical work
+cheap     -> Luna; scanning/classification/high-volume bounded work
+standard  -> Terra/medium; ordinary implementation/testing/research
+deep      -> Terra/high; difficult debugging and high-confidence review
+critical  -> Sol/high; architecture, realtime/safety/security/release assurance
 ```
 
-Current OpenAI candidate mappings are Luna -> Terra -> Terra/high -> GPT-5.6/high. GPT-6 Astra is intentionally only a critical-tier benchmark candidate until its additional cost produces measurable quality gain.
+GPT-6 Astra remains a critical-tier benchmark candidate rather than a default until task-level measurements justify its additional per-token price.
 
-See [`config/model-profiles.yaml`](config/model-profiles.yaml) and the dated source snapshot in [`research/sources/`](research/sources/).
+See [`config/model-profiles.yaml`](config/model-profiles.yaml).
+
+## Routing policy eval
+
+`evals/routing-cases.yaml` contains structured **post-classification** fixtures. The evaluator tests policy behavior without pretending that keyword matching is an LLM routing benchmark.
+
+```bash
+python scripts/evaluate_routing.py
+```
+
+Natural-language classifier quality will be evaluated separately in v0.2.
 
 ## Codex adapter
 
-The first experimental adapter provides seven custom-agent TOML files and a conservative `[agents]` baseline capped at four concurrent child threads. This is deliberately lower than some example fan-outs until benchmarks prove more parallelism is worthwhile.
+The Codex adapter is generated from canonical role YAML plus semantic compute-profile mappings.
+
+```bash
+python scripts/generate_codex_adapter.py
+python scripts/generate_codex_adapter.py --check
+```
+
+The `--check` mode is a **drift gate**: CI fails if committed Codex TOMLs differ from canonical generation.
+
+Current public Codex behavior uses:
+
+```text
+project roles   .codex/agents/*.toml
+personal roles  ~/.codex/agents/*.toml
+global controls [agents] in config.toml
+```
 
 See [`adapters/codex/README.md`](adapters/codex/README.md).
 
 ## Validation
 
+Install development dependencies:
+
 ```bash
-python scripts/validate_structure.py
+python -m pip install -r requirements-dev.txt
 ```
 
-The validator checks required research, policies, schemas, all seven core roles, routing seed cases and Codex adapter artifacts without third-party Python packages.
+Run all current local checks:
+
+```bash
+python scripts/validate_structure.py
+python scripts/validate_agents.py
+python scripts/evaluate_routing.py
+python scripts/generate_codex_adapter.py --check
+```
+
+GitHub Actions runs the same gates on pushes and pull requests.
 
 ## Roadmap
 
 - **v0.0.x — Research foundation:** exit criteria reached; research remains continuous.
-- **v0.1.0 — Core agents:** core role candidates + Codex adapter exist; generator and executable routing evals remain.
-- **v0.2.0 — Efficiency controls:** context budgets, model-tier/token/latency benchmarks, escalation regressions.
-- **v0.3.0 — Engineering specialists:** Embedded, STM32, ROS 2, Robotics and tooling roles accepted only when they outperform generic roles.
-- **v0.4.0 — Evaluation/portability:** multiple adapters, routing accuracy and ablation studies.
-- **v1.0.0 — Stable stack:** benchmark-backed defaults, reproducible installer/generator and migration strategy.
+- **v0.1.0 — Core agents:** canonical roles, semantic validation, deterministic policy eval and generated Codex adapter are now present; release hardening remains.
+- **v0.2.0 — Efficiency controls:** token/cost/latency capture, model-tier benchmarks, classifier evals, escalation regressions.
+- **v0.3.0 — Engineering specialists:** Embedded, STM32, ROS 2, Robotics and tooling roles only when benchmark evidence justifies them.
+- **v0.4.0 — Evaluation/portability:** multiple adapters, routing accuracy and specialist-vs-core ablation.
+- **v1.0.0 — Stable stack:** benchmark-backed defaults, reproducible installer, migration strategy and compatibility policy.
 
 See [`docs/ROADMAP.md`](docs/ROADMAP.md).
 
 ## Current status
 
-**Research Wave 2 complete; v0.1 core stack is experimental.** The next gate is not more agent count: it is executable routing evaluation, adapter generation/drift checking, and measured Luna/Terra/GPT-5.6 quality-cost benchmarks.
+**v0.1 core infrastructure candidate.** The next priority is not more agents: it is measuring whether Luna/Terra/Sol routing preserves quality while reducing token and latency cost.
 
 ## License
 

@@ -1,0 +1,24 @@
+version: 1
+provider: openai-codex
+status: experimental
+principle: role-maps-to-semantic-profile-not-direct-model
+roles:
+  scout:
+    profile: cheap
+    reasoning_override: medium
+  researcher:
+    profile: cheap
+    reasoning_override: medium
+  implementer:
+    profile: standard
+  debugger:
+    profile: deep
+  test-engineer:
+    profile: standard
+  reviewer:
+    profile: deep
+  architect:
+    profile: critical
+notes:
+  - Scout and researcher keep the Luna cost tier but use medium reasoning as a quality floor for call-path tracing and version-sensitive evidence.
+  - All mappings are benchmark candidates and may change without changing canonical role identity.

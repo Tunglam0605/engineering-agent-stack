@@ -1,7 +1,21 @@
-version: 1
-status: draft
+version: 3
+status: candidate
 default: direct
 rules:
+  - id: critical-independent-review
+    when:
+      task_shape: review
+      review_stage: independent
+      risk: critical
+    action: delegate
+    role: reviewer
+    profile: critical
+  - id: critical-gate
+    when:
+      risk: critical
+    action: delegate
+    role: architect
+    profile: critical
   - id: trivial-direct
     when:
       task_complexity: trivial
@@ -35,12 +49,13 @@ rules:
     action: delegate
     role: debugger
     profile: deep
-  - id: critical-architecture
+  - id: independent-review
     when:
-      risk: critical
+      task_shape: review
+      review_stage: independent
     action: delegate
-    role: architect
-    profile: critical
+    role: reviewer
+    profile: deep
 quality_gate:
   review_required_for:
     - high-risk
@@ -51,3 +66,7 @@ limits:
   default_max_parallel_readers: 4
   default_max_parallel_writers: 1
   recursive_delegation: false
+notes:
+  - Rule order is significant; the first matching rule wins.
+  - Critical risk is gated before normal task-shape routing; an independent critical review remains a reviewer task at the critical profile.
+  - This file routes already-classified signals. Natural-language task classification is evaluated separately.

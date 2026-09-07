@@ -1,56 +1,121 @@
 # Codex Adapter
 
-Status: **experimental v0.1 candidate**
+Status: **v0.1 candidate — generated and drift-checked**
 
-Last checked against official Codex subagent documentation: **2026-09-07**.
+Last checked against current public Codex subagent documentation and `openai/codex` source: **2026-09-07**.
 
 ## Purpose
 
-Translate provider-neutral roles and semantic compute tiers into Codex custom-agent configuration without making Codex-specific model names part of canonical role identity.
+Translate provider-neutral canonical roles plus semantic compute profiles into Codex custom-agent TOML without making provider model names part of role identity.
 
-## Current files
+## Source of truth
 
-- `config.toml.example` — conservative project-level `[agents]` baseline.
-- `agents/*.toml` — seven experimental custom-agent definitions matching the canonical core roles.
+Do **not** hand-edit `agents/*.toml` or `config.toml.example`.
 
-Codex supports project-scoped custom agents under `.codex/agents/` and personal custom agents under `~/.codex/agents/`. Each custom agent currently requires `name`, `description`, and `developer_instructions`; normal session settings such as `model`, `model_reasoning_effort` and `sandbox_mode` may also be overridden.
+Canonical inputs:
 
-## Installation for a project
+```text
+agents/core/*.yaml
+config/model-profiles.yaml
+adapters/codex/role-profiles.yaml
+```
 
-Do not copy these blindly into production. Review model availability and permissions first.
+Generated outputs:
+
+```text
+adapters/codex/agents/*.toml
+adapters/codex/config.toml.example
+```
+
+Generate/check:
+
+```bash
+python scripts/generate_codex_adapter.py
+python scripts/generate_codex_adapter.py --check
+```
+
+CI runs `--check` and fails on drift.
+
+## Current public Codex layout
+
+Current public Codex documentation discovers standalone agent files from:
+
+```text
+.codex/agents/*.toml     project-scoped
+~/.codex/agents/*.toml   personal
+```
+
+Every standalone file requires:
+
+```text
+name
+description
+developer_instructions
+```
+
+Normal session settings such as `model`, `model_reasoning_effort`, and `sandbox_mode` can also be set in the role file.
+
+Global subagent controls remain under `[agents]` in `.codex/config.toml` or the personal config. The example intentionally contains only those public global controls; it does not depend on internal role-registration mechanisms.
+
+## Project installation
+
+From the repository that will use these agents:
 
 ```bash
 mkdir -p .codex/agents
-cp adapters/codex/agents/*.toml .codex/agents/
-# Merge the [agents] block from adapters/codex/config.toml.example
-# into the project's .codex/config.toml.
+cp /path/to/engineering-agent-stack/adapters/codex/agents/*.toml .codex/agents/
 ```
+
+Then merge the `[agents]` block from:
+
+```text
+adapters/codex/config.toml.example
+```
+
+into that project's `.codex/config.toml`.
 
 ## Routing posture
 
-The existence of seven custom agents does **not** mean seven agents run per task.
+Seven available roles do not imply seven child runs.
 
-- trivial/reversible work: main agent executes directly
-- repository discovery: `scout`
-- external/versioned facts: `researcher`
-- bounded ordinary edits: `implementer`
-- uncertain root cause: `debugger`
-- targeted validation: `test_engineer`
-- independent assurance: `reviewer`
-- high-risk architecture: `architect`
+```text
+trivial/reversible       -> direct
+repository discovery     -> scout
+external/versioned facts -> researcher
+bounded ordinary edit    -> implementer
+uncertain root cause     -> debugger
+targeted validation      -> test-engineer
+independent assurance    -> reviewer
+high-risk architecture   -> architect
+```
 
-The parent/main agent owns decomposition, integration, stop/escalate decisions, and final verification.
+The parent owns decomposition, context allocation, integration, escalation and final completion.
 
-## Model choices
+## Candidate model mapping
 
-The TOML files are adapter defaults, not canonical role identities. They currently bias toward Luna for narrow read-heavy roles, Terra for ordinary/deep worker roles, and GPT-5.6 for architecture. These mappings remain benchmark-gated.
+| Role | Semantic profile | Current Codex candidate |
+|---|---|---|
+| Scout | cheap + medium reasoning override | GPT-5.6 Luna / medium |
+| Researcher | cheap + medium reasoning override | GPT-5.6 Luna / medium |
+| Implementer | standard | GPT-5.6 Terra / medium |
+| Debugger | deep | GPT-5.6 Terra / high |
+| Test Engineer | standard | GPT-5.6 Terra / medium |
+| Reviewer | deep | GPT-5.6 Terra / high |
+| Architect | critical | GPT-5.6 Sol / high |
 
-## Security boundary
+These are benchmark candidates, not permanent role identities.
 
-Read-only roles explicitly request `sandbox_mode = "read-only"`. Write-capable roles use workspace write access only because Codex permissions are enforced by the runtime/sandbox, not by prompt text alone. The effective parent runtime policy can still constrain children; always inspect current Codex permission behavior before relying on an adapter setting.
+## Permission caveat
+
+A custom-agent file is not an independent security boundary. Current Codex behavior reapplies the parent's live runtime permission/sandbox choices when spawning a child. Set parent permissions deliberately and treat role `sandbox_mode` as a default within the effective runtime policy.
+
+The adapter also does not rely on legacy `agents.max_depth` to stop recursive delegation; current Codex V2 does not use that legacy/V1 depth field. Recursive delegation is therefore prohibited by this project's role instructions/policy unless explicitly authorized.
 
 ## Compatibility rule
 
-Before changing Codex configuration keys, model names, reasoning levels, custom-agent schema, sandbox settings, or subagent behavior, re-check the current official documentation:
+Before a release that changes Codex keys, model IDs, reasoning levels, sandbox behavior, custom-agent schema, or subagent controls, re-check:
 
-https://developers.openai.com/codex/subagents
+- https://developers.openai.com/codex/subagents
+- https://github.com/openai/codex
+
+See also [`research/repositories/openai-codex.md`](../../research/repositories/openai-codex.md).

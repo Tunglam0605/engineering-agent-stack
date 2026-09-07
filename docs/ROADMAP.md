@@ -14,25 +14,37 @@ Exit criteria:
 
 ## v0.1.0 — Core agents
 
-Status: **in progress — experimental core and Codex adapter now exist.**
+Status: **candidate complete; release hardening before tag.**
 
 Exit criteria:
 
 - seven core roles implemented ✅
-- each role conforms to the agent contract ✅ by structure; semantic validation pending
-- bounded result format implemented ✅ schema; runtime enforcement pending
-- one Codex adapter generated from canonical definitions ⏳ adapter candidates exist; generator/drift check pending
-- direct-vs-delegate routing tests exist ⏳ seed cases exist; executable evaluator pending
+- canonical roles receive semantic contract validation ✅
+- bounded result contract referenced by all roles and generated adapter instructions ✅
+- Codex adapter generated deterministically from canonical definitions ✅
+- generated adapter drift check runs in CI ✅
+- direct-vs-delegate policy fixtures run through an executable evaluator ✅
+- current public Codex custom-agent behavior recorded as an authoritative source ✅
+
+Remaining before a v0.1.0 tag:
+
+- smoke-test installation in a real Codex project
+- confirm custom-agent discovery/permissions on the user's current Codex build
+- record the first real task traces for v0.2 benchmark input
 
 ## v0.2.0 — Efficiency controls
 
+Status: **next active milestone.**
+
 Exit criteria:
 
-- explicit context budgets
+- explicit context budgets measured against real runs
 - semantic compute tiers benchmarked
-- escalation rules tested
+- natural-language routing/classifier accuracy evaluated separately from policy routing
+- escalation rules tested against difficult/critical fixtures
 - token, latency and quality measurements recorded
-- over-delegation regression cases added
+- over-delegation regression cases enforced
+- task-level cost comparison supports Luna/Terra/Sol default decisions
 
 ## v0.3.0 — Engineering specialists
 
@@ -45,7 +57,7 @@ Candidates:
 - Robotics Integration Engineer
 - Developer Tooling Engineer
 
-A specialist is accepted only if it outperforms the generic core stack on repeated domain tasks enough to justify the maintenance and routing complexity.
+A specialist is accepted only if it outperforms the generic core stack on repeated domain tasks enough to justify its maintenance and routing complexity.
 
 ## v0.4.0 — Evaluation and portability
 

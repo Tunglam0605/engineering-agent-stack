@@ -1,4 +1,4 @@
-version: 2
+version: 3
 status: candidate
 verified_against_openai_docs: 2026-09-07
 principle: role-and-compute-profile-are-independent
@@ -40,14 +40,14 @@ profiles:
       - release-critical assurance
     reasoning: high
     candidate_models:
-      openai: gpt-5.6
+      openai: gpt-5.6-sol
     benchmark_candidates:
       openai:
         - gpt-6-astra
     escalation_to: null
 notes:
   - Candidate model mappings are not role identity.
-  - `gpt-5.6` is the stable alias for the GPT-5.6 Sol class in current OpenAI documentation.
-  - GPT-6 Astra is not a default because its higher price must be justified by measured quality gain on critical evals.
+  - GPT-5.6 Sol's current API model ID is `gpt-5.6-sol`; `gpt-5.6` is a documented alias.
+  - GPT-6 Astra is not a default because its higher per-token price must be justified by measured task-level quality/cost gain.
   - Provider adapters may select equivalent models according to measured quality, latency, availability and cost.
   - All mappings remain benchmark-gated and must be revalidated when provider models or pricing change.
