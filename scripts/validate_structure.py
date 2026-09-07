@@ -19,7 +19,9 @@ REQUIRED = [
     "benchmarks/README.md", "benchmarks/experiment-plan.yaml", "benchmarks/run-manifest.example.yaml", "benchmarks/fixtures/codex-exec-events.jsonl", "benchmarks/tasks/README.md", "benchmarks/tasks/index.yaml",
     "adapters/codex/README.md", "adapters/codex/role-profiles.yaml", "adapters/codex/config.toml.example", "adapters/codex/AGENTS.md.example",
     "scripts/validate_structure.py", "scripts/validate_provenance.py", "scripts/validate_agents.py", "scripts/evaluate_routing.py", "scripts/validate_benchmarks.py", "scripts/validate_task_suite.py", "scripts/summarize_benchmarks.py",
-    "scripts/generate_codex_adapter.py", "scripts/install_codex.py", "scripts/acceptance_test_codex.py", "scripts/acceptance-test.ps1",
+    "scripts/generate_codex_adapter.py", "scripts/install_codex.py",
+    "scripts/acceptance_core.py", "scripts/acceptance_test_codex.py", "scripts/acceptance-test.ps1",
+    "scripts/provider_probe_codex.py", "scripts/provider-probe.ps1",
     "scripts/codex_capture_lib.py", "scripts/benchmark_task_lib.py", "scripts/normalize_codex_exec.py", "scripts/capture_codex_exec.py", "scripts/promote_run_capture.py", "scripts/prepare_benchmark_task.py", "scripts/grade_benchmark_task.py",
 ]
 
@@ -28,17 +30,17 @@ REFERENCE_NOTES = ["openai-codex", "agency-agents", "oh-my-codex", "infiquetra-c
 CONTROLLED_TASKS = ["scout-symbol-001", "implementer-bounded-bug-001", "reviewer-regression-001", "orchestrator-trivial-edit-001"]
 
 
-def required_paths() -> list[str]:
+def required_paths():
     paths = list(REQUIRED)
-    paths.extend(f"agents/core/{role}.yaml" for role in CORE_ROLES)
-    paths.extend(f"research/repositories/{name}.md" for name in REFERENCE_NOTES)
-    paths.extend(f"adapters/codex/agents/{role}.toml" for role in CORE_ROLES)
-    paths.extend(f"benchmarks/tasks/{task_id}/task.yaml" for task_id in CONTROLLED_TASKS)
-    paths.extend(f"benchmarks/tasks/{task_id}/prompt.md" for task_id in CONTROLLED_TASKS)
+    paths.extend("agents/core/{}.yaml".format(role) for role in CORE_ROLES)
+    paths.extend("research/repositories/{}.md".format(name) for name in REFERENCE_NOTES)
+    paths.extend("adapters/codex/agents/{}.toml".format(role) for role in CORE_ROLES)
+    paths.extend("benchmarks/tasks/{}/task.yaml".format(task_id) for task_id in CONTROLLED_TASKS)
+    paths.extend("benchmarks/tasks/{}/prompt.md".format(task_id) for task_id in CONTROLLED_TASKS)
     return paths
 
 
-def main() -> int:
+def main():
     paths = required_paths()
     missing = [path for path in paths if not (ROOT / path).is_file()]
     empty = [path for path in paths if (ROOT / path).is_file() and (ROOT / path).stat().st_size == 0]
@@ -46,17 +48,18 @@ def main() -> int:
         if missing:
             print("Missing required files:")
             for path in missing:
-                print(f"  - {path}")
+                print("  - " + path)
         if empty:
             print("Empty required files:")
             for path in empty:
-                print(f"  - {path}")
+                print("  - " + path)
         return 1
     print(
-        "OK: "
-        f"{len(paths)} required artifacts present; {len(CORE_ROLES)} core roles, {len(REFERENCE_NOTES)} research notes, "
-        f"{len(CONTROLLED_TASKS)} controlled benchmark tasks, provenance controls, Windows acceptance tooling, "
-        "Codex installation/capture tooling, and adapter artifacts are structurally complete."
+        "OK: {} required artifacts present; {} core roles, {} research notes, {} controlled benchmark tasks, "
+        "provenance controls, split stack/provider acceptance tooling, Codex installation/capture tooling, "
+        "and adapter artifacts are structurally complete.".format(
+            len(paths), len(CORE_ROLES), len(REFERENCE_NOTES), len(CONTROLLED_TASKS)
+        )
     )
     return 0
 
