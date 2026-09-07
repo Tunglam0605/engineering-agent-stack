@@ -9,10 +9,21 @@ The harness is project-scoped and disposable: it creates a temporary Git reposit
 On Windows:
 
 - Git available on `PATH`
-- Python 3 available as `py` or `python`
+- Python **3.10 or newer** available as `py` or `python`
 - Codex CLI available as `codex`
 - Codex authenticated through its normal CLI flow
 - development dependencies installed with `py -m pip install -r requirements-dev.txt`
+
+Python 3.10 is supported through the conditional `tomli` compatibility dependency; Python 3.11+ uses the standard-library `tomllib` module.
+
+Before a live run, these two commands should succeed:
+
+```powershell
+py --version
+Get-Command codex
+```
+
+If `Get-Command codex` cannot resolve an executable, the live acceptance cannot invoke Codex. Install/configure the Codex CLI or pass its exact executable path with `-CodexBin`.
 
 ## One-command live acceptance
 
@@ -61,6 +72,16 @@ After the basic test passes:
 ```
 
 This additionally invokes Researcher, Debugger, Test Engineer, Reviewer, and Architect. Architect currently maps to the critical Sol candidate, so extended acceptance costs more than the basic test.
+
+## Custom Codex executable path
+
+If Codex is installed but is not exposed as `codex` on `PATH`, pass its exact executable path:
+
+```powershell
+.\scripts\acceptance-test.ps1 -CodexBin "C:\path\to\codex.exe"
+```
+
+The PowerShell wrapper performs this preflight before starting a live run and reports a focused error instead of a generic Windows process-launch failure.
 
 ## Report
 
