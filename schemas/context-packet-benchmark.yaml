@@ -1,0 +1,21 @@
+version: 1
+status: candidate
+purpose: bounded-context-packet-comparison-record
+required_fields:
+  - experiment_id
+  - task_id
+  - strategy
+  - measurement
+strategies:
+  - full
+  - bounded
+measurement_fields:
+  - context_size_chars
+  - token_proxy
+  - retained_evidence_count
+  - quality_score
+  - latency_ms
+  - tokens
+notes:
+  - Runtime token and latency fields remain null when a provider does not expose evidence.
+  - Quality scoring is a hook; benchmark superiority requires recorded repeated evidence.

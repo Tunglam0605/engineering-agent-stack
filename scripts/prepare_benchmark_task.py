@@ -6,11 +6,83 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 import sys
+from typing import Dict, List, Optional, Tuple
 import uuid
 
 import yaml
 
-from benchmark_task_lib import load_task, materialize_workspace, read_prompt, resolve_task_path
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))
+
+from runtime.context_packet import (
+    ContextEvidence,
+    build_context_packet,
+    build_full_context_packet,
+    render_context_prompt,
+)
+from benchmark_task_lib import (
+    context_fixture_path,
+    load_task,
+    materialize_workspace,
+    read_prompt,
+    resolve_task_path,
+)
+
+CONTEXT_TOPOLOGIES = {"full-context", "bounded-context-packet"}
+
+
+def _load_context_fixture(task: dict) -> dict:
+    path = context_fixture_path(task)
+    value = yaml.safe_load(path.read_text(encoding="utf-8"))
+    if not isinstance(value, dict):
+        raise ValueError(f"{path}: context fixture must be a YAML mapping")
+    return value
+
+
+def prepare_prompt(task: dict, topology: str) -> Tuple[str, Optional[str], Optional[dict]]:
+    family = task.get("family")
+    if family != "context-efficiency":
+        if topology in CONTEXT_TOPOLOGIES:
+            raise ValueError("context topology is only valid for context-efficiency tasks")
+        return read_prompt(task), None, None
+
+    if topology not in CONTEXT_TOPOLOGIES:
+        raise ValueError("context-efficiency task requires full-context or bounded-context-packet topology")
+
+    fixture = _load_context_fixture(task)
+    raw_evidence = fixture.get("evidence")
+    limits = fixture.get("bounded_limits")
+    if not isinstance(raw_evidence, list) or not isinstance(limits, dict):
+        raise ValueError("context fixture requires evidence list and bounded_limits mapping")
+    evidence = [ContextEvidence(**item) for item in raw_evidence]
+    base_prompt = read_prompt(task)
+
+    if topology == "full-context":
+        packet = build_full_context_packet(task=base_prompt, evidence=evidence)
+        selected = evidence
+        strategy = "full"
+    else:
+        packet = build_context_packet(
+            task=base_prompt,
+            evidence=evidence,
+            max_evidence_items=limits["max_evidence_items"],
+            max_chars=limits["max_chars"],
+        )
+        by_id = {item.evidence_id: item for item in evidence}
+        selected = [by_id[evidence_id] for evidence_id in packet.retained_evidence_ids]
+        strategy = "bounded"
+
+    prompt = render_context_prompt(base_prompt, selected)
+    if len(prompt) != packet.context_size_chars:
+        raise ValueError("context packet measurement drifted from rendered prompt")
+    measurement = {
+        "context_size_chars": packet.context_size_chars,
+        "token_proxy": packet.token_proxy,
+        "retained_evidence_count": len(selected),
+        "retained_evidence_ids": [item.evidence_id for item in selected],
+        "packet_content_size_chars": packet.context_size_chars,
+    }
+    return prompt, strategy, measurement
 
 
 def main() -> int:
@@ -28,6 +100,7 @@ def main() -> int:
     try:
         task_path = resolve_task_path(args.task_id)
         task = load_task(task_path)
+        prompt, context_strategy, context_measurement = prepare_prompt(task, args.topology)
         run_root = args.destination
         if run_root is None:
             run_root = args.output_dir / f"{args.task_id}-{uuid.uuid4().hex[:8]}"
@@ -46,10 +119,13 @@ def main() -> int:
             "topology": args.topology,
             "quality_threshold": float(task["quality_threshold"]),
             "cwd": str(workspace),
-            "prompt": read_prompt(task),
+            "prompt": prompt,
             "skip_git_repo_check": True,
             "codex_args": [],
         }
+        if context_strategy is not None:
+            manifest["context_strategy"] = context_strategy
+            manifest["context_measurement"] = context_measurement
 
         run_root.mkdir(parents=True, exist_ok=True)
         manifest_path = run_root / "manifest.yaml"
@@ -60,7 +136,7 @@ def main() -> int:
         print(f"MANIFEST: {manifest_path}")
         print(f"WORKSPACE: {workspace}")
         return 0
-    except (OSError, ValueError, yaml.YAMLError) as exc:
+    except (OSError, ValueError, KeyError, TypeError, yaml.YAMLError) as exc:
         print(f"ERROR: {exc}")
         return 2
 

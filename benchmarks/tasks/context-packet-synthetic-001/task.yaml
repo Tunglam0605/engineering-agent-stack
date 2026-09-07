@@ -1,0 +1,17 @@
+version: 1
+id: context-packet-synthetic-001
+role: orchestrator
+family: context-efficiency
+mode: read-only
+prompt_file: prompt.md
+workspace: workspace
+context_fixture: ../../fixtures/context-packet-minimal.yaml
+quality_threshold: 1.0
+grader:
+  type: text_evidence
+  max_file_changes: 0
+  required_all:
+    - docs/ACCEPTANCE_WINDOWS.md
+    - policies/context-budget.md
+    - provider diagnostics
+    - correctness evidence

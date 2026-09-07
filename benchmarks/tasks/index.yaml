@@ -11,3 +11,5 @@ tasks:
     path: reviewer-regression-001/task.yaml
   - id: orchestrator-trivial-edit-001
     path: orchestrator-trivial-edit-001/task.yaml
+  - id: context-packet-synthetic-001
+    path: context-packet-synthetic-001/task.yaml

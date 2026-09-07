@@ -22,12 +22,19 @@ All notable project changes will be documented here.
 - Separate Codex provider/runtime probe for `spawn_agent`, custom-role selection, Multi-Agent V2 behavior, and child-model telemetry.
 - Locale-independent UTF-8 subprocess capture with Windows regression coverage.
 - Offline Windows GitHub Actions acceptance job.
+- Provider-neutral v0.2 runtime contracts for delegation preflight, resolved execution plans, agent status/registry, and bounded context packets.
+- Lightweight `scripts/agent_status.py` renderer for human-readable or JSON registry snapshots.
+- Executable `scripts/resolve_delegation.py` preflight/planning gate plus strict `delegation-request` schema/example.
+- Controlled `context-packet-synthetic-001` task and `context-packet-full-vs-bounded` experiment foundation.
+- `can1357/oh-my-pi` conceptual research note and provenance entry for runtime-resolution/observability patterns.
 
 ### Changed
 - Repository comparison matrix remains the source-of-truth list for acknowledged research inputs.
 - `config/model-profiles.yaml` uses `gpt-5.6-sol` for the critical candidate while retaining Astra as benchmark-only.
 - Scout and researcher retain the Luna cost tier but use medium reasoning as the current quality-floor candidate.
 - Context budgeting is adaptive across input context, work budget, and result budget rather than a hard total-token quota.
+- Stack-controlled delegated routes now have an explicit provider-neutral preflight/resolution path; hard violations reject and unresolved quality/budget gates escalate rather than silently falling back. The Python gate does not claim to transparently intercept provider-native child calls.
+- Codex runtime identity (`openai-codex`) is separated from model-provider identity (`openai`), and role-specific reasoning overrides resolve from adapter metadata.
 - Project-scoped installation can now install/refresh only the managed Engineering Agent Stack block inside an existing `AGENTS.md`.
 - README now makes Windows + Codex project-scoped acceptance the primary quick-start path and retains explicit upstream acknowledgements.
 - CI asserts synthetic subagent telemetry, project parent instructions, Windows offline acceptance, and locale-independent UTF-8 subprocess handling.

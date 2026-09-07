@@ -87,6 +87,18 @@ def workspace_path(task: dict[str, Any]) -> Path:
     return task_path.parent / rel
 
 
+def context_fixture_path(task: dict[str, Any]) -> Path:
+    task_path = Path(task["_task_path"])
+    rel = task.get("context_fixture")
+    if not isinstance(rel, str) or not rel:
+        raise ValueError(f"{task_path}: context_fixture must be a non-empty string")
+    path = (task_path.parent / rel).resolve()
+    root = ROOT.resolve()
+    if path != root and root not in path.parents:
+        raise ValueError(f"{task_path}: context_fixture must stay inside repository: {path}")
+    return path
+
+
 def read_prompt(task: dict[str, Any]) -> str:
     path = prompt_path(task)
     return path.read_text(encoding="utf-8")
@@ -141,6 +153,29 @@ def validate_task(task: dict[str, Any]) -> list[str]:
             failures.append(f"{task_path}: workspace contains no files: {wpath}")
     except ValueError as exc:
         failures.append(str(exc))
+
+    if task.get("family") == "context-efficiency":
+        try:
+            fixture_path = context_fixture_path(task)
+            if not fixture_path.is_file():
+                failures.append(f"{task_path}: context fixture missing: {fixture_path}")
+            else:
+                fixture = load_yaml(fixture_path)
+                evidence = fixture.get("evidence")
+                limits = fixture.get("bounded_limits")
+                if not isinstance(evidence, list) or not evidence:
+                    failures.append(f"{task_path}: context fixture requires non-empty evidence list")
+                if not isinstance(limits, dict):
+                    failures.append(f"{task_path}: context fixture requires bounded_limits mapping")
+                else:
+                    max_items = limits.get("max_evidence_items")
+                    max_chars = limits.get("max_chars")
+                    if not isinstance(max_items, int) or max_items <= 0:
+                        failures.append(f"{task_path}: max_evidence_items must be positive")
+                    if not isinstance(max_chars, int) or max_chars <= 0:
+                        failures.append(f"{task_path}: max_chars must be positive")
+        except (OSError, ValueError, yaml.YAMLError) as exc:
+            failures.append(str(exc))
 
     grader = task.get("grader")
     if not isinstance(grader, dict):

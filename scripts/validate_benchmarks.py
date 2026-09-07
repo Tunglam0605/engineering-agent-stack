@@ -79,6 +79,21 @@ def main() -> int:
                     if task_id not in known_task_ids:
                         failures.append(f"{exp_id}: unknown controlled task {task_id!r}")
 
+            context_topologies = {"full-context", "bounded-context-packet"}
+            observed_context_topologies = {
+                str(candidate.get("topology"))
+                for candidate in candidates
+                if isinstance(candidate, dict) and candidate.get("topology") in context_topologies
+            } if isinstance(candidates, list) else set()
+            if observed_context_topologies:
+                if observed_context_topologies != context_topologies:
+                    failures.append(
+                        f"{exp_id}: context experiment must compare full-context and bounded-context-packet"
+                    )
+                for measure in ("context_size_chars", "token_proxy"):
+                    if measure not in measures:
+                        failures.append(f"{exp_id}: context experiment must measure {measure}")
+
             for candidate in candidates if isinstance(candidates, list) else []:
                 if not isinstance(candidate, dict):
                     failures.append(f"{exp_id}: candidate must be a mapping")

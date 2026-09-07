@@ -141,6 +141,13 @@ def main() -> int:
             failures,
         )
 
+    codex_provider = codex_role_map.get("provider")
+    if not isinstance(codex_provider, str) or not codex_provider.strip():
+        failures.append("Codex role-profiles.yaml: provider must be a non-empty string")
+    codex_model_provider = codex_role_map.get("model_provider")
+    if not isinstance(codex_model_provider, str) or not codex_model_provider.strip():
+        failures.append("Codex role-profiles.yaml: model_provider must be a non-empty string")
+
     codex_roles = codex_role_map.get("roles")
     if not isinstance(codex_roles, dict):
         failures.append("Codex role-profiles.yaml: roles must be a mapping")
@@ -164,6 +171,19 @@ def main() -> int:
                 known_profiles,
                 failures,
             )
+            profile_name = cfg.get("profile")
+            if (
+                isinstance(profile_name, str)
+                and profile_name in model_profiles.get("profiles", {})
+                and isinstance(codex_model_provider, str)
+            ):
+                candidate_models = (model_profiles["profiles"][profile_name].get("candidate_models") or {})
+                if codex_model_provider not in candidate_models:
+                    failures.append(
+                        f"Codex role {role!r}: profile {profile_name!r} has no model for "
+                        f"model_provider {codex_model_provider!r}"
+                    )
+
             override = cfg.get("reasoning_override")
             if override is not None and (
                 not isinstance(override, str) or not override.strip()

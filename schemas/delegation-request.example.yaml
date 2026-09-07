@@ -1,0 +1,20 @@
+task: Implement a bounded runtime change
+route_mode: delegate
+role: implementer
+profile: standard
+provider: openai-codex
+child_agent_capable: true
+write_owner: child-1
+write_scope:
+  - runtime/
+parent_role: orchestrator
+recursion_depth: 0
+context_budget:
+  max_input_tokens: 1200
+  estimated_input_tokens: 600
+review_required: false
+review_planned: false
+risk_class: normal
+assignment_id: child-1
+disabled_roles: []
+active_write_leases: []

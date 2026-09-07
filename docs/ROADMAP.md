@@ -42,7 +42,7 @@ Remaining before a v0.1.0 tag:
 
 ## v0.2.0 — Efficiency controls
 
-Status: **in progress; controlled tasks, capture, graders, and acceptance telemetry are operational.**
+Status: **runtime-first foundation implemented; repeated provider experiments remain in progress.**
 
 Completed foundation:
 
@@ -55,10 +55,16 @@ Completed foundation:
 - observable `spawn_agent` telemetry normalization ✅
 - adaptive input/work/result budget policy ✅
 - raw-trace/local-workspace safety policy ✅
+- executable provider-neutral delegation preflight/planning gate with PASS / REJECT / ESCALATE evidence ✅
+- resolved execution-plan contract separating role/profile/provider/model ✅
+- lightweight agent registry/status JSON + text surface ✅
+- bounded context-packet contract plus a controlled harness that materializes different full/bounded prompts ✅
+- `oh-my-pi` conceptual research/provenance note for runtime-resolution patterns ✅
 
 Remaining:
 
 - repeated real Codex runs
+- repeated full-context vs bounded-context packet runs with real provider token/latency measurements
 - explicit context/result-budget measurements
 - semantic compute-tier benchmark
 - natural-language routing/classifier evaluation

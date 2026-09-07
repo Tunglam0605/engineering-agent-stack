@@ -14,20 +14,23 @@ REQUIRED = [
     "config/model-profiles.yaml", "config/routing-policy.yaml",
     "policies/delegation.md", "policies/context-budget.md", "policies/escalation.md", "policies/quality-gates.md",
     "schemas/agent-contract.yaml", "schemas/assignment-result.yaml", "schemas/benchmark-record.yaml", "schemas/run-capture.yaml", "schemas/benchmark-task.yaml",
+    "schemas/delegation-request.yaml", "schemas/delegation-request.example.yaml", "schemas/delegation-preflight.yaml", "schemas/resolved-execution-plan.yaml", "schemas/agent-status.yaml", "schemas/context-packet-benchmark.yaml",
+    "runtime/__init__.py", "runtime/contracts.py", "runtime/preflight.py", "runtime/registry.py", "runtime/context_packet.py",
     "agents/core/README.md", "agents/specialists/README.md",
     "evals/README.md", "evals/routing-cases.yaml",
-    "benchmarks/README.md", "benchmarks/experiment-plan.yaml", "benchmarks/run-manifest.example.yaml", "benchmarks/fixtures/codex-exec-events.jsonl", "benchmarks/tasks/README.md", "benchmarks/tasks/index.yaml",
+    "benchmarks/README.md", "benchmarks/experiment-plan.yaml", "benchmarks/run-manifest.example.yaml", "benchmarks/fixtures/codex-exec-events.jsonl", "benchmarks/fixtures/context-packet-minimal.yaml", "benchmarks/tasks/README.md", "benchmarks/tasks/index.yaml",
     "adapters/codex/README.md", "adapters/codex/role-profiles.yaml", "adapters/codex/config.toml.example", "adapters/codex/AGENTS.md.example",
     "scripts/validate_structure.py", "scripts/validate_provenance.py", "scripts/validate_agents.py", "scripts/evaluate_routing.py", "scripts/validate_benchmarks.py", "scripts/validate_task_suite.py", "scripts/summarize_benchmarks.py",
     "scripts/generate_codex_adapter.py", "scripts/install_codex.py",
     "scripts/acceptance_core.py", "scripts/acceptance_test_codex.py", "scripts/acceptance-test.ps1",
     "scripts/provider_probe_codex.py", "scripts/provider-probe.ps1",
-    "scripts/codex_capture_lib.py", "scripts/benchmark_task_lib.py", "scripts/normalize_codex_exec.py", "scripts/capture_codex_exec.py", "scripts/promote_run_capture.py", "scripts/prepare_benchmark_task.py", "scripts/grade_benchmark_task.py",
+    "scripts/codex_capture_lib.py", "scripts/benchmark_task_lib.py", "scripts/normalize_codex_exec.py", "scripts/capture_codex_exec.py", "scripts/promote_run_capture.py", "scripts/prepare_benchmark_task.py", "scripts/grade_benchmark_task.py", "scripts/agent_status.py", "scripts/resolve_delegation.py",
+    "tests/test_runtime_first.py",
 ]
 
 CORE_ROLES = ["scout", "researcher", "implementer", "debugger", "test-engineer", "reviewer", "architect"]
-REFERENCE_NOTES = ["openai-codex", "agency-agents", "oh-my-codex", "infiquetra-codex-plugins", "codex-config", "codex-safe-starter", "cli-agent-orchestrator", "openai-agents-python", "microsoft-agent-framework", "autogen", "langgraph", "deepagents", "crewai", "smolagents", "openhands"]
-CONTROLLED_TASKS = ["scout-symbol-001", "implementer-bounded-bug-001", "reviewer-regression-001", "orchestrator-trivial-edit-001"]
+REFERENCE_NOTES = ["openai-codex", "agency-agents", "oh-my-codex", "oh-my-pi", "infiquetra-codex-plugins", "codex-config", "codex-safe-starter", "cli-agent-orchestrator", "openai-agents-python", "microsoft-agent-framework", "autogen", "langgraph", "deepagents", "crewai", "smolagents", "openhands"]
+CONTROLLED_TASKS = ["scout-symbol-001", "implementer-bounded-bug-001", "reviewer-regression-001", "orchestrator-trivial-edit-001", "context-packet-synthetic-001"]
 
 
 def required_paths():

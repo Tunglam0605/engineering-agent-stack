@@ -1,0 +1,1 @@
+`docs/ACCEPTANCE_WINDOWS.md` says stack-owned acceptance and provider diagnostics are separate gates. `policies/context-budget.md` says correctness evidence must survive context reduction. The optional noisy transcript is not required.

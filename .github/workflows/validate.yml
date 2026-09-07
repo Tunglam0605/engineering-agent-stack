@@ -20,16 +20,16 @@ jobs:
       - name: Install validation dependencies
         run: python -m pip install -r requirements-dev.txt
 
-      - name: Compile scripts
-        run: python -m compileall -q scripts
+      - name: Compile Python sources
+        run: python -m compileall -q scripts runtime tests
 
       - name: Smoke-test locale-independent subprocess capture
         run: |
           python -c "import sys; sys.path.insert(0,'scripts'); import acceptance_core as a; p=a.run([sys.executable,'-c','import sys; sys.stdout.buffer.write(bytes([0xe2,0x9c,0x93,0x20,0xe2,0x82,0xac]))']); assert p.stdout == '\u2713 \u20ac'; assert a.parse_jsonl_text(None) == []"
 
-      - name: Smoke-test provider probe configuration
+      - name: Run deterministic unit tests and smoke-test provider probe configuration
         run: |
-          python -m unittest tests/test_release_hardening.py
+          python -m unittest discover -s tests -v
           python -c "import sys; from pathlib import Path; sys.path.insert(0,'scripts'); import provider_probe_codex as p; o=p.provider_overrides(Path('/tmp/eas-provider')); assert any(x.startswith('agents.scout.config_file=') for x in o); q=p.delegation_prompt('scout','inspect README'); assert 'agent_type `scout`' in q and 'fork_turns `none`' in q"
 
       - name: Validate repository structure
@@ -100,6 +100,10 @@ jobs:
 
       - name: Install validation dependencies
         run: python -m pip install -r requirements-dev.txt
+
+      - name: Run Python 3.9 deterministic unit tests
+        shell: pwsh
+        run: python -m unittest discover -s tests -v
 
       - name: Smoke-test UTF-8 subprocess capture on Windows
         shell: pwsh

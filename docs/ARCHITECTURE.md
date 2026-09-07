@@ -34,11 +34,34 @@ Roles reference semantic profiles (`cheap`, `standard`, `deep`, `critical`) rath
 
 Policies define delegation, escalation, context limits, write ownership and quality gates. Policies are independent from individual role prose.
 
-### 5. Evaluation layer
+### 5. Provider-neutral runtime resolution layer
+
+For **stack-controlled delegation**, the recommended executable path is:
+
+```text
+classified task
+    -> routing decision
+    -> delegation preflight
+    -> resolved execution plan
+    -> provider adapter
+    -> execution
+    -> agent status / observed telemetry
+    -> quality gate
+```
+
+`scripts/resolve_delegation.py` is the executable boundary for this contract. Preflight emits `PASS`, `REJECT`, or `ESCALATE` with structured reasons; only `PASS` can produce a resolved plan. The plan records role/profile/provider/model resolution, permissions/write ownership, recursion metadata, review requirement, and context budget. Provider-specific reasoning overrides remain in adapter metadata.
+
+This layer is **not a transparent hook inside provider-native runtimes**. Installing the Codex role files/config does not cause this Python preflight to intercept every native child-agent call. A parent/orchestrator that wants the stronger contract must invoke the resolver (or equivalent library API) before dispatch and then translate the approved plan through the provider adapter. Provider-native sandbox/tool controls remain the security boundary.
+
+The lightweight agent registry is observability, not orchestration authority. Unknown provider telemetry stays unknown.
+
+### 6. Evaluation layer
 
 Evals answer: "Does this routing/role/prompt preserve required quality?"
 
 Benchmarks answer: "At what token, latency and cost budget?"
+
+The v0.2 context-packet experiment compares a full evidence set with a bounded packet that must retain required evidence. Character count and a deterministic token proxy establish the harness; real provider token/latency evidence is added only when observed.
 
 ## Default execution topology
 
@@ -84,3 +107,7 @@ Escalation is based on evidence, not prestige. Typical triggers:
 ## Provider adapters
 
 Provider adapters translate semantic concepts into tool-specific configuration. A provider adapter must not redefine the canonical meaning of a role or policy.
+
+## Memory authority
+
+Persistent project memory is future work, not part of the v0.2 execution authority. If introduced later, memory is heuristic context only: current repository state and freshly verified external evidence take precedence over remembered summaries.

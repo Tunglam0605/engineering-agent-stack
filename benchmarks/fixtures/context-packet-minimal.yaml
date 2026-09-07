@@ -1,0 +1,25 @@
+experiment_id: context-packet-foundation-001
+task_id: context-packet-synthetic-001
+task: Compare bounded evidence against a deliberately noisy full-context packet.
+bounded_limits:
+  max_evidence_items: 2
+  max_chars: 700
+required_evidence_ids:
+  - acceptance
+  - policy
+evidence:
+  - evidence_id: acceptance
+    source: docs/ACCEPTANCE_WINDOWS.md
+    content: Stack-owned acceptance and provider diagnostics are separate gates.
+    required: true
+    priority: 100
+  - evidence_id: policy
+    source: policies/context-budget.md
+    content: Correctness evidence must survive context reduction.
+    required: true
+    priority: 90
+  - evidence_id: noise
+    source: logs/noisy-transcript.txt
+    content: This synthetic optional transcript is intentionally verbose and not required for the answer. This synthetic optional transcript is intentionally verbose and not required for the answer. This synthetic optional transcript is intentionally verbose and not required for the answer.
+    required: false
+    priority: 1

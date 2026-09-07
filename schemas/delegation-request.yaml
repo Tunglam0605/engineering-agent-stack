@@ -1,0 +1,45 @@
+version: 1
+status: candidate
+purpose: provider-neutral-delegation-request
+required_fields:
+  - task
+  - route_mode
+  - role
+  - profile
+  - provider
+  - child_agent_capable
+  - write_owner
+  - write_scope
+  - parent_role
+  - recursion_depth
+  - context_budget
+  - review_required
+  - review_planned
+  - risk_class
+  - assignment_id
+field_types:
+  task: non-empty-string
+  route_mode: non-empty-string
+  role: non-empty-string
+  profile: non-empty-string
+  provider: non-empty-string
+  child_agent_capable: boolean
+  write_owner: null-or-non-empty-string
+  write_scope: list-of-non-empty-strings
+  parent_role: null-or-non-empty-string
+  recursion_depth: integer
+  context_budget: mapping
+  review_required: boolean
+  review_planned: boolean
+  risk_class: non-empty-string
+  assignment_id: non-empty-string-for-pass
+context_budget_fields:
+  - max_input_tokens
+  - estimated_input_tokens
+optional_fields:
+  - disabled_roles
+  - active_write_leases
+notes:
+  - YAML scalar types are strict; strings such as "false" are not accepted as booleans.
+  - Write scopes must be repository-relative and must not contain parent traversal.
+  - Only PASS preflight results may produce a resolved execution plan.

@@ -2,7 +2,7 @@
 
 > Research-driven, provider-aware engineering agents focused on **quality per unit of cost**, not maximum agent count.
 
-[![Status](https://img.shields.io/badge/status-v0.1%20candidate%20%2B%20v0.2%20benchmarks-orange)](#roadmap)
+[![Status](https://img.shields.io/badge/status-v0.2%20runtime%20candidate-orange)](#roadmap)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
 ## Why this project exists
@@ -37,20 +37,30 @@ The stack optimizes **routing, context, evidence, verification, and escalation**
 User / Task
     |
     v
-Orchestrator / Main Agent
+Classification + Routing Policy
     |
-    +--> classify task shape + risk
-    +--> DIRECT or DELEGATE
-    +--> choose role + semantic compute profile
-    +--> send bounded context
+    +--> DIRECT -------------------------------> verify
     |
-    +--> Scout / Researcher       [read-heavy]
-    +--> Implementer / Debugger   [bounded write]
-    +--> Test Engineer            [verification]
-    +--> Reviewer / Architect     [independent assurance]
-    |
-    v
-Quality Gate -> Result / Escalation / Block
+    +--> DELEGATE
+             |
+             v
+       Delegation Preflight
+        PASS | REJECT | ESCALATE
+             |
+             v
+       Resolved Execution Plan
+             |
+             v
+        Provider Adapter
+             |
+             v
+           Execution
+             |
+             +--> Agent Registry / Status
+             +--> observed telemetry/evidence
+             |
+             v
+       Quality Gate -> Result / Escalation / Block
 ```
 
 Canonical layers:
@@ -71,6 +81,7 @@ PROVENANCE       Where did the design influence/material come from?
 agents/          Provider-neutral role definitions and specialist catalog
 config/          Semantic compute profiles and routing policy
 policies/        Delegation, escalation, context and quality rules
+runtime/         Provider-neutral preflight, resolved-plan, registry and context-packet contracts
 research/        Source analysis, primary-source notes, patterns and anti-patterns
 schemas/         Stable role/result/benchmark contracts
 evals/           Routing and quality evaluation fixtures
@@ -160,6 +171,37 @@ See [`docs/ACCEPTANCE_WINDOWS.md`](docs/ACCEPTANCE_WINDOWS.md) and [`docs/INSTAL
 
 Canonical definitions live under [`agents/core/`](agents/core/). Model names never define role identity.
 
+## Runtime-first v0.2 contracts
+
+The repository now exposes an executable provider-neutral **preflight/planning gate** for stack-controlled delegation:
+
+```text
+route -> preflight -> resolved execution plan -> provider adapter -> execution -> status/telemetry -> quality gate
+```
+
+Use the gate explicitly before a delegated provider call:
+
+```powershell
+py scripts\resolve_delegation.py `
+  --request schemas\delegation-request.example.yaml `
+  --format json
+```
+
+Exit codes are `0=PASS`, `3=REJECT`, `4=ESCALATE`, and `2=invalid request`. YAML scalar types are strict: for example, the string `"false"` is rejected rather than coerced to boolean false. Only `PASS` produces a resolved execution plan.
+
+This Python gate **does not automatically intercept arbitrary native `spawn_agent` calls made inside a normal Codex session**. Provider adapters and parent orchestration must invoke/enforce the stack contract when using this path; Codex sandbox/tool controls remain the actual runtime permission boundary.
+
+`runtime/preflight.py` rejects hard capability/policy violations and escalates unresolved budget/review gates. Codex-specific reasoning overrides are read from `adapters/codex/role-profiles.yaml` rather than duplicated into the runtime layer. `runtime/registry.py` exposes concise human-readable status plus JSON while keeping unavailable token/latency data as unknown. `runtime/context_packet.py` provides the bounded-evidence experiment foundation; the controlled harness now materializes genuinely different full-context and bounded-context prompts, but no universal efficiency win is claimed without repeated quality-gated provider runs.
+
+Render a captured registry snapshot with:
+
+```powershell
+py scripts\agent_status.py --input status.json --format text
+py scripts\agent_status.py --input status.json --format json
+```
+
+Provider adapters remain responsible for provider-specific execution details. The canonical runtime contracts do not make Codex behavior the definition of a role.
+
 ## Adaptive token/context budget
 
 The stack separates three concerns:
@@ -214,6 +256,7 @@ Patterns are classified as **ADOPT**, **ADAPT**, **EXPERIMENT**, **REJECT**, or 
 - [`openai/codex`](https://github.com/openai/codex)
 - [`msitarzewski/agency-agents`](https://github.com/msitarzewski/agency-agents)
 - [`Yeachan-Heo/oh-my-codex`](https://github.com/Yeachan-Heo/oh-my-codex)
+- [`can1357/oh-my-pi`](https://github.com/can1357/oh-my-pi)
 - [`infiquetra/infiquetra-codex-plugins`](https://github.com/infiquetra/infiquetra-codex-plugins)
 - [`trailofbits/codex-config`](https://github.com/trailofbits/codex-config)
 - [`KevinBigham/codex-safe-starter`](https://github.com/KevinBigham/codex-safe-starter)
@@ -241,7 +284,7 @@ Provider delegation probes are intentionally not executed as release-blocking CI
 
 - **v0.0.x — Research foundation:** exit criteria reached; research remains continuous.
 - **v0.1.0 — Core agents:** stack-owned release acceptance, installer, routing and role contracts; provider delegation remains an observed adapter capability.
-- **v0.2.0 — Efficiency controls:** repeated real traces, context-budget measurement, compute-tier comparison, classifier/routing evaluation.
+- **v0.2.0 — Runtime efficiency controls:** provider-neutral delegation preflight/resolution, lightweight status, bounded context-packet experiments, repeated real traces, and compute/routing evaluation.
 - **v0.3.0 — Engineering specialists:** Embedded, STM32, ROS 2, Robotics, and tooling roles only when benchmarks justify them.
 - **v0.4.0 — Evaluation/portability:** multiple provider adapters, routing accuracy, compatibility checks, specialist-vs-core ablations.
 - **v1.0.0 — Stable stack:** benchmark-backed defaults, reproducible installer, migration strategy, compatibility policy.

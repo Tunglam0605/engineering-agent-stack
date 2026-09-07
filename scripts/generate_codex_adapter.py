@@ -109,7 +109,15 @@ def resolve_role_compute(
         )
 
     profile = model_profiles["profiles"][profile_name]
-    model = profile["candidate_models"]["openai"]
+    model_provider = role_map.get("model_provider")
+    if not isinstance(model_provider, str) or not model_provider:
+        raise ValueError("Codex role map requires a non-empty model_provider")
+    candidates = profile.get("candidate_models") or {}
+    if model_provider not in candidates:
+        raise ValueError(
+            f"profile {profile_name!r} has no candidate model for {model_provider!r}"
+        )
+    model = candidates[model_provider]
     reasoning = role_cfg.get("reasoning_override", profile["reasoning"])
     return profile_name, model, reasoning
 
@@ -139,10 +147,23 @@ def render_role(
 
 
 def render_config_example(
-    agents: dict[str, dict[str, Any]], model_profiles: dict[str, Any]
+    agents: dict[str, dict[str, Any]],
+    model_profiles: dict[str, Any],
+    role_map: dict[str, Any] | None = None,
 ) -> str:
     _ = agents
+    if role_map is None:
+        role_map = load_yaml(ROLE_PROFILES_PATH)
     default_profile = model_profiles["profiles"]["standard"]
+    model_provider = role_map.get("model_provider")
+    if not isinstance(model_provider, str) or not model_provider:
+        raise ValueError("Codex role map requires a non-empty model_provider")
+    default_candidates = default_profile.get("candidate_models") or {}
+    if model_provider not in default_candidates:
+        raise ValueError(
+            f"standard profile has no candidate model for {model_provider!r}"
+        )
+    default_model = default_candidates[model_provider]
     content = "\n".join(
         [
             "# GENERATED EXAMPLE — merge this global block into `.codex/config.toml` or `~/.codex/config.toml`.",
@@ -154,7 +175,7 @@ def render_config_example(
             "[agents]",
             "enabled = true",
             "max_concurrent_threads_per_session = 4",
-            f"default_subagent_model = {json.dumps(default_profile['candidate_models']['openai'])}",
+            f"default_subagent_model = {json.dumps(default_model)}",
             f"default_subagent_reasoning_effort = {json.dumps(default_profile['reasoning'])}",
             "interrupt_message = true",
             "",
@@ -193,7 +214,7 @@ def expected_outputs() -> dict[Path, str]:
         )
         for role_id, agent in agents.items()
     }
-    outputs[CONFIG_EXAMPLE_PATH] = render_config_example(agents, model_profiles)
+    outputs[CONFIG_EXAMPLE_PATH] = render_config_example(agents, model_profiles, role_map)
     return outputs
 
 

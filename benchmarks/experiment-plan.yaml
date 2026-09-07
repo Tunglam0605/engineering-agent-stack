@@ -90,6 +90,23 @@ experiments:
       - total_tokens
       - latency_ms
       - agent_invocations
+
+  - id: context-packet-full-vs-bounded
+    role: orchestrator
+    task_families:
+      - context-efficiency
+    task_ids:
+      - context-packet-synthetic-001
+    candidates:
+      - topology: full-context
+      - topology: bounded-context-packet
+    measures:
+      - quality_score
+      - context_size_chars
+      - token_proxy
+      - retained_evidence_count
+      - input_tokens
+      - latency_ms
 acceptance:
   min_repetitions_per_task: 3
   no_default_change_from_single_run: true

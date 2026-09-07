@@ -1,0 +1,22 @@
+version: 1
+status: candidate
+purpose: lightweight-agent-registry-status
+required_fields:
+  - assignment_id
+  - state
+  - task
+  - role
+  - profile
+  - provider
+  - model
+  - parent_assignment_id
+  - write
+  - telemetry
+state_values:
+  - pending
+  - running
+  - completed
+  - failed
+  - blocked
+notes:
+  - Unknown telemetry is null and must never be fabricated.

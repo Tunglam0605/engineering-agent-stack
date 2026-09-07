@@ -1,5 +1,6 @@
 version: 1
 provider: openai-codex
+model_provider: openai
 status: experimental
 principle: role-maps-to-semantic-profile-not-direct-model
 roles:

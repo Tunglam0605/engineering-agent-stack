@@ -11,6 +11,7 @@ This project does **not** claim ownership of upstream projects, their names, doc
 | [openai/codex](https://github.com/openai/codex) | Authoritative Codex runtime/custom-agent behavior, public configuration surface, and execution telemetry. |
 | [msitarzewski/agency-agents](https://github.com/msitarzewski/agency-agents) | Specialist-role design, explicit mission/deliverable framing, and role taxonomy ideas. |
 | [Yeachan-Heo/oh-my-codex](https://github.com/Yeachan-Heo/oh-my-codex) | Direct-first delegation, leader-owned verification, and specialist routing patterns. |
+| [can1357/oh-my-pi](https://github.com/can1357/oh-my-pi) | Runtime role/model resolution, delegation preflight, agent status observability, and bounded context-management patterns studied for v0.2. |
 | [infiquetra/infiquetra-codex-plugins](https://github.com/infiquetra/infiquetra-codex-plugins) | Separation of logical role from compute profile, independent review, typed results, and write-set discipline. |
 | [trailofbits/codex-config](https://github.com/trailofbits/codex-config) | Conservative Codex configuration and the practice of checking current official docs before relying on fast-changing keys. |
 | [KevinBigham/codex-safe-starter](https://github.com/KevinBigham/codex-safe-starter) | Read-only exploration/review, narrow verification, and reversible project-scoped setup. |

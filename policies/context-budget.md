@@ -72,3 +72,13 @@ When the result exceeds the normal target, prefer:
 ## Benchmark rule
 
 Budget changes are accepted only when repeated tasks show that the tighter budget preserves the required quality threshold. Measure input tokens, output tokens, latency, escalation rate, reviewer rejection/rework rate, and final task quality together.
+
+## Bounded evidence packets
+
+For delegated work, prefer a bounded evidence packet over cloning the complete parent context. Required evidence is selected first; optional material is admitted only while item and size limits remain satisfied. A context reduction that cannot retain required correctness evidence must fail/escalate rather than silently truncate it.
+
+The initial benchmark records character size and a deterministic token proxy before comparing real provider token/latency measurements. This mechanism is experimental until repeated quality-gated runs justify a default.
+
+## Future memory rule
+
+Project memory is not implemented as a runtime authority in v0.2. If added later, memory must be treated as heuristic context only. Current repository state and freshly verified external evidence override remembered summaries whenever they conflict.

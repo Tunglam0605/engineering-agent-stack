@@ -1,0 +1,16 @@
+version: 1
+status: candidate
+purpose: provider-neutral-resolved-execution-plan
+required_fields:
+  - assignment_id
+  - task
+  - route
+  - compute
+  - permissions
+  - recursion
+  - review
+  - context_budget
+  - preflight
+notes:
+  - Role and semantic compute profile remain independent from provider and concrete model.
+  - Provider-specific execution belongs in adapters, not this canonical contract.

@@ -1,0 +1,17 @@
+version: 1
+status: candidate
+purpose: provider-neutral-delegation-preflight-evidence
+required_fields:
+  - decision
+  - reasons
+decision_values:
+  - PASS
+  - REJECT
+  - ESCALATE
+reason_fields:
+  - code
+  - message
+  - severity
+notes:
+  - REJECT represents a hard policy or capability violation.
+  - ESCALATE represents a controller decision needed before execution.

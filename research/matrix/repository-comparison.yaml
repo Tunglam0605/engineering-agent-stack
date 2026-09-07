@@ -130,3 +130,15 @@ repositories:
       sandbox_backends: ADOPT
       multi_backend_adapter: ADAPT
       automation_separation: ADAPT
+
+  - name: can1357/oh-my-pi
+    focus: coding-agent-runtime-resolution-and-observability
+    decisions:
+      delegation_preflight: ADAPT
+      role_model_runtime_resolution: ADAPT
+      lightweight_agent_status: ADAPT
+      bounded_evidence_packet: EXPERIMENT
+      memory_as_heuristic_context: EXPERIMENT
+      memory_as_authority: REJECT
+      full_native_tool_runtime: REJECT
+      large_provider_catalog: REJECT
