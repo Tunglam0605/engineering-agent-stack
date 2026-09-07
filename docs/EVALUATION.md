@@ -1,100 +1,62 @@
 # Evaluation and Benchmarking
 
-The stack separates **quality evaluation** from **efficiency benchmarking** and now also separates **provider measurement** from **quality grading**.
+The stack separates **quality evaluation** from **efficiency benchmarking**.
 
 ## Rule 1: quality gate first
 
 A cheaper route is not better if it fails the required engineering quality threshold.
 
 ```text
-provider run
-   |
-   v
-usage/latency capture
-   |
-   v
-quality grading
+candidate run
    |
    +--> quality < threshold ----> reject
    |
    +--> quality >= threshold ---> compare cost / latency / token usage
 ```
 
-This prevents cost optimization from silently degrading correctness and prevents the runtime capture layer from inventing a quality score.
+This prevents cost optimization from silently degrading correctness.
 
 ## Evaluation layers
 
 ### Policy routing evals
 
-`evals/routing-cases.yaml` checks deterministic behavior after task signals have already been classified. It answers:
+`evals/routing-cases.yaml` checks deterministic behavior after task signals have already been classified. It answers questions such as:
 
-- direct or delegated?
-- which role/profile?
+- should this task be direct or delegated?
+- which role/profile should receive it?
 - is independent review required?
 
 It does **not** measure natural-language classification quality.
 
+### Controlled task evals
+
+`benchmarks/tasks/index.yaml` defines small repeatable workspaces for model-tier comparisons.
+
+The first suite covers:
+
+- call-flow discovery
+- a bounded implementation bug
+- seeded reviewer regressions
+- a trivial direct-vs-delegate edit
+
+Each task has a prompt, isolated workspace, quality threshold and deterministic grader contract. `scripts/prepare_benchmark_task.py` materializes a clean copy so every candidate starts from the same state.
+
 ### Natural-language routing evals
 
-Planned for v0.2. These evaluate whether an orchestrator infers the correct task shape, risk and uncertainty from realistic tasks without over-delegating.
+Planned for later v0.2. These will evaluate whether an orchestrator can infer the correct task shape, risk and uncertainty signals from realistic user tasks without over-delegating.
 
 ### Role quality evals
 
-Each role is measured against task-family-specific criteria:
+Each role is measured against task-family-specific quality criteria. Examples:
 
 - scout: discovery accuracy and call-flow correctness
 - implementer: behavior correctness and targeted-test success
 - reviewer: defect recall and false-positive rate
 - architect: constraint coverage, trade-off quality and critical-risk detection
 
-## Two-stage measurement pipeline
-
-### Stage A — run capture
-
-`schemas/run-capture.yaml` is provider-measurement evidence before grading.
-
-For current Codex CLI builds:
-
-```bash
-python scripts/capture_codex_exec.py \
-  --manifest benchmarks/run-manifest.example.yaml
-```
-
-The runner executes `codex exec --json --ephemeral`, measures wall-clock latency, parses the public JSONL usage events and writes a local `capture.json` plus raw artifacts under `benchmarks/local-runs/`.
-
-Raw run directories are git-ignored by default.
-
-Existing JSONL can also be normalized without launching Codex:
-
-```bash
-python scripts/normalize_codex_exec.py \
-  --events path/to/events.jsonl \
-  --manifest benchmarks/run-manifest.example.yaml \
-  --latency-ms 1234 \
-  --output /tmp/capture.json
-```
-
-### Stage B — quality promotion
-
-A capture becomes a benchmark record only after quality is graded:
-
-```bash
-python scripts/promote_run_capture.py /tmp/capture.json \
-  --score 0.98 \
-  --threshold 0.95 \
-  --grader targeted-tests+review \
-  --output /tmp/results.jsonl
-```
-
-Then summarize candidate performance:
-
-```bash
-python scripts/summarize_benchmarks.py /tmp/results.jsonl
-```
-
 ## Benchmark records
 
-Promoted experiment runs conform to `schemas/benchmark-record.yaml` and capture at minimum:
+Normalized experiment runs should conform to `schemas/benchmark-record.yaml` and capture at minimum:
 
 - experiment/task identity
 - provider/model/reasoning setting
@@ -104,11 +66,32 @@ Promoted experiment runs conform to `schemas/benchmark-record.yaml` and capture 
 - input/output token usage
 - outcome
 
-Provider price remains optional because prices change. Cost should be derived later from a dated pricing snapshot.
+Provider price is intentionally optional because prices change. Cost can be derived later from a dated pricing snapshot without corrupting the raw usage record.
+
+## Provider run capture
+
+Codex runs are captured as JSONL events and normalized separately from grading. This separation prevents provider telemetry parsing from deciding whether an engineering result is correct.
+
+```text
+controlled workspace
+      |
+      v
+codex exec --json
+      |
+      v
+capture.json
+      |
+      +----> deterministic/manual quality grader
+      |
+      v
+normalized benchmark record
+```
+
+Raw provider traces remain local by default.
 
 ## Experiment discipline
 
-The first planned experiments live in `benchmarks/experiment-plan.yaml`.
+The first planned experiments live in `benchmarks/experiment-plan.yaml` and reference concrete controlled task IDs.
 
 Rules:
 
@@ -118,18 +101,29 @@ Rules:
 4. Record model/version/environment when available.
 5. Prefer the lowest compute tier that consistently clears the required quality threshold.
 6. Keep critical/realtime/security/release tasks on stricter quality gates even if average cost is higher.
-7. Keep raw traces local unless a sanitized fixture is intentionally created.
-8. Treat runtime capture and quality grading as separate responsibilities.
+7. Keep task workspace, prompt and grader constant while comparing candidate models.
+8. Do not tune a task fixture to make a preferred model win.
 
 ## Efficiency objective
+
+The conceptual objective is:
 
 ```text
 maximize quality / (cost * latency)
 subject to quality >= task threshold
 ```
 
-No scalar score may hide failures. Reports should show quality, tokens, latency, agent count and cost separately before any aggregate score is used.
+In practice, no single scalar should hide failures. Reports should show quality, tokens, latency, agent count and cost separately before any aggregate score is used.
 
 ## Current stage
 
-Deterministic routing, canonical role validation, generated Codex configuration, benchmark contracts and the Codex real-run capture pipeline are implemented. The next milestone is collecting repeated real runs for Luna/Terra/Sol comparisons and natural-language router evaluation.
+The repository now has:
+
+- deterministic routing-policy evals
+- four controlled task fixtures
+- deterministic task graders
+- repeatable workspace materialization
+- real Codex JSONL capture
+- normalized benchmark record promotion and summaries
+
+The next v0.2 milestone is collecting repeated real runs across Luna/Terra/Sol candidate tiers and using those data to justify routing defaults.

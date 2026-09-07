@@ -34,30 +34,29 @@ Remaining before a v0.1.0 tag:
 
 ## v0.2.0 — Efficiency controls
 
-Status: **in progress.**
+Status: **in progress; controlled task suite and run-capture infrastructure are operational.**
 
-Implemented foundation:
+Completed foundation:
 
-- benchmark record schema ✅
-- experiment plan for Luna/Terra/Sol and direct-vs-delegate comparisons ✅
-- benchmark contract validation ✅
-- benchmark JSONL summarizer ✅
-- provider-neutral pre-grade run-capture schema ✅
-- Codex `exec --json` normalizer ✅
-- Codex local real-run wrapper with latency/token capture ✅
-- explicit quality-promotion step from capture -> benchmark record ✅
-- synthetic CI smoke test for the capture/promotion/summarization pipeline ✅
+- normalized benchmark record contract ✅
+- experiment plan linked to concrete controlled tasks ✅
+- four controlled synthetic engineering tasks ✅
+- deterministic text/test graders ✅
+- clean workspace materialization ✅
+- Codex `exec --json` usage/latency capture ✅
+- raw-trace/local-workspace ignore policy ✅
+- CI smoke tests for task preparation, grading and capture normalization ✅
 
 Remaining exit criteria:
 
-- collect repeated real Codex runs on representative tasks
-- measure explicit context budgets against real runs
-- benchmark semantic compute tiers
-- evaluate natural-language routing/classifier accuracy separately from policy routing
-- test escalation rules against difficult/critical fixtures
-- record token, latency and quality measurements
-- enforce over-delegation regression cases
-- support task-level cost comparison for Luna/Terra/Sol defaults
+- explicit context budgets measured against real runs
+- semantic compute tiers benchmarked with repeated runs
+- natural-language routing/classifier accuracy evaluated separately from policy routing
+- escalation rules tested against difficult/critical fixtures
+- token, latency and quality measurements recorded
+- over-delegation regression cases enforced
+- task-level cost comparison supports Luna/Terra/Sol default decisions
+- at least three repetitions per candidate/task before changing defaults
 
 ## v0.3.0 — Engineering specialists
 

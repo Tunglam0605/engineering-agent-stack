@@ -32,8 +32,49 @@ jobs:
       - name: Evaluate deterministic routing policy
         run: python scripts/evaluate_routing.py
 
+      - name: Validate controlled benchmark tasks
+        run: python scripts/validate_task_suite.py
+
       - name: Validate benchmark contracts
         run: python scripts/validate_benchmarks.py
+
+      - name: Smoke-test controlled task tooling
+        run: |
+          python scripts/grade_benchmark_task.py \
+            --task-id scout-symbol-001 \
+            --last-message benchmarks/tasks/scout-symbol-001/golden-answer.md \
+            --output /tmp/scout-grade.json
+
+          python scripts/grade_benchmark_task.py \
+            --task-id reviewer-regression-001 \
+            --last-message benchmarks/tasks/reviewer-regression-001/golden-answer.md \
+            --output /tmp/reviewer-grade.json
+
+          cp -R benchmarks/tasks/implementer-bounded-bug-001/workspace /tmp/impl-workspace
+          cp benchmarks/tasks/implementer-bounded-bug-001/golden/retry.py /tmp/impl-workspace/src/retry.py
+          python scripts/grade_benchmark_task.py \
+            --task-id implementer-bounded-bug-001 \
+            --workspace /tmp/impl-workspace \
+            --output /tmp/impl-grade.json
+
+          cp -R benchmarks/tasks/orchestrator-trivial-edit-001/workspace /tmp/direct-workspace
+          cp benchmarks/tasks/orchestrator-trivial-edit-001/golden/README.md /tmp/direct-workspace/README.md
+          python scripts/grade_benchmark_task.py \
+            --task-id orchestrator-trivial-edit-001 \
+            --workspace /tmp/direct-workspace \
+            --output /tmp/direct-grade.json
+
+          python scripts/prepare_benchmark_task.py \
+            --task-id scout-symbol-001 \
+            --experiment-id scout-luna-vs-terra \
+            --model gpt-5.6-luna \
+            --reasoning-effort medium \
+            --profile cheap \
+            --destination /tmp/prepared-scout
+
+          python scripts/capture_codex_exec.py \
+            --manifest /tmp/prepared-scout/manifest.yaml \
+            --dry-run
 
       - name: Smoke-test Codex run capture pipeline
         run: |
