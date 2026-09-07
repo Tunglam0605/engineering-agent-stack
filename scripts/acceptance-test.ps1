@@ -127,13 +127,23 @@ if ($Report -ne "") {
 Write-Host "Engineering Agent Stack - Windows acceptance"
 Write-Host "Repository: $RepoRoot"
 Write-Host "Python: $PythonVersion ($PythonExe $($PythonPrefix -join ' '))"
+Write-Host "Python text mode: UTF-8"
 if (-not $Offline) {
     Write-Host "Codex launcher: $ResolvedCodexBin"
 }
 Write-Host "Mode: $(if ($Offline) { 'offline' } elseif ($Extended) { 'live-extended' } else { 'live' })"
 Write-Host ""
 
-& $PythonExe @PythonPrefix @ArgsList
+# Windows developer environments often inherit a legacy ANSI code page such as
+# cp1252. Codex JSONL is UTF-8 and may contain Unicode characters, so force
+# Python UTF-8 mode for the entire acceptance process and all text-mode child
+# subprocess pipes. This prevents locale-dependent UnicodeDecodeError failures.
+$PythonArgs = @()
+$PythonArgs += $PythonPrefix
+$PythonArgs += @("-X", "utf8")
+$PythonArgs += $ArgsList
+
+& $PythonExe @PythonArgs
 $ExitCode = $LASTEXITCODE
 
 if ($ExitCode -eq 0) {
