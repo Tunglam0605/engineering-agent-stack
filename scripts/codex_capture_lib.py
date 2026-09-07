@@ -51,6 +51,19 @@ def validate_meta(meta: dict[str, Any]) -> None:
         raise ValueError(f"run manifest missing required fields: {', '.join(missing)}")
 
 
+def receiver_roles(item: dict[str, Any]) -> list[str]:
+    roles: list[str] = []
+    receivers = item.get("receiver_agents", [])
+    if not isinstance(receivers, list):
+        return roles
+    for receiver in receivers:
+        if isinstance(receiver, dict):
+            role = receiver.get("agent_role")
+            if isinstance(role, str) and role:
+                roles.append(role)
+    return roles
+
+
 def summarize_events(events: list[dict[str, Any]]) -> dict[str, Any]:
     usage = {field: 0 for field in USAGE_FIELDS}
     thread_id: str | None = None
@@ -60,14 +73,17 @@ def summarize_events(events: list[dict[str, Any]]) -> dict[str, Any]:
     completed_items: set[str] = set()
     tool_calls = 0
     file_changes = 0
+    collab_tool_calls = 0
+    agent_spawns = 0
+    agent_spawn_models: list[str] = []
+    agent_spawn_reasoning: list[str] = []
+    agent_spawn_roles: list[str] = []
     item_type_counts: dict[str, int] = {}
 
     for event in events:
         event_type = event.get("type")
-
         if event_type == "thread.started" and isinstance(event.get("thread_id"), str):
             thread_id = event["thread_id"]
-
         elif event_type == "turn.completed":
             completed_turns += 1
             turn_usage = event.get("usage", {})
@@ -76,13 +92,10 @@ def summarize_events(events: list[dict[str, Any]]) -> dict[str, Any]:
                     value = turn_usage.get(field, 0)
                     if isinstance(value, int) and value >= 0:
                         usage[field] += value
-
         elif event_type == "turn.failed":
             failed_turns += 1
-
         elif event_type == "error":
             top_level_errors += 1
-
         elif event_type == "item.completed":
             item = event.get("item")
             if not isinstance(item, dict):
@@ -100,8 +113,19 @@ def summarize_events(events: list[dict[str, Any]]) -> dict[str, Any]:
                 tool_calls += 1
             if item_type == "file_change":
                 changes = item.get("changes", [])
-                if isinstance(changes, list):
+                if isinstance(changes, (list, dict)):
                     file_changes += len(changes)
+            if item_type == "collab_agent_tool_call":
+                collab_tool_calls += 1
+                if item.get("tool") == "spawn_agent":
+                    agent_spawns += 1
+                    model = item.get("model")
+                    if isinstance(model, str) and model:
+                        agent_spawn_models.append(model)
+                    reasoning = item.get("reasoning_effort")
+                    if isinstance(reasoning, str) and reasoning:
+                        agent_spawn_reasoning.append(reasoning)
+                    agent_spawn_roles.extend(receiver_roles(item))
 
     return {
         "thread_id": thread_id,
@@ -114,27 +138,20 @@ def summarize_events(events: list[dict[str, Any]]) -> dict[str, Any]:
             "completed_items": len(completed_items),
             "tool_calls": tool_calls,
             "file_changes": file_changes,
+            "collab_tool_calls": collab_tool_calls,
+            "agent_spawns": agent_spawns,
+            "agent_spawn_models": agent_spawn_models,
+            "agent_spawn_reasoning": agent_spawn_reasoning,
+            "agent_spawn_roles": agent_spawn_roles,
             "item_type_counts": item_type_counts,
         },
     }
 
 
-def build_capture(
-    meta: dict[str, Any],
-    event_summary: dict[str, Any],
-    *,
-    latency_ms: float,
-    exit_code: int | None = None,
-    started_at: str | None = None,
-    finished_at: str | None = None,
-    artifacts: dict[str, str] | None = None,
-    environment: dict[str, Any] | None = None,
-    capture_id: str | None = None,
-) -> dict[str, Any]:
+def build_capture(meta: dict[str, Any], event_summary: dict[str, Any], *, latency_ms: float, exit_code: int | None = None, started_at: str | None = None, finished_at: str | None = None, artifacts: dict[str, str] | None = None, environment: dict[str, Any] | None = None, capture_id: str | None = None) -> dict[str, Any]:
     validate_meta(meta)
     if latency_ms < 0:
         raise ValueError("latency_ms must be non-negative")
-
     events = event_summary["event_summary"]
     if exit_code not in (None, 0) or events["turns_failed"] or events["top_level_errors"]:
         outcome = "failed"
@@ -142,7 +159,6 @@ def build_capture(
         outcome = "completed"
     else:
         outcome = "blocked"
-
     record: dict[str, Any] = {
         "schema_version": 1,
         "capture_id": capture_id or str(uuid.uuid4()),
@@ -160,7 +176,6 @@ def build_capture(
         "outcome": outcome,
         "event_summary": dict(events),
     }
-
     if event_summary.get("thread_id"):
         record["thread_id"] = event_summary["thread_id"]
     if started_at:
