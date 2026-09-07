@@ -13,6 +13,9 @@ $RepoRoot = Split-Path -Parent $ScriptDir
 $PythonExe = $null
 $PythonPrefix = @()
 $PythonVersion = $null
+$ResolvedCodexBin = $CodexBin
+$ActualCodexBin = $CodexBin
+$AcceptanceCodexWrapper = $null
 
 function Test-PythonCandidate {
     param(
@@ -73,7 +76,6 @@ if (-not $PythonExe) {
     exit 2
 }
 
-$ResolvedCodexBin = $CodexBin
 if (-not $Offline) {
     $CodexCommand = Get-Command $CodexBin -ErrorAction SilentlyContinue
     if (-not $CodexCommand) {
@@ -100,6 +102,21 @@ if (-not $Offline) {
             }
         }
     }
+
+    $ActualCodexBin = $ResolvedCodexBin
+
+    # Live acceptance must be non-interactive and must not silently fall back to
+    # parent execution when a diagnostic explicitly requests one child role.
+    # Wrap the real Codex launcher with session-only CLI config overrides instead
+    # of changing the user's project or personal Codex configuration.
+    $AcceptanceCodexWrapper = Join-Path ([System.IO.Path]::GetTempPath()) ("engineering-agent-stack-codex-" + [guid]::NewGuid().ToString("N") + ".cmd")
+    $AcceptanceDeveloperInstructions = 'Engineering Agent Stack acceptance policy. If and only if the user prompt begins with "Acceptance test.", the requested named custom agent is mandatory. Call spawn_agent exactly once for that role, set fork_turns to "none", put the complete assignment in the child message, wait for the child result, and never perform the requested child task directly in the parent. If spawn_agent fails, report that failure instead of falling back. For prompts that do not begin with "Acceptance test.", follow the normal repository orchestration policy and direct-first rule.'
+    $WrapperLines = @(
+        '@echo off',
+        ('"' + $ActualCodexBin + '" -c "approval_policy=''never''" -c "developer_instructions=''' + $AcceptanceDeveloperInstructions + '''" %*')
+    )
+    Set-Content -LiteralPath $AcceptanceCodexWrapper -Value $WrapperLines -Encoding ASCII
+    $ResolvedCodexBin = $AcceptanceCodexWrapper
 }
 
 $ArgsList = @((Join-Path $RepoRoot "scripts\acceptance_test_codex.py"))
@@ -129,7 +146,8 @@ Write-Host "Repository: $RepoRoot"
 Write-Host "Python: $PythonVersion ($PythonExe $($PythonPrefix -join ' '))"
 Write-Host "Python text mode: UTF-8"
 if (-not $Offline) {
-    Write-Host "Codex launcher: $ResolvedCodexBin"
+    Write-Host "Codex launcher: $ActualCodexBin"
+    Write-Host "Acceptance runtime: non-interactive approval + mandatory diagnostic delegation"
 }
 Write-Host "Mode: $(if ($Offline) { 'offline' } elseif ($Extended) { 'live-extended' } else { 'live' })"
 Write-Host ""
@@ -143,8 +161,15 @@ $PythonArgs += $PythonPrefix
 $PythonArgs += @("-X", "utf8")
 $PythonArgs += $ArgsList
 
-& $PythonExe @PythonArgs
-$ExitCode = $LASTEXITCODE
+try {
+    & $PythonExe @PythonArgs
+    $ExitCode = $LASTEXITCODE
+}
+finally {
+    if ($AcceptanceCodexWrapper -and (Test-Path -LiteralPath $AcceptanceCodexWrapper)) {
+        Remove-Item -LiteralPath $AcceptanceCodexWrapper -Force -ErrorAction SilentlyContinue
+    }
+}
 
 if ($ExitCode -eq 0) {
     Write-Host ""
