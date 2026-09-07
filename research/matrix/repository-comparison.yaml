@@ -1,5 +1,6 @@
-version: 1
-status: preliminary
+version: 2
+status: research-wave-2
+updated: 2026-09-07
 repositories:
   - name: msitarzewski/agency-agents
     focus: specialist-role-design
@@ -35,8 +36,73 @@ repositories:
       narrow_verification: ADOPT
       reversible_setup: ADOPT
   - name: awslabs/cli-agent-orchestrator
-    focus: multi-agent-cli-orchestration
+    focus: multi-cli-control-plane
     decisions:
-      topology: EXPERIMENT
-      failure_recovery: EXPERIMENT
-      workspace_isolation: EXPERIMENT
+      role_provider_tool_separation: ADOPT
+      explicit_provider_precedence: ADOPT
+      capability_discovery: ADAPT
+      workspace_session_isolation: ADAPT
+      supervisor_topology: ADAPT
+      persistent_self_learning: EXPERIMENT
+      untrusted_discovery_metadata: ADOPT
+  - name: openai/openai-agents-python
+    focus: multi-agent-runtime
+    decisions:
+      explicit_handoffs: ADOPT
+      guardrails: ADOPT
+      tracing: ADOPT
+      agents_as_tools: ADAPT
+      provider_agnostic_runtime: ADAPT
+  - name: microsoft/agent-framework
+    focus: production-agent-workflows
+    decisions:
+      deterministic_workflow_graph: ADOPT
+      observability: ADOPT
+      provider_flexibility: ADOPT
+      declarative_agents: ADAPT
+      checkpointing_restartability: ADAPT
+      human_in_the_loop: ADAPT
+  - name: microsoft/autogen
+    focus: historical-multi-agent-framework
+    status: HISTORICAL
+    decisions:
+      layered_runtime: ADAPT
+      benchmark_mindset: ADAPT
+      group_chat_as_default: REJECT
+  - name: langchain-ai/langgraph
+    focus: durable-stateful-orchestration
+    decisions:
+      durable_state_machine: ADAPT
+      interrupt_human_in_loop: ADAPT
+      persistence_checkpointing: ADAPT
+      observability_eval_mindset: ADOPT
+  - name: langchain-ai/deepagents
+    focus: long-horizon-agent-harness
+    decisions:
+      isolated_subagent_context: ADOPT
+      tool_output_offload: ADOPT
+      on_demand_skills: ADOPT
+      filesystem_abstraction: ADAPT
+      persistent_memory: ADAPT
+      prompt_only_permission_boundary: REJECT
+  - name: crewAIInc/crewAI
+    focus: autonomous-agents-plus-deterministic-flows
+    decisions:
+      autonomy_control_separation: ADOPT
+      role_based_collaboration: ADAPT
+      structured_task_outputs: ADAPT
+      autonomous_delegation_everywhere: REJECT
+  - name: huggingface/smolagents
+    focus: minimal-agent-runtime
+    decisions:
+      minimal_core: ADOPT
+      model_tool_agnostic: ADOPT
+      sandbox_first_execution: ADAPT
+      code_actions: EXPERIMENT
+  - name: OpenHands/OpenHands
+    focus: coding-agent-control-plane
+    decisions:
+      control_plane_runtime_separation: ADOPT
+      sandbox_backends: ADOPT
+      multi_backend_adapter: ADAPT
+      automation_separation: ADAPT

@@ -1,0 +1,14 @@
+# Experimental project-level baseline for current Codex releases.
+# Revalidate fields against official Codex docs before publishing a stable release.
+
+[agents]
+enabled = true
+max_concurrent_threads_per_session = 4
+default_subagent_model = "gpt-5.6-terra"
+default_subagent_reasoning_effort = "medium"
+interrupt_message = true
+
+# Why 4?
+# The project intentionally starts below larger example fan-out values. The limit is
+# a safety/efficiency baseline until benchmark data demonstrates that additional
+# parallel readers improve wall-clock time without unacceptable token overhead.

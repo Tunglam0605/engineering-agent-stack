@@ -1,0 +1,57 @@
+version: 1
+status: seed-cases
+cases:
+  - id: typo-in-readme
+    task: Fix one obvious typo in README with no behavioral effect.
+    expected:
+      action: direct
+      max_profile: cheap
+      review_required: false
+  - id: locate-metadata-refresh
+    task: Find where metadata refresh is triggered after flashing and report the call path without editing.
+    expected:
+      action: delegate
+      role: scout
+      profile: cheap
+      review_required: false
+  - id: external-api-version
+    task: Confirm current official API behavior for a chosen dependency version without changing code.
+    expected:
+      action: delegate
+      role: researcher
+      profile: cheap
+      review_required: false
+  - id: bounded-python-fix
+    task: Implement an already-understood bug fix in two known Python files and run targeted tests.
+    expected:
+      action: delegate
+      role: implementer
+      profile: standard
+      review_required: false
+  - id: intermittent-race
+    task: Diagnose an intermittent concurrency failure with conflicting logs and no proven root cause.
+    expected:
+      action: delegate
+      role: debugger
+      profile: deep
+      review_required: true
+  - id: stm32-realtime-change
+    task: Change logic inside a 1 kHz STM32 control path involving ISR/DMA interaction and release safety.
+    expected:
+      action: delegate
+      role: architect
+      profile: critical
+      review_required: true
+  - id: release-review
+    task: Independently review a release candidate after implementation and tests are complete.
+    expected:
+      action: delegate
+      role: reviewer
+      profile: deep
+      review_required: true
+  - id: redundant-agent-fanout
+    task: Rename one local variable in one private function while preserving behavior.
+    expected:
+      action: direct
+      max_parallel_agents: 0
+      review_required: false

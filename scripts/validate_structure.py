@@ -13,6 +13,10 @@ REQUIRED = [
     "docs/ROADMAP.md",
     "research/README.md",
     "research/matrix/repository-comparison.yaml",
+    "research/patterns/wave-2-synthesis.md",
+    "research/anti-patterns/over-orchestration.md",
+    "research/sources/openai-codex-subagents.md",
+    "research/sources/openai-models-2026-09-07.md",
     "config/model-profiles.yaml",
     "config/routing-policy.yaml",
     "policies/delegation.md",
@@ -24,27 +28,53 @@ REQUIRED = [
     "agents/core/README.md",
     "agents/specialists/README.md",
     "evals/README.md",
+    "evals/routing-cases.yaml",
     "benchmarks/README.md",
     "adapters/codex/README.md",
+    "adapters/codex/config.toml.example",
+]
+
+CORE_ROLES = [
+    "scout",
+    "researcher",
+    "implementer",
+    "debugger",
+    "test-engineer",
+    "reviewer",
+    "architect",
 ]
 
 REFERENCE_NOTES = [
-    "research/repositories/agency-agents.md",
-    "research/repositories/oh-my-codex.md",
-    "research/repositories/infiquetra-codex-plugins.md",
-    "research/repositories/codex-config.md",
-    "research/repositories/codex-safe-starter.md",
-    "research/repositories/cli-agent-orchestrator.md",
+    "agency-agents",
+    "oh-my-codex",
+    "infiquetra-codex-plugins",
+    "codex-config",
+    "codex-safe-starter",
+    "cli-agent-orchestrator",
+    "openai-agents-python",
+    "microsoft-agent-framework",
+    "autogen",
+    "langgraph",
+    "deepagents",
+    "crewai",
+    "smolagents",
+    "openhands",
 ]
 
 
+def required_paths() -> list[str]:
+    paths = list(REQUIRED)
+    paths.extend(f"agents/core/{role}.yaml" for role in CORE_ROLES)
+    paths.extend(f"research/repositories/{name}.md" for name in REFERENCE_NOTES)
+    codex_names = ["scout", "researcher", "implementer", "debugger", "test-engineer", "reviewer", "architect"]
+    paths.extend(f"adapters/codex/agents/{name}.toml" for name in codex_names)
+    return paths
+
+
 def main() -> int:
-    missing = [path for path in REQUIRED + REFERENCE_NOTES if not (ROOT / path).is_file()]
-    empty = [
-        path
-        for path in REQUIRED + REFERENCE_NOTES
-        if (ROOT / path).is_file() and (ROOT / path).stat().st_size == 0
-    ]
+    paths = required_paths()
+    missing = [path for path in paths if not (ROOT / path).is_file()]
+    empty = [path for path in paths if (ROOT / path).is_file() and (ROOT / path).stat().st_size == 0]
 
     if missing or empty:
         if missing:
@@ -57,7 +87,12 @@ def main() -> int:
                 print(f"  - {path}")
         return 1
 
-    print(f"OK: {len(REQUIRED)} core artifacts and {len(REFERENCE_NOTES)} research notes present.")
+    print(
+        "OK: "
+        f"{len(paths)} required artifacts present; "
+        f"{len(CORE_ROLES)} core roles, {len(REFERENCE_NOTES)} research notes, "
+        "and Codex adapter candidates are structurally complete."
+    )
     return 0
 
 

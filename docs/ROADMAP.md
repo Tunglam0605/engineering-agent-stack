@@ -2,23 +2,27 @@
 
 ## v0.0.x — Research foundation
 
+Status: **exit criteria reached; research remains continuous.**
+
 Exit criteria:
 
-- at least 6 reference repositories analyzed with one matrix
-- common patterns and anti-patterns documented
-- provider-neutral role/result schemas drafted
-- routing, context, escalation and verification policies documented
-- repository validation runs in CI
+- at least 6 reference repositories analyzed with one matrix ✅
+- common patterns and anti-patterns documented ✅
+- provider-neutral role/result schemas drafted ✅
+- routing, context, escalation and verification policies documented ✅
+- repository validation runs in CI ✅
 
 ## v0.1.0 — Core agents
 
+Status: **in progress — experimental core and Codex adapter now exist.**
+
 Exit criteria:
 
-- seven core roles implemented
-- each role conforms to the agent contract
-- bounded result format implemented
-- one Codex adapter generated from canonical definitions
-- direct-vs-delegate routing tests exist
+- seven core roles implemented ✅
+- each role conforms to the agent contract ✅ by structure; semantic validation pending
+- bounded result format implemented ✅ schema; runtime enforcement pending
+- one Codex adapter generated from canonical definitions ⏳ adapter candidates exist; generator/drift check pending
+- direct-vs-delegate routing tests exist ⏳ seed cases exist; executable evaluator pending
 
 ## v0.2.0 — Efficiency controls
 
