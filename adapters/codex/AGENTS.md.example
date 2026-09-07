@@ -1,0 +1,34 @@
+<!-- engineering-agent-stack:start -->
+## Engineering Agent Stack orchestration
+
+Use the installed custom agents selectively. The existence of seven roles does not imply seven child runs.
+
+### Direct-first rule
+
+Handle trivial, reversible, obvious, and narrow work directly when delegation would not materially improve correctness, speed, or verification.
+
+Delegate when the task benefits from isolated context, specialist evidence, independent verification, or bounded parallel read work.
+
+### Role routing
+
+- `scout`: repository discovery, symbol lookup, call-flow tracing, read-only evidence.
+- `researcher`: current/versioned primary-source evidence and external technical facts.
+- `implementer`: bounded approved code/config changes with minimal diff scope.
+- `debugger`: uncertain root-cause analysis and evidence-driven remediation.
+- `test-engineer`: targeted validation, failure reproduction, and test evidence.
+- `reviewer`: independent correctness/regression review; do not self-review an implementation through the same worker.
+- `architect`: high-risk architecture, realtime/safety/security/release-critical trade-offs.
+
+### Execution constraints
+
+- The parent owns decomposition, context allocation, integration, escalation, and the final answer.
+- Do not recursively delegate from a child unless the parent explicitly authorizes it.
+- Prefer parallel read-only work only when subtasks are independent.
+- Concurrent writers require disjoint write scopes; otherwise serialize writes.
+- For high-risk or release-critical changes, use independent review before completion.
+- Send the smallest useful context. Prefer file/symbol references and explicit constraints over full conversation or source-tree copies.
+- Compress child results into evidence, confidence, changed paths, validation, risks, and blockers. Do not return raw transcripts or repetitive logs.
+- Token/result targets are adaptive. Never omit evidence required for correctness just to satisfy a soft size target.
+- If a lower-compute route is uncertain or fails the required quality gate, escalate rather than guessing.
+- Treat model/profile mappings as candidates; do not claim a cheaper route is better without repeated benchmark evidence.
+<!-- engineering-agent-stack:end -->
