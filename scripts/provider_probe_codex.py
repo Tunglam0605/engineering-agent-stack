@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
 """Codex provider/runtime capability probe for Engineering Agent Stack.
 
-This is intentionally NOT a release gate. It exercises provider-owned behavior:
-custom-agent selection, spawn_agent, Multi-Agent V2 routing, child model metadata,
-and read/write inheritance. Failures here are diagnostic evidence about the
-current Codex runtime rather than proof that the stack-owned core is broken.
+This command is intentionally NOT a release gate. It exercises provider-owned
+behavior such as spawn_agent, custom-role selection, Multi-Agent V2 routing,
+child-model metadata, and effective read/write behavior.
 """
 
 from __future__ import annotations
@@ -17,7 +16,7 @@ import platform
 import subprocess
 import sys
 import tempfile
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 
 from acceptance_core import (
     Check,
@@ -25,6 +24,7 @@ from acceptance_core import (
     ROOT,
     codex_exec,
     commit_all,
+    external_command,
     git,
     init_sandbox,
     metrics,
@@ -48,7 +48,7 @@ def progress(message: str) -> None:
 
 
 def toml_string(value: str) -> str:
-    """JSON string syntax is compatible with TOML basic strings for our values."""
+    """Encode a string as a TOML-compatible basic string."""
     return json.dumps(value, ensure_ascii=True)
 
 
@@ -58,8 +58,8 @@ def provider_overrides(sandbox: Path) -> List[str]:
         "If the user prompt begins with Provider probe., call spawn_agent exactly once "
         "using agent_type equal to the requested custom role and fork_turns equal to none. "
         "Put the complete assignment in the child message, wait for the child result, "
-        "and do not perform the requested child task directly in the parent. "
-        "If spawn_agent fails, report the provider/runtime failure instead of falling back."
+        "and never perform the requested child task directly in the parent. "
+        "If spawn_agent fails, report the runtime failure instead of falling back."
     )
     overrides = [
         "agents.enabled=true",
@@ -85,7 +85,7 @@ def delegation_prompt(role: str, task: str) -> str:
     )
 
 
-def runtime_diagnostic(result: Dict[str, Any]) -> str:
+def runtime_diagnostic(result: Dict) -> str:
     stderr = str(result.get("stderr") or "")
     notes: List[str] = []
     if result.get("timed_out"):
@@ -97,16 +97,52 @@ def runtime_diagnostic(result: Dict[str, Any]) -> str:
     return "; ".join(notes)
 
 
-def probe_scout(checks: List[Check], sandbox: Path, args: argparse.Namespace, overrides: List[str]) -> None:
-    progress("[1/2] Scout custom child")
+def result_detail(result: Dict, changed: Optional[List[str]] = None) -> str:
+    detail = "spawns={} roles={} models={}".format(
+        spawns(result), spawn_roles(result), spawn_models(result)
+    )
+    if changed is not None:
+        detail += " changed=" + repr(changed)
+    diagnostic = runtime_diagnostic(result)
+    if diagnostic:
+        detail += "; " + diagnostic
+    if result.get("stderr"):
+        detail += "; " + trimmed(str(result.get("stderr")))
+    return detail
+
+
+def check_model_route(checks: List[Check], role: str, expected_model: str, result: Dict) -> None:
+    models = spawn_models(result)
+    if not models:
+        warn(
+            checks,
+            role + " provider model telemetry",
+            "current Codex JSONL did not expose child model metadata",
+        )
+        return
+    record(
+        checks,
+        role + " provider model route",
+        expected_model in models,
+        "expected={}; observed={}".format(expected_model, models),
+    )
+
+
+def probe_readonly_role(
+    checks: List[Check],
+    sandbox: Path,
+    args: argparse.Namespace,
+    overrides: List[str],
+    role: str,
+    task: str,
+    expected_model: str,
+    label: str,
+) -> None:
     before = git(["status", "--porcelain"], sandbox).stdout or ""
     result = codex_exec(
         codex_bin=args.codex_bin,
         cwd=sandbox,
-        prompt=delegation_prompt(
-            "scout",
-            "Inspect README.md only, do not edit files, and return concise evidence.",
-        ),
+        prompt=delegation_prompt(role, task),
         main_model=args.main_model,
         reasoning_effort=args.reasoning_effort,
         sandbox_mode="read-only",
@@ -114,39 +150,28 @@ def probe_scout(checks: List[Check], sandbox: Path, args: argparse.Namespace, ov
         config_overrides=overrides,
     )
     after = git(["status", "--porcelain"], sandbox).stdout or ""
-    detail = "spawns={} roles={} models={}".format(spawns(result), spawn_roles(result), spawn_models(result))
-    diagnostic = runtime_diagnostic(result)
-    if diagnostic:
-        detail += "; " + diagnostic
-    if result.get("stderr"):
-        detail += "; " + trimmed(str(result.get("stderr")))
     record(
         checks,
-        "Codex provider Scout spawn",
+        label + " spawn",
         result["returncode"] == 0 and spawns(result) >= 1,
-        detail,
+        result_detail(result),
         metrics(result),
     )
     record(
         checks,
-        "Codex provider Scout read-only behavior",
+        label + " read-only behavior",
         before == after,
         "git status unchanged" if before == after else "before={!r}; after={!r}".format(before, after),
     )
-    models = spawn_models(result)
-    if not models:
-        warn(checks, "Codex provider Scout model telemetry", "current JSONL did not expose child model metadata")
-    else:
-        record(
-            checks,
-            "Codex provider Scout model route",
-            "gpt-5.6-luna" in models,
-            "expected Luna candidate; observed=" + repr(models),
-        )
+    check_model_route(checks, role, expected_model, result)
 
 
-def probe_implementer(checks: List[Check], sandbox: Path, args: argparse.Namespace, overrides: List[str]) -> None:
-    progress("[2/2] Implementer custom child")
+def probe_implementer(
+    checks: List[Check],
+    sandbox: Path,
+    args: argparse.Namespace,
+    overrides: List[str],
+) -> None:
     git(["reset", "--hard", "HEAD"], sandbox)
     result = codex_exec(
         codex_bin=args.codex_bin,
@@ -162,20 +187,16 @@ def probe_implementer(checks: List[Check], sandbox: Path, args: argparse.Namespa
         config_overrides=overrides,
     )
     content_ok = (sandbox / "IMPLEMENT.md").read_text(encoding="utf-8") == "status: new\n"
-    names = [line.strip() for line in (git(["diff", "--name-only"], sandbox).stdout or "").splitlines() if line.strip()]
-    detail = "spawns={} changed={} roles={} models={}".format(
-        spawns(result), names, spawn_roles(result), spawn_models(result)
-    )
-    diagnostic = runtime_diagnostic(result)
-    if diagnostic:
-        detail += "; " + diagnostic
-    if result.get("stderr"):
-        detail += "; " + trimmed(str(result.get("stderr")))
+    names = [
+        line.strip()
+        for line in (git(["diff", "--name-only"], sandbox).stdout or "").splitlines()
+        if line.strip()
+    ]
     record(
         checks,
         "Codex provider Implementer spawn",
         result["returncode"] == 0 and spawns(result) >= 1 and content_ok,
-        detail,
+        result_detail(result, names),
         metrics(result),
     )
     record(
@@ -184,63 +205,16 @@ def probe_implementer(checks: List[Check], sandbox: Path, args: argparse.Namespa
         names == ["IMPLEMENT.md"],
         "changed=" + repr(names),
     )
-    models = spawn_models(result)
-    if not models:
-        warn(checks, "Codex provider Implementer model telemetry", "current JSONL did not expose child model metadata")
-    else:
-        record(
-            checks,
-            "Codex provider Implementer model route",
-            "gpt-5.6-terra" in models,
-            "expected Terra candidate; observed=" + repr(models),
-        )
+    check_model_route(checks, "implementer", "gpt-5.6-terra", result)
     git(["reset", "--hard", "HEAD"], sandbox)
 
 
-def probe_extended(checks: List[Check], sandbox: Path, args: argparse.Namespace, overrides: List[str]) -> None:
-    cases: List[Tuple[str, str, str]] = [
-        ("researcher", "Read README.md and summarize its purpose only. Do not edit files.", "gpt-5.6-luna"),
-        ("debugger", "Inspect src/retry.py and identify the logic defect. Do not edit files.", "gpt-5.6-terra"),
-        ("test-engineer", "Inspect src/retry.py and propose the narrowest test for its defect. Do not edit files.", "gpt-5.6-terra"),
-        ("reviewer", "Review src/retry.py for correctness defects. Do not edit files.", "gpt-5.6-terra"),
-        ("architect", "Assess whether this tiny sandbox needs architectural restructuring. Do not edit files.", "gpt-5.6-sol"),
-    ]
-    for index, (role, task, expected_model) in enumerate(cases, start=1):
-        progress("[extended {}/{}] {}".format(index, len(cases), role))
-        result = codex_exec(
-            codex_bin=args.codex_bin,
-            cwd=sandbox,
-            prompt=delegation_prompt(role, task),
-            main_model=args.main_model,
-            reasoning_effort=args.reasoning_effort,
-            sandbox_mode="read-only",
-            timeout=args.timeout,
-            config_overrides=overrides,
-        )
-        detail = "spawns={} roles={} models={}".format(spawns(result), spawn_roles(result), spawn_models(result))
-        diagnostic = runtime_diagnostic(result)
-        if diagnostic:
-            detail += "; " + diagnostic
-        record(
-            checks,
-            "Codex provider role spawn: " + role,
-            result["returncode"] == 0 and spawns(result) >= 1,
-            detail,
-            metrics(result),
-        )
-        models = spawn_models(result)
-        if not models:
-            warn(checks, role + " provider model telemetry", "current JSONL did not expose child model metadata")
-        else:
-            record(
-                checks,
-                role + " provider model route",
-                expected_model in models,
-                "expected={}; observed={}".format(expected_model, models),
-            )
-
-
-def write_report(path: Path, checks: List[Check], codex_version: Optional[str], extended: bool) -> None:
+def write_report(
+    path: Path,
+    checks: List[Check],
+    codex_version: Optional[str],
+    extended: bool,
+) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     failures = sum(check.status == "FAIL" for check in checks)
     warnings = sum(check.status == "WARN" for check in checks)
@@ -340,12 +314,14 @@ def main() -> int:
 
         resolved_codex = resolve_command(args.codex_bin)
         if not resolved_codex:
-            record(checks, "Codex CLI available", False, "unable to resolve " + repr(args.codex_bin) + " from PATH")
+            record(
+                checks,
+                "Codex CLI available",
+                False,
+                "unable to resolve " + repr(args.codex_bin) + " from PATH",
+            )
         else:
             args.codex_bin = resolved_codex
-            version = run([resolved_codex, "--version"] if not resolved_codex.lower().endswith((".cmd", ".bat", ".ps1")) else [], timeout=30) if False else None
-            # Use the same launcher helper indirectly through a harmless codex_exec-compatible preflight.
-            from acceptance_core import external_command
             version = run(external_command(args.codex_bin, ["--version"]), timeout=30)
             if version.returncode != 0:
                 record(checks, "Codex CLI available", False, trimmed(version.stderr or version.stdout))
@@ -353,10 +329,42 @@ def main() -> int:
                 codex_version = trimmed(version.stdout or version.stderr)
                 record(checks, "Codex CLI available", True, codex_version + " via " + args.codex_bin)
                 overrides = provider_overrides(sandbox)
-                probe_scout(checks, sandbox, args, overrides)
+
+                progress("[1/2] Scout custom child")
+                probe_readonly_role(
+                    checks,
+                    sandbox,
+                    args,
+                    overrides,
+                    "scout",
+                    "Inspect README.md only, do not edit files, and return concise evidence.",
+                    "gpt-5.6-luna",
+                    "Codex provider Scout",
+                )
+
+                progress("[2/2] Implementer custom child")
                 probe_implementer(checks, sandbox, args, overrides)
+
                 if args.extended:
-                    probe_extended(checks, sandbox, args, overrides)
+                    cases: List[Tuple[str, str, str]] = [
+                        ("researcher", "Read README.md and summarize its purpose only. Do not edit files.", "gpt-5.6-luna"),
+                        ("debugger", "Inspect src/retry.py and identify the logic defect. Do not edit files.", "gpt-5.6-terra"),
+                        ("test-engineer", "Inspect src/retry.py and propose the narrowest test for its defect. Do not edit files.", "gpt-5.6-terra"),
+                        ("reviewer", "Review src/retry.py for correctness defects. Do not edit files.", "gpt-5.6-terra"),
+                        ("architect", "Assess whether this tiny sandbox needs architectural restructuring. Do not edit files.", "gpt-5.6-sol"),
+                    ]
+                    for index, (role, task, expected_model) in enumerate(cases, start=1):
+                        progress("[extended {}/{}] {}".format(index, len(cases), role))
+                        probe_readonly_role(
+                            checks,
+                            sandbox,
+                            args,
+                            overrides,
+                            role,
+                            task,
+                            expected_model,
+                            "Codex provider " + role,
+                        )
     except (OSError, RuntimeError, subprocess.TimeoutExpired) as exc:
         checks.append(Check("Provider probe execution", "FAIL", str(exc)))
     finally:
