@@ -9,6 +9,13 @@ Handle trivial, reversible, obvious, and narrow work directly when delegation wo
 
 Delegate when the task benefits from isolated context, specialist evidence, independent verification, or bounded parallel read work.
 
+### Acceptance diagnostic override
+
+- When a prompt explicitly says `Acceptance test` and requires one named custom agent exactly once, that requirement overrides the normal direct-first rule for that diagnostic only.
+- In that case, the parent MUST invoke `spawn_agent` exactly once for the requested role and MUST NOT complete the assigned task directly as a fallback.
+- Use a fresh child context with `fork_turns = "none"`, put the complete assignment/context delta in the child message, and wait for the child result before answering.
+- If the child cannot be spawned, report the delegation failure instead of silently doing the work in the parent.
+
 ### Role routing
 
 - `scout`: repository discovery, symbol lookup, call-flow tracing, read-only evidence.
