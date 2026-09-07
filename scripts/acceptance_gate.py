@@ -109,8 +109,13 @@ def main() -> int:
         report = default_report()
         forwarded.extend(["--report", str(report)])
 
+    # Preserve UTF-8 mode when this gate launches the underlying harness.
+    # The PowerShell entry point already starts this process with `-X utf8`, but
+    # Python does not automatically propagate that interpreter flag to a child
+    # Python process. Without repeating it here, Windows can fall back to cp1252
+    # and crash while decoding Codex JSONL output.
     result = subprocess.run(
-        [sys.executable, str(HARNESS), *forwarded],
+        [sys.executable, "-X", "utf8", str(HARNESS), *forwarded],
         cwd=ROOT,
         capture_output=True,
         text=True,
