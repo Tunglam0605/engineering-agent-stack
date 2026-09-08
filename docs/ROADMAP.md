@@ -58,7 +58,33 @@ Status: **stable release target.**
 
 The core remains seven roles. v0.3 is about making the existing stack easy to install, inspect, update, and remove safely.
 
-## v0.4 — Extensions and presets
+## v0.4 — Enforced lifecycle and goal telemetry
+
+Status: **stable release target.**
+
+- durable per-goal assignment registry under Git metadata
+- executable `REUSE / SPAWN / ESCALATE / REJECT` lifecycle gate
+- resume-before-spawn matching
+- soft/hard fan-out enforcement
+- reader/writer concurrency enforcement
+- architect/reviewer reuse budgets
+- atomic state writes and append-only JSONL events
+- `eas goal init/gate/transition/status`
+- canonical policy-derived status reporting
+
+The gate is stack-controlled enforcement and does not claim transparent interception of arbitrary native provider child calls.
+
+## v0.5 — Durable workflow and recovery
+
+Candidates:
+
+- checkpoint/restart of parent workflow stage
+- resumable verification/review state
+- explicit human approval gates for destructive/high-risk actions
+- stale-assignment recovery and timeout policy
+- trace export linking goal events, provider observations, and quality gates
+
+## v0.6 — Extensions and presets
 
 Candidates:
 
@@ -67,11 +93,9 @@ Candidates:
 - `ros2` / robotics preset
 - security/release preset
 - capability discovery
-- Codex plugin/skill packaging where it adds value
+- Codex plugin/skill packaging where it adds measured value
 
-A preset augments the seven core roles; it does not create a duplicate agent taxonomy by default.
-
-## v0.5 — Team distribution
+## v0.7 — Team distribution
 
 Candidates:
 

@@ -1,0 +1,30 @@
+version: 1
+status: candidate
+purpose: durable-goal-lifecycle-state
+required_fields:
+  - version
+  - goal_id
+  - next_sequence
+  - revision
+  - created_at
+  - updated_at
+  - assignments
+assignment_required_fields:
+  - assignment_id
+  - role
+  - task_domain
+  - state
+  - write_scope
+  - created_at
+  - updated_at
+decision_values:
+  - SPAWN
+  - REUSE
+  - ESCALATE
+  - REJECT
+notes:
+  - Goal state is stored under Git metadata .git/eas/goals and updated atomically.
+  - JSONL events are append-only observability and are not claimed to be a transactional audit ledger.
+  - Provider-native child spawning is not transparently intercepted unless orchestration explicitly consults this gate.
+  - State revision prevents stale-state overwrite; per-goal lock serializes evaluate-and-commit transactions.
+  - Goal IDs are lowercase and Windows-reserved names are rejected for cross-platform path identity.

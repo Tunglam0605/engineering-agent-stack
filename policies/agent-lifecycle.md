@@ -23,7 +23,7 @@ parallel readers                    <= 3
 parallel writers                    <= 1 scope owner
 soft child-assignment budget        = 8 per goal
 hard ordinary-spawn ceiling         = 12 per goal
-same role + same scope active       <= 1
+same role + same domain + same scope active       <= 1
 architect consultation default      = 1 per goal
 reviewer default                    = 1 per meaningful change-set
 recursive delegation                = disabled
@@ -52,6 +52,10 @@ architect: ota contract
 ```
 
 Avoid gratuitous version suffixes such as `v030`, `retry-2`, or `final-final` when the same child can be resumed. Names should describe responsibility, not execution chronology.
+
+## Transaction safety
+
+Committed goal lifecycle changes are serialized by a per-goal lock under Git metadata and protected by a monotonic state revision. A stale caller must fail rather than overwrite a newer assignment registry. Lock files are not silently broken on timeout; an operator should confirm the other EAS process is gone before removing a stale lock.
 
 ## Observability
 

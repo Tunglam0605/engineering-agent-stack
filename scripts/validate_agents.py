@@ -166,7 +166,7 @@ def main() -> int:
             "hard_max_child_assignments_per_goal",
             "default_max_architect_assignments_per_goal",
             "default_max_reviewer_assignments_per_change_set",
-            "max_same_role_scope_active",
+            "max_same_role_domain_scope_active",
         )
         for key in expected_positive:
             value = limits.get(key)

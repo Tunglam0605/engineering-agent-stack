@@ -103,6 +103,8 @@ Parallelism is valuable mainly for independent, read-heavy work. Concurrent writ
 
 The default lifecycle policy is resume-before-spawn: at most three read-only children in parallel, one writer scope owner, a soft reconciliation point at eight child assignments per goal, and an ordinary hard spawn ceiling at twelve. Architect is normally one consultation per goal and reviewer one independent worker per meaningful change-set; follow-up/resume is preferred when continuity is useful. These are orchestration-policy limits, not a claim that provider-native spawn APIs are automatically intercepted. See `policies/agent-lifecycle.md`.
 
+From v0.4, stack-controlled orchestration can use `runtime/lifecycle.py` / `eas goal gate` as an executable decision boundary. Goal state and JSONL events live under Git metadata so observability does not dirty the worktree. The gate remains opt-in: native provider dispatch that bypasses it is not claimed to be intercepted.
+
 ## Escalation
 
 Escalation is based on evidence, not prestige. Typical triggers:

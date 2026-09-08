@@ -6,6 +6,26 @@ All notable project changes will be documented here.
 
 No unreleased changes.
 
+## [0.4.0] - 2026-09-08
+
+### Added
+- Executable per-goal lifecycle gate with `REUSE / SPAWN / ESCALATE / REJECT` decisions.
+- `eas goal init`, `goal gate`, `goal transition`, and `goal status`.
+- Atomic goal state and append-only JSONL lifecycle events under Git metadata.
+- Enforcement for soft/hard child budgets, reader/writer capacity, and architect/reviewer reuse policy.
+- Goal lifecycle schema and Python runtime contracts.
+
+### Changed
+- `eas status` now reads canonical routing/lifecycle limits instead of reporting hard-coded stale values.
+- Python distribution now packages the provider-neutral `runtime` module required by lifecycle CLI commands.
+- Roadmap prioritizes durable workflow/recovery before domain presets.
+
+### Fixed
+- Lifecycle state no longer dirties a project worktree; operational state is stored under `.git/eas/goals/`.
+- Concurrent goal commits are serialized and revision-checked so stale callers cannot lose assignments or bypass writer limits.
+- Fresh-context requests cannot duplicate an already-active same role/domain/scope assignment, and lifecycle override reasons are persisted in event evidence.
+- Corrupted goal-state shapes and cross-platform-unsafe goal IDs fail closed with bounded CLI errors.
+
 ## [0.3.1] - 2026-09-08
 
 ### Added

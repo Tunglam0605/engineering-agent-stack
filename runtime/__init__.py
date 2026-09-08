@@ -9,6 +9,7 @@ from .contracts import (
 )
 from .preflight import DelegationPreflight
 from .registry import AgentRegistry
+from .lifecycle import GoalAssignment, GoalState, GoalStore, LifecycleDecision, LifecycleGate, LifecyclePolicy
 
 __all__ = [
     "AgentRegistry",
@@ -18,4 +19,10 @@ __all__ = [
     "DelegationRequest",
     "ExecutionTelemetry",
     "WriteLease",
+    "GoalAssignment",
+    "GoalState",
+    "GoalStore",
+    "LifecycleDecision",
+    "LifecycleGate",
+    "LifecyclePolicy",
 ]

@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 import argparse
+import json
 from pathlib import Path
 import sys
 from typing import Optional, Sequence
 
 from .health import doctor_payload, render_payload, status_payload
+from .goals import goal_gate, goal_init, goal_status, goal_transition
 from .operations import init_project, run_installer, uninstall, update_source
 from .version import __version__
 
@@ -49,6 +51,41 @@ def build_parser() -> argparse.ArgumentParser:
     remove_scope.add_argument("--personal", action="store_true")
     remove.add_argument("--project-instructions", action="store_true")
     remove.add_argument("--dry-run", action="store_true")
+
+    goal = sub.add_parser("goal", help="manage bounded per-goal lifecycle state")
+    goal_sub = goal.add_subparsers(dest="goal_command", required=True)
+
+    goal_init_parser = goal_sub.add_parser("init", help="initialize a goal registry")
+    goal_init_parser.add_argument("goal_id")
+    goal_init_parser.add_argument("--project", type=Path, default=Path.cwd())
+    goal_init_parser.add_argument("--json", action="store_true")
+
+    goal_status_parser = goal_sub.add_parser("status", help="show goal fan-out and assignment state")
+    goal_status_parser.add_argument("goal_id")
+    goal_status_parser.add_argument("--project", type=Path, default=Path.cwd())
+    goal_status_parser.add_argument("--json", action="store_true")
+
+    goal_gate_parser = goal_sub.add_parser("gate", help="decide REUSE/SPAWN/ESCALATE/REJECT before child dispatch")
+    goal_gate_parser.add_argument("goal_id")
+    goal_gate_parser.add_argument("--project", type=Path, default=Path.cwd())
+    goal_gate_parser.add_argument("--role", required=True)
+    goal_gate_parser.add_argument("--domain", required=True)
+    goal_gate_parser.add_argument("--scope", action="append", default=[])
+    goal_gate_parser.add_argument("--change-set")
+    goal_gate_parser.add_argument("--reconciled", action="store_true")
+    goal_gate_parser.add_argument("--reason")
+    goal_gate_parser.add_argument("--exception", choices=("acceptance-diagnostic", "required-safety-review", "required-release-review"))
+    goal_gate_parser.add_argument("--material-change", action="store_true")
+    goal_gate_parser.add_argument("--fresh-context", action="store_true")
+    goal_gate_parser.add_argument("--commit", action="store_true")
+    goal_gate_parser.add_argument("--json", action="store_true")
+
+    goal_transition_parser = goal_sub.add_parser("transition", help="transition a committed assignment")
+    goal_transition_parser.add_argument("goal_id")
+    goal_transition_parser.add_argument("assignment_id")
+    goal_transition_parser.add_argument("state", choices=("pending", "running", "completed", "failed", "blocked"))
+    goal_transition_parser.add_argument("--project", type=Path, default=Path.cwd())
+    goal_transition_parser.add_argument("--json", action="store_true")
 
     return parser
 
@@ -97,7 +134,25 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
                 dry_run=args.dry_run,
             )
 
-    except (OSError, RuntimeError, ValueError) as exc:
+        if args.command == "goal":
+            if args.goal_command == "init":
+                return goal_init(args.goal_id, args.project, as_json=args.json)
+            if args.goal_command == "status":
+                return goal_status(args.goal_id, args.project, as_json=args.json)
+            if args.goal_command == "gate":
+                return goal_gate(
+                    args.goal_id, args.project, role=args.role, task_domain=args.domain,
+                    write_scope=args.scope, change_set=args.change_set, reconciled=args.reconciled,
+                    override_reason=args.reason, exception_kind=args.exception,
+                    material_change=args.material_change, fresh_context=args.fresh_context,
+                    commit=args.commit, as_json=args.json,
+                )
+            if args.goal_command == "transition":
+                return goal_transition(
+                    args.goal_id, args.project, args.assignment_id, args.state, as_json=args.json
+                )
+
+    except (OSError, RuntimeError, ValueError, KeyError, json.JSONDecodeError) as exc:
         print("ERROR: {}".format(exc))
         return 2
 

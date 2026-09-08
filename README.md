@@ -2,7 +2,7 @@
 
 > Turn Codex into a bounded engineering team: **7 focused roles, direct-first routing, safe writes, independent verification, and a small distribution CLI.**
 
-[![Status](https://img.shields.io/badge/status-v0.3.1%20stable-blue)](#release-status)
+[![Status](https://img.shields.io/badge/status-v0.4.0%20stable-blue)](#release-status)
 [![CI](https://github.com/Tunglam0605/engineering-agent-stack/actions/workflows/validate.yml/badge.svg)](https://github.com/Tunglam0605/engineering-agent-stack/actions/workflows/validate.yml)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.9%2B-blue)](pyproject.toml)
@@ -123,6 +123,10 @@ eas init [PROJECT]
 eas check
 eas update [--check]
 eas uninstall
+eas goal init GOAL_ID
+eas goal gate GOAL_ID --role ROLE --domain DOMAIN [--scope PATH] [--commit]
+eas goal transition GOAL_ID ASSIGNMENT_ID STATE
+eas goal status GOAL_ID [--json]
 ```
 
 Useful examples:
@@ -298,11 +302,37 @@ See:
 - [`research/matrix/repository-comparison.yaml`](research/matrix/repository-comparison.yaml)
 - [`benchmarks/README.md`](benchmarks/README.md)
 
+## Executable goal lifecycle gate
+
+For long-running multi-agent work, EAS v0.4 can persist goal state under Git metadata (`.git/eas/goals/`) and make an executable lifecycle decision before dispatch:
+
+```text
+spawn request
+    -> eas goal gate
+    -> REUSE | SPAWN | ESCALATE | REJECT
+    -> optional --commit
+    -> assignment transition + JSONL event
+```
+
+Example:
+
+```powershell
+eas goal init ota-hardening
+eas goal gate ota-hardening --role scout --domain gateway --commit
+eas goal status ota-hardening --json
+```
+
+Writer roles require `--scope`. Use `--fresh-context --reason TEXT` only when a matching child is stale/wrong. Committed mutations are serialized by a per-goal transaction lock and protected by a state revision, preventing stale/lost updates. Exit codes follow the stack planning convention: `0` for `SPAWN/REUSE`, `4` for `ESCALATE`, and `3` for `REJECT`. This is an executable EAS gate for stack-controlled orchestration; it does **not** claim to transparently intercept arbitrary provider-native `spawn_agent` calls.
+
 ## Release status
 
-**v0.3.1** keeps the v0.3 distribution surface stable and hardens orchestration lifecycle:
+**v0.4.0** adds executable lifecycle enforcement and durable goal telemetry while keeping the seven-role/model map stable:
 
 - stable `eas` CLI;
+- executable `eas goal gate` decisions (`REUSE / SPAWN / ESCALATE / REJECT`);
+- atomic goal state under Git metadata with append-only JSONL events;
+- goal status/assignment transition CLI;
+- canonical policy-derived `eas status` instead of hard-coded limits;
 - resume-before-spawn lifecycle policy;
 - soft/hard per-goal child-assignment budgets;
 - conservative 3-reader / 1-writer parallelism;

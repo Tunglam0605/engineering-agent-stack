@@ -7,6 +7,8 @@ import subprocess
 import sys
 from typing import Any, Dict, Optional
 
+from runtime.lifecycle import LifecyclePolicy
+
 from .paths import eas_home, resolve_repo
 from .version import __version__
 
@@ -147,6 +149,30 @@ def doctor_payload(project: Optional[Path] = None) -> Dict[str, Any]:
     }
 
 
+
+def _policy_summary() -> Dict[str, Any]:
+    repo = resolve_repo(required=False)
+    if repo is None:
+        return {"status": "UNKNOWN"}
+    try:
+        policy = LifecyclePolicy.from_repository(repo)
+        data = __import__("yaml").safe_load((repo / "config" / "routing-policy.yaml").read_text(encoding="utf-8"))
+        recursive = data["limits"]["recursive_delegation"]
+        if type(recursive) is not bool:
+            raise ValueError("recursive_delegation must be a boolean")
+        return {
+            "status": "OK",
+            "readers": policy.max_parallel_readers,
+            "writers": policy.max_parallel_writers,
+            "soft_child_budget": policy.soft_limit,
+            "hard_child_ceiling": policy.hard_limit,
+            "reuse_strategy": "resume-before-spawn",
+            "recursive_delegation": recursive,
+        }
+    except (OSError, KeyError, TypeError, ValueError):
+        return {"status": "ERROR"}
+
+
 def status_payload(project: Optional[Path] = None) -> Dict[str, Any]:
     repo = resolve_repo(required=False)
     canonical = list(ROLE_NAMES)
@@ -166,11 +192,7 @@ def status_payload(project: Optional[Path] = None) -> Dict[str, Any]:
             "personal": personal,
             "project": project_check,
         },
-        "policy": {
-            "readers": 4,
-            "writers": 3,
-            "recursive_delegation": False,
-        },
+        "policy": _policy_summary(),
         "provider": {"status": "UNKNOWN", "probed": False},
     }
 

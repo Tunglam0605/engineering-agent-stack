@@ -76,3 +76,35 @@ General CLI lifecycle commands use:
 - downstream installer/check commands may preserve their documented nonzero result.
 
 The delegation resolver has its own contract: `0=PASS`, `3=REJECT`, `4=ESCALATE`, `2=invalid request`.
+## Goal lifecycle commands (v0.4)
+
+Long-running goals may use an executable lifecycle registry stored outside the worktree under `.git/eas/goals/`.
+
+### `eas goal init GOAL_ID [--project PROJECT] [--json]`
+
+Initializes atomic goal state and an append-only JSONL event stream. Goal IDs are lowercase/path-safe, reject Windows-reserved names, and cannot contain traversal.
+
+### `eas goal gate GOAL_ID --role ROLE --domain DOMAIN [options]`
+
+Returns one lifecycle action before a child dispatch:
+
+- `REUSE` — continue an existing matching assignment;
+- `SPAWN` — a new assignment is within policy;
+- `ESCALATE` — reconciliation/serialization/operator justification is needed;
+- `REJECT` — the ordinary hard ceiling forbids another child.
+
+Writer roles require one or more `--scope PATH`. Use `--commit` to persist a `SPAWN` decision as a pending assignment or record a non-spawn gate decision. Use `--fresh-context --reason TEXT` only when a matching child is stale/wrong and a new context is materially justified. At/above the soft budget, `--reconciled --reason TEXT` records why another spawn is justified. Hard-ceiling exceptions are restricted to acceptance diagnostics and required safety/release review.
+
+Exit codes: `0 = SPAWN/REUSE`, `4 = ESCALATE`, `3 = REJECT`, `2 = invalid input/runtime error`.
+
+### `eas goal transition GOAL_ID ASSIGNMENT_ID STATE`
+
+Transitions a committed assignment among `pending`, `running`, `completed`, `failed`, and `blocked`, updating atomic state and the event stream.
+
+### `eas goal status GOAL_ID [--json]`
+
+Shows total/active assignments, reader/writer concurrency, per-role counts, soft/hard budget state, and assignment details.
+
+Committed mutations use a per-goal transaction lock plus state revision/CAS, so concurrent callers cannot silently lose assignments or bypass writer capacity. A lock timeout fails closed and does not auto-delete a possibly live lock.
+
+The goal gate is opt-in stack-controlled enforcement. Native provider child calls that bypass the EAS gate remain outside this enforcement boundary.

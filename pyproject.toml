@@ -4,11 +4,11 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "engineering-agent-stack"
-version = "0.3.1"
+version = "0.4.0"
 description = "A bounded engineering multi-agent stack and distribution CLI for Codex."
 readme = "README.md"
 requires-python = ">=3.9"
-license = {text = "MIT"}
+license = "MIT"
 authors = [{name = "Engineering Agent Stack contributors"}]
 dependencies = [
   "PyYAML>=6.0.2,<7",
@@ -16,7 +16,6 @@ dependencies = [
 ]
 classifiers = [
   "Programming Language :: Python :: 3",
-  "License :: OSI Approved :: MIT License",
   "Operating System :: OS Independent",
 ]
 
@@ -24,4 +23,4 @@ classifiers = [
 eas = "eas_cli.cli:main"
 
 [tool.setuptools]
-packages = ["eas_cli"]
+packages = ["eas_cli", "runtime"]
