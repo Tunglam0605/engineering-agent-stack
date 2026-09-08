@@ -11,10 +11,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: "3.12"
 
@@ -105,10 +105,10 @@ jobs:
     runs-on: windows-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Set up Python 3.9 compatibility floor
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: "3.9"
 
@@ -150,3 +150,22 @@ jobs:
         run: |
           & .\scripts\acceptance-test.ps1 -Offline -Report "$env:RUNNER_TEMP\engineering-agent-stack-acceptance.md"
           Get-Content "$env:RUNNER_TEMP\engineering-agent-stack-acceptance.md"
+
+  package-smoke:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+      - name: Set up Python 3.9 compatibility floor
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.9"
+      - name: Install build dependency
+        run: python -m pip install build
+      - name: Build wheel and source distribution
+        run: python -m build
+      - name: Smoke-test clean installed wheel outside checkout
+        run: python scripts/smoke_package.py --dist dist

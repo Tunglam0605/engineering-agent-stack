@@ -6,6 +6,19 @@ All notable project changes will be documented here.
 
 No unreleased changes.
 
+## [0.6.1] - 2026-09-08
+
+### Changed
+- Upgrade official GitHub checkout/setup-python actions to Node 24-based v7 on hosted Linux and Windows runners.
+- Share clean-wheel smoke between main CI, release validation and local checks: isolated virtual environment and working directory, installed import origins, version agreement, all three preset CLI views, and byte-for-byte verification of every built-in capability resource.
+- Preserve installed goal recovery smoke and fail immediately on Windows release-tag validation errors.
+
+### Tests
+- Cover extension-order-independent resolver/snapshot results, recommendation/resolution without activation, and preservation of snapshot bindings after rejected drift or migration.
+
+### Compatibility
+- All v0.6 frozen boundaries and seven core roles remain unchanged; built-in declarative pack versions remain 0.6.0. No v0.7 features or research-history changes.
+
 ## [0.6.0] - 2026-09-08
 
 ### Added

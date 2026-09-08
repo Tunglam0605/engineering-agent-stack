@@ -166,6 +166,21 @@ class ContractParserTests(TempGitCase):
 
 
 class ResolverTests(unittest.TestCase):
+    def test_extension_order_does_not_change_values_lineage_or_snapshot_digest(self) -> None:
+        layers = [("z", {"rules": {"required_rules": ["z.rule"]}}),
+                  ("a", {"rules": {"required_rules": ["a.rule"]}})]
+        first = resolve_config(extension_defaults=layers)
+        second = resolve_config(extension_defaults=list(reversed(layers)))
+        self.assertEqual(first, second)
+        def snapshot(resolved):
+            return build_snapshot(
+                eas_version="0.6.1", project_id="robot", active_preset="embedded",
+                sources=[], resolved_values=resolved.values, lineage=resolved.lineage,
+                selected_skills=[], selected_rules=resolved.values["rules"]["required_rules"],
+                detection={},
+            )
+        self.assertEqual(snapshot(first).digest, snapshot(second).digest)
+
     def test_exact_precedence_and_lineage(self) -> None:
         resolved = resolve_config(
             core_defaults={"selection": {"max_skills": 1}, "rules": {"required_rules": ["core.rule"]}},
@@ -272,6 +287,17 @@ class DetectionTests(TempGitCase):
 
 
 class SkillSelectionTests(TempGitCase):
+    def test_missing_declared_resource_fails_closed_for_each_pack(self) -> None:
+        for preset in ("embedded", "ros2", "release"):
+            for group in ("skills", "rules", "presets"):
+                with self.subTest(preset=preset, group=group):
+                    copied = self.root / (preset + "-" + group)
+                    shutil.copytree(builtin_root(), copied)
+                    manifest = yaml.safe_load((copied / preset / "manifest.yaml").read_text(encoding="utf-8"))
+                    (copied / preset / manifest["provides"][group][0]).unlink()
+                    with self.assertRaisesRegex(ValueError, "declared .* resource missing"):
+                        load_builtin_catalog(copied)
+
     def test_metadata_is_lazy_and_body_load_occurs_only_after_selection(self) -> None:
         copied = self.root / "resources"
         shutil.copytree(builtin_root(), copied)
@@ -316,6 +342,18 @@ class SkillSelectionTests(TempGitCase):
 
 
 class SnapshotAndProjectTests(TempGitCase):
+    def test_recommendation_and_explicit_resolution_never_activate_or_bind(self) -> None:
+        project = self.git_project()
+        (project / "robot.ioc").write_text("robot", encoding="utf-8")
+        service = ProjectCapabilityService(eas_version="0.6.1")
+        self.assertEqual(service.project_status(project)["detection"]["recommended_preset"], "embedded")
+        with self.assertRaisesRegex(ValueError, "no active preset"):
+            service.resolve_snapshot(project)
+        first = service.resolve_snapshot(project, preset_id="embedded")
+        self.assertEqual(first.digest, service.resolve_snapshot(project, preset_id="embedded").digest)
+        self.assertFalse((project / ".eas").exists())
+        self.assertFalse(snapshot_path(project).exists())
+
     def snapshot(self, project_id: str = "robot", preset: str = "embedded", value: int = 3):
         return build_snapshot(
             eas_version="0.6.0", project_id=project_id, active_preset=preset,
@@ -334,6 +372,7 @@ class SnapshotAndProjectTests(TempGitCase):
         self.assertEqual(read_snapshot(project).digest, first.digest)
         with self.assertRaisesRegex(RuntimeError, "drift"):
             bind_snapshot(project, self.snapshot(value=2))
+        self.assertEqual(read_snapshot(project).digest, first.digest)
         path = snapshot_path(project)
         raw = json.loads(path.read_text(encoding="utf-8"))
         raw["digest"] = "0" * 64
@@ -348,6 +387,7 @@ class SnapshotAndProjectTests(TempGitCase):
         write_snapshot(project, old)
         with self.assertRaisesRegex(RuntimeError, "changed before migration"):
             migrate_snapshot(project, new, expected_old_digest="f" * 64)
+        self.assertEqual(read_snapshot(project).digest, old.digest)
         migrate_snapshot(project, new, expected_old_digest=old.digest)
         self.assertEqual(read_snapshot(project).digest, new.digest)
 

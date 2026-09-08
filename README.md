@@ -2,7 +2,7 @@
 
 > Turn Codex into a bounded engineering team: **7 focused roles, direct-first routing, safe writes, independent verification, and a small distribution CLI.**
 
-[![Status](https://img.shields.io/badge/status-v0.6.0%20stable-blue)](#release-status)
+[![Status](https://img.shields.io/badge/status-v0.6.1%20stable-blue)](#release-status)
 [![CI](https://github.com/Tunglam0605/engineering-agent-stack/actions/workflows/validate.yml/badge.svg)](https://github.com/Tunglam0605/engineering-agent-stack/actions/workflows/validate.yml)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.9%2B-blue)](pyproject.toml)
@@ -383,6 +383,8 @@ Writer roles require `--scope`. Use `--fresh-context --reason TEXT` only when a 
 Checkpoint verification/review evidence with `eas goal checkpoint`, inspect interruption with `eas goal plan`, then record explicit stopped-executor evidence with `eas goal approve` before `eas goal recover`. Recovery preserves the assignment ID. See the [workflow and recovery guide](docs/WORKFLOW.md) for the complete sequence and enforcement boundary.
 
 ## Release status
+
+**v0.6.1** hardens CI and distribution verification with Node 24 official actions and clean installed-wheel checks for every built-in capability resource. The frozen v0.6 contracts remain unchanged.
 
 **v0.6.0** adds a deterministic declarative capability layer while preserving the v0.5 lifecycle/recovery/model-routing contracts and exactly seven core roles:
 

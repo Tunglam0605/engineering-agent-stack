@@ -448,6 +448,8 @@ class CliDistributionTests(unittest.TestCase):
         workflow = (ROOT / ".github" / "workflows" / "validate.yml").read_text(encoding="utf-8")
 
         self.assertIn("python -m pip install . --no-deps", workflow)
+        self.assertIn("python scripts/smoke_package.py --dist dist", workflow)
+        self.assertIn("os: [ubuntu-latest, windows-latest]", workflow)
         self.assertNotIn("--no-build-isolation", workflow)
 
     def test_release_workflow_requires_linux_windows_and_scoped_publish_permission(self) -> None:
@@ -463,8 +465,7 @@ class CliDistributionTests(unittest.TestCase):
         self.assertIn("validate_release_tag.py", workflow)
         self.assertEqual(workflow.count("Build and smoke-test Python 3.9 package"), 2)
         self.assertGreaterEqual(workflow.count("python -m build"), 3)
-        self.assertGreaterEqual(workflow.count("generate_codex_adapter.py --check"), 3)
-        self.assertGreaterEqual(workflow.count("import yaml, tomli, eas_cli"), 2)
+        self.assertEqual(workflow.count("python scripts/smoke_package.py --dist dist"), 2)
 
     def test_bootstrap_and_package_contracts(self) -> None:
         pyproject = (ROOT / "pyproject.toml").read_text(encoding="utf-8")

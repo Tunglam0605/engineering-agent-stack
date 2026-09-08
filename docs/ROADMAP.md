@@ -90,7 +90,7 @@ Checkpoints do not rewind state or dispatch work. Native executor termination, a
 
 ## v0.6 — Extensions and presets
 
-Status: **v0.6.0 implementation/release candidate complete; architecture frozen and validation required for release.** See the [v0.6 research checkpoint](../research/v0.6/research-checkpoint.md) and [research package](../research/v0.6/README.md) for evidence, proposed boundaries, and implementation sequence.
+Status: **v0.6.0 released; architecture frozen. v0.6.1 is a hardening-only patch covering Node 24 CI actions, isolated wheel resource smoke and focused boundary regressions.** See the [v0.6 research checkpoint](../research/v0.6/research-checkpoint.md) and [research package](../research/v0.6/README.md) for evidence, proposed boundaries, and implementation sequence.
 
 Implemented scope:
 

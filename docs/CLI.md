@@ -124,6 +124,10 @@ All accept `--project PATH` and `--json`. See [WORKFLOW.md](WORKFLOW.md) for evi
 Risky `goal transition` calls additionally require `--approval ID` bound to `transition:STATE`. Stale/timeout suspicion is not proof an executor stopped and never frees capacity. Recovery consumes explicit approval atomically and preserves assignment identity. Retries return historical receipts without reapplying mutations. Approval is a local attestation, not authenticated identity or automatic evidence verification.
 
 
+## Installed package verification
+
+After `python -m build`, run `python scripts/smoke_package.py --dist dist` from the checkout. This creates a temporary clean virtual environment outside the checkout and verifies `eas version`, `eas preset list`, and `eas preset show embedded`, `ros2`, and `release`, plus every packaged capability resource. It also retains adapter validation and installed goal recovery smoke. Main and release CI run this gate on Linux and Windows with Python 3.9; it does not use the personal managed install.
+
 ## Capability and preset commands (v0.6)
 
 v0.6 adds a declarative capability layer. It does not add agents, change provider/model routing, or execute extension code.
