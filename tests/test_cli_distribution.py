@@ -447,7 +447,7 @@ class CliDistributionTests(unittest.TestCase):
     def test_validation_workflow_uses_isolated_package_build(self) -> None:
         workflow = (ROOT / ".github" / "workflows" / "validate.yml").read_text(encoding="utf-8")
 
-        self.assertIn("python -m pip install . --no-deps", workflow)
+        self.assertNotIn("python -m pip install .", workflow)
         self.assertIn("python scripts/smoke_package.py --dist dist", workflow)
         self.assertIn("os: [ubuntu-latest, windows-latest]", workflow)
         self.assertNotIn("--no-build-isolation", workflow)
@@ -458,13 +458,13 @@ class CliDistributionTests(unittest.TestCase):
         self.assertIn("validate-linux:", workflow)
         self.assertIn("validate-windows:", workflow)
         self.assertGreaterEqual(workflow.count('python-version: "3.9"'), 3)
-        self.assertIn("needs: [validate-linux, validate-windows]", workflow)
+        self.assertIn("needs: [build, validate-linux, validate-windows]", workflow)
         self.assertIn("permissions:\n  contents: read", workflow)
-        self.assertIn("publish:\n    needs: [validate-linux, validate-windows]", workflow)
+        self.assertIn("publish:\n    needs: [build, validate-linux, validate-windows]", workflow)
         self.assertIn("      contents: write", workflow)
         self.assertIn("validate_release_tag.py", workflow)
-        self.assertEqual(workflow.count("Build and smoke-test Python 3.9 package"), 2)
-        self.assertGreaterEqual(workflow.count("python -m build"), 3)
+        self.assertEqual(workflow.count("Smoke-test exact Python 3.9 package"), 2)
+        self.assertEqual(workflow.count("python -m build"), 1)
         self.assertEqual(workflow.count("python scripts/smoke_package.py --dist dist"), 2)
 
     def test_bootstrap_and_package_contracts(self) -> None:

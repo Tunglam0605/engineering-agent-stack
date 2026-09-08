@@ -12,6 +12,9 @@ import sys
 import tempfile
 import venv
 
+from release_artifacts import verify_manifest
+from validate_release_tag import package_version
+
 
 def resource_hashes(root: Path) -> dict:
     return {
@@ -23,8 +26,11 @@ def resource_hashes(root: Path) -> dict:
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--dist", type=Path, required=True)
+    parser.add_argument("--manifest-sha256", required=True)
+    parser.add_argument("--commit", required=True)
     args = parser.parse_args()
     repo = Path(__file__).resolve().parents[1]
+    verify_manifest(args.dist, package_version(), args.commit, args.manifest_sha256)
     wheels = list(args.dist.resolve().glob("*.whl"))
     if len(wheels) != 1:
         raise RuntimeError("smoke requires exactly one wheel in --dist")
@@ -96,6 +102,8 @@ print(json.dumps({
         print(run(python, repo / "scripts" / "smoke_goal_recovery.py", "--repo", repo).strip())
         print("PASS: clean installed wheel {}; 5 CLI commands; {} capability resources; origins in {}".format(
             version, len(expected), environment))
+    verify_manifest(args.dist, package_version(), args.commit, args.manifest_sha256)
+    print("PASS: exact wheel/sdist bytes match build manifest " + args.manifest_sha256)
     return 0
 
 

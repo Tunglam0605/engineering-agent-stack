@@ -126,7 +126,9 @@ Risky `goal transition` calls additionally require `--approval ID` bound to `tra
 
 ## Installed package verification
 
-After `python -m build`, run `python scripts/smoke_package.py --dist dist` from the checkout. This creates a temporary clean virtual environment outside the checkout and verifies `eas version`, `eas preset list`, and `eas preset show embedded`, `ros2`, and `release`, plus every packaged capability resource. It also retains adapter validation and installed goal recovery smoke. Main and release CI run this gate on Linux and Windows with Python 3.9; it does not use the personal managed install.
+Build once into a fresh distribution directory, then create a release manifest with `scripts/release_artifacts.py create`. Run `python scripts/smoke_package.py --dist dist --commit COMMIT --manifest-sha256 DIGEST`, using the full source commit and the manifest digest recorded by the build. See [exact-artifact promotion](DISTRIBUTION.md#exact-artifact-promotion) for commands.
+
+The smoke verifies the wheel/sdist hashes and archive metadata/resources before installation and again after testing. It creates a temporary clean virtual environment outside the checkout and verifies `eas version`, `eas preset list`, and `eas preset show embedded`, `ros2`, and `release`, plus all 24 packaged capability resources. It retains adapter validation and installed goal checkpoint/approval/recovery/export smoke. Main and release CI download the same build bundle on Linux and Windows with Python 3.9; no personal managed install is used. Runtime and capability behavior is unchanged in v0.6.2.
 
 ## Capability and preset commands (v0.6)
 

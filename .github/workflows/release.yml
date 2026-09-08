@@ -12,15 +12,62 @@ concurrency:
   group: release-${{ github.ref }}
   cancel-in-progress: false
 
+# Keep canonical resource bytes identical in Linux and Windows checkouts.
+env:
+  GIT_CONFIG_COUNT: "1"
+  GIT_CONFIG_KEY_0: core.autocrlf
+  GIT_CONFIG_VALUE_0: "false"
+
+defaults:
+  run:
+    shell: bash
+
 jobs:
-  validate-linux:
+  build:
     runs-on: ubuntu-latest
+    outputs:
+      artifact-id: ${{ steps.upload.outputs.artifact-id }}
+      manifest-sha256: ${{ steps.manifest.outputs.manifest-sha256 }}
+      version: ${{ steps.manifest.outputs.version }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Set up Python 3.9 compatibility floor
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.9"
+      - name: Install build dependency
+        run: python -m pip install build
+      - name: Build wheel and source distribution once
+        run: python -m build
+      - name: Record and verify exact artifact identity
+        id: manifest
+        run: |
+          VERSION="$(python -c 'from scripts.validate_release_tag import package_version; print(package_version())')"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          python scripts/release_artifacts.py create --dist dist --version "$VERSION" --commit "$GITHUB_SHA" --github-output "$GITHUB_OUTPUT"
+      - name: Upload immutable release candidate
+        id: upload
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: release-candidate
+          path: dist/
+          if-no-files-found: error
+          include-hidden-files: true
+          retention-days: 30
+
+  validate-linux:
+    needs: [build]
+    runs-on: ubuntu-latest
+    env:
+      MANIFEST_SHA256: ${{ needs.build.outputs.manifest-sha256 }}
+      EAS_VERSION: ${{ needs.build.outputs.version }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Set up Python 3.9 compatibility floor
-        uses: actions/setup-python@v7
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.9"
 
@@ -42,24 +89,31 @@ jobs:
           sh -n install.sh
           git diff --check
 
-      - name: Build and smoke-test Python 3.9 package
-        run: |
-          python -m pip install build
-          rm -rf dist
-          python -m build
-          python scripts/smoke_package.py --dist dist
+      - name: Download exact build artifact
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          artifact-ids: ${{ needs.build.outputs.artifact-id }}
+          path: dist
+          merge-multiple: true
+          digest-mismatch: error
+      - name: Smoke-test exact Python 3.9 package
+        run: python scripts/smoke_package.py --dist dist --manifest-sha256 "$MANIFEST_SHA256" --commit "$GITHUB_SHA"
 
       - name: Offline acceptance
         run: python scripts/acceptance_core.py --offline --report /tmp/eas-release-acceptance.md
 
   validate-windows:
+    needs: [build]
     runs-on: windows-latest
+    env:
+      MANIFEST_SHA256: ${{ needs.build.outputs.manifest-sha256 }}
+      EAS_VERSION: ${{ needs.build.outputs.version }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Set up Python 3.9 compatibility floor
-        uses: actions/setup-python@v7
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.9"
 
@@ -77,14 +131,17 @@ jobs:
           [void][System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path .\install.ps1), [ref]$null, [ref]$errors)
           if ($errors.Count) { $errors | ForEach-Object { Write-Error $_.Message }; exit 1 }
 
-      - name: Build and smoke-test Python 3.9 package
+      - name: Download exact build artifact
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          artifact-ids: ${{ needs.build.outputs.artifact-id }}
+          path: dist
+          merge-multiple: true
+          digest-mismatch: error
+      - name: Smoke-test exact Python 3.9 package
         shell: pwsh
         run: |
-          python -m pip install build
-          if (Test-Path .\dist) { Remove-Item .\dist -Recurse -Force }
-          python -m build
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          python scripts/smoke_package.py --dist dist
+          python scripts/smoke_package.py --dist dist --manifest-sha256 "$env:MANIFEST_SHA256" --commit "$env:GITHUB_SHA"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Windows offline acceptance
@@ -94,29 +151,37 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
   publish:
-    needs: [validate-linux, validate-windows]
+    needs: [build, validate-linux, validate-windows]
+    env:
+      MANIFEST_SHA256: ${{ needs.build.outputs.manifest-sha256 }}
+      EAS_VERSION: ${{ needs.build.outputs.version }}
     runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
       - name: Checkout
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Set up Python 3.9
-        uses: actions/setup-python@v7
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.9"
 
-      - name: Install build dependency
-        run: python -m pip install build
+      - name: Download exact build artifact
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          artifact-ids: ${{ needs.build.outputs.artifact-id }}
+          path: dist
+          merge-multiple: true
+          digest-mismatch: error
 
       - name: Re-verify tag/version
         run: python scripts/validate_release_tag.py --tag "$GITHUB_REF_NAME"
 
-      - name: Build distribution
-        run: python -m build
+      - name: Verify exact validated bytes before promotion
+        run: python scripts/release_artifacts.py verify --dist dist --version "$EAS_VERSION" --commit "$GITHUB_SHA" --manifest-sha256 "$MANIFEST_SHA256"
 
-      - name: Create GitHub release
+      - name: Create GitHub release from validated bundle
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release create "$GITHUB_REF_NAME" dist/* --generate-notes --title "Engineering Agent Stack $GITHUB_REF_NAME"
+        run: gh release create "$GITHUB_REF_NAME" dist/* --verify-tag --generate-notes --title "Engineering Agent Stack $GITHUB_REF_NAME"

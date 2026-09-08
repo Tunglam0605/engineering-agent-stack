@@ -6,6 +6,17 @@ All notable project changes will be documented here.
 
 No unreleased changes.
 
+## [0.6.2] - 2026-09-08
+
+### Hardened
+
+- Build wheel and sdist once per CI/release run; Linux and Windows validate the exact downloaded bundle, and publish promotes that same bundle without rebuilding.
+- Bind the immutable workflow artifact ID to a strict SHA-256 manifest and an independent build-job manifest digest. Reject missing, extra, renamed and altered files; inspect both archives for candidate metadata and all 24 canonical capability resources.
+- Preserve clean installed-wheel import/version/preset and goal checkpoint/approval/recovery/export smoke; verify bundle identity before and after it.
+- Pin official checkout, setup-python, upload-artifact and download-artifact Actions to verified release commit SHAs, all using Node 24. Make download digest mismatches fatal and close Windows command-failure masking gaps.
+
+Runtime and capability architecture are unchanged: seven core roles, declarative data-only extensions, and the frozen v0.6 safety contracts. Unchanged built-in capability packs remain at 0.6.0. This release guarantees exact-artifact promotion, not deterministic independent rebuilds or locked dependencies.
+
 ## [0.6.1] - 2026-09-08
 
 ### Changed
