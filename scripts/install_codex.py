@@ -29,9 +29,7 @@ MANAGED_START = "<!-- engineering-agent-stack:start -->"
 MANAGED_END = "<!-- engineering-agent-stack:end -->"
 REQUIRED_CONFIG_PATHS = (
     ("agents", "enabled"),
-    ("features", "multi_agent_v2", "enabled"),
-    ("features", "multi_agent_v2", "wait_agent_enabled"),
-    ("features", "multi_agent_v2", "non_code_mode_only"),
+    ("agents", "max_concurrent_threads_per_session"),
 )
 
 
@@ -95,6 +93,14 @@ def validate_config(config_path: Path) -> list[str]:
             problems.append(
                 f"{config_path}: {dotted} must be {expected!r}, found {actual!r}"
             )
+
+    features = config.get("features") if isinstance(config, dict) else None
+    multi_agent_v2 = features.get("multi_agent_v2") if isinstance(features, dict) else None
+    if isinstance(multi_agent_v2, dict) and multi_agent_v2.get("enabled") is True:
+        problems.append(
+            f"{config_path}: features.multi_agent_v2.enabled=true is incompatible with EAS v0.6.4; "
+            "remove the experimental table or set enabled=false"
+        )
     return problems
 
 

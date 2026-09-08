@@ -190,6 +190,13 @@ Initializes the existing EAS project-managed Codex artifacts and creates tracked
 Explicitly migrates a legacy or drifted goal to the current project capability snapshot. Migration is revision-checked and refused while assignments are active.
 
 Configured v0.6 projects require the same snapshot digest for stack-controlled goal gate/transition/checkpoint/approval/recovery/export paths. Projects without `.eas/project.toml` retain v0.5 lifecycle behavior.
+
+## Codex subagent compatibility (v0.6.4)
+
+EAS uses the public Codex `[agents]` configuration surface with `max_concurrent_threads_per_session = 2`. Do not enable the legacy experimental `[features.multi_agent_v2]` table: live Codex 0.153.4 A/B acceptance reproduced encrypted child-output failures when it was enabled. `eas` installation checks reject `features.multi_agent_v2.enabled=true`.
+
+For an existing personal install, remove that experimental table (or set `enabled = false`) and verify Codex with `--strict-config` before running live subagent acceptance.
+
 # v0.6.3 reliability operations
 
 `eas goal transport GOAL ASSIGNMENT --event failure|resume-success|resume-failed --evidence TEXT --revision N`

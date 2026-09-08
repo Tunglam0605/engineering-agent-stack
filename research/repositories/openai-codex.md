@@ -21,7 +21,7 @@ Authoritative implementation and public configuration behavior for Codex subagen
 - Public examples use narrow agents and commonly place read-heavy mapping/research work on lower-cost models while using higher reasoning for review/debug roles.
 - Current Codex source still contains legacy/V1 depth configuration, but `agents.max_depth` is documented in source as ignored by V2. This project therefore does not rely on it to block recursive delegation.
 - Internal source paths expose additional role-loading mechanisms. The adapter follows the public standalone-agent contract rather than depending on undocumented/internal registration behavior.
-- The local `codex-cli 0.153.4` accepts `features.multi_agent_v2.non_code_mode_only`; official public documentation does not establish a reason for an engineering/code-mode stack to restrict collaboration to non-code mode.
+- Live A/B acceptance on local `codex-cli 0.153.4` showed the public `[agents]` surface can spawn/wait for custom roles successfully, while enabling `features.multi_agent_v2` reproduced WebSocket/stream failures and `Encrypted function output content could not be decrypted or decoded`. EAS v0.6.4 therefore does not enable that experimental table.
 
 ## Decisions
 

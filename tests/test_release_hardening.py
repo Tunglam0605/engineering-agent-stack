@@ -22,7 +22,7 @@ import provider_probe_codex as provider_probe
 
 
 class GeneratedCodexConfigTests(unittest.TestCase):
-    def test_generated_install_enables_multi_agent_v2_in_code_mode(self) -> None:
+    def test_generated_install_uses_public_agents_surface_only(self) -> None:
         rendered = generator.render_config_example(
             generator.load_agents(),
             generator.load_yaml(generator.MODEL_PROFILES_PATH),
@@ -30,7 +30,9 @@ class GeneratedCodexConfigTests(unittest.TestCase):
 
         config = generator.tomllib.loads(rendered)
 
-        self.assertFalse(config["features"]["multi_agent_v2"]["non_code_mode_only"])
+        self.assertTrue(config["agents"]["enabled"])
+        self.assertEqual(config["agents"]["max_concurrent_threads_per_session"], 2)
+        self.assertNotIn("multi_agent_v2", config.get("features", {}))
 
 
 class WorkspaceDeltaTests(unittest.TestCase):
@@ -202,11 +204,11 @@ class InstallerConfigValidationTests(unittest.TestCase):
             config_path.write_text(text, encoding="utf-8")
             return install_codex.validate_config(config_path)
 
-    def test_minimal_stale_agents_config_is_rejected(self) -> None:
+    def test_missing_concurrency_cap_is_rejected(self) -> None:
         problems = self.validate("[agents]\nenabled = true\n")
 
         self.assertTrue(problems)
-        self.assertTrue(any("multi_agent_v2" in problem for problem in problems))
+        self.assertTrue(any("max_concurrent_threads_per_session" in problem for problem in problems))
 
     def test_generated_config_passes(self) -> None:
         rendered = generator.render_config_example(
@@ -216,47 +218,44 @@ class InstallerConfigValidationTests(unittest.TestCase):
 
         self.assertEqual(self.validate(rendered), [])
 
-    def test_optional_spawn_settings_may_be_missing(self) -> None:
+    def test_disabled_legacy_multi_agent_v2_is_tolerated(self) -> None:
         config = """\
 [agents]
 enabled = true
+max_concurrent_threads_per_session = 2
 
 [features.multi_agent_v2]
-enabled = true
+enabled = false
 wait_agent_enabled = true
-non_code_mode_only = false
 """
 
         self.assertEqual(self.validate(config), [])
 
-    def test_optional_spawn_settings_may_be_false(self) -> None:
+    def test_enabled_legacy_multi_agent_v2_is_rejected(self) -> None:
         rendered = generator.render_config_example(
             generator.load_agents(),
             generator.load_yaml(generator.MODEL_PROFILES_PATH),
-        )
-        rendered = rendered.replace("hide_spawn_agent_metadata = false", "hide_spawn_agent_metadata = true")
-        rendered = rendered.replace(
-            "expose_spawn_agent_model_overrides = true",
-            "expose_spawn_agent_model_overrides = false",
-        )
+        ) + "\n[features.multi_agent_v2]\nenabled = true\n"
 
-        self.assertEqual(self.validate(rendered), [])
+        problems = self.validate(rendered)
+
+        self.assertTrue(any("multi_agent_v2.enabled=true" in problem for problem in problems))
+
+    def test_wrong_concurrency_cap_is_rejected(self) -> None:
+        rendered = generator.render_config_example(
+            generator.load_agents(),
+            generator.load_yaml(generator.MODEL_PROFILES_PATH),
+        ).replace("max_concurrent_threads_per_session = 2", "max_concurrent_threads_per_session = 4")
+
+        problems = self.validate(rendered)
+
+        self.assertTrue(any("max_concurrent_threads_per_session" in problem for problem in problems))
 
     def test_malformed_toml_is_rejected(self) -> None:
         problems = self.validate("[agents\nenabled = true\n")
 
         self.assertTrue(problems)
         self.assertTrue(any("malformed TOML" in problem for problem in problems))
-
-    def test_code_mode_disabled_config_is_rejected(self) -> None:
-        rendered = generator.render_config_example(
-            generator.load_agents(),
-            generator.load_yaml(generator.MODEL_PROFILES_PATH),
-        ).replace("non_code_mode_only = false", "non_code_mode_only = true")
-
-        problems = self.validate(rendered)
-
-        self.assertTrue(any("non_code_mode_only" in problem for problem in problems))
 
     def test_install_rejects_incompatible_preserved_config_before_writes(self) -> None:
         cases = {
@@ -283,10 +282,12 @@ non_code_mode_only = false
                 self.assertEqual(config_path.read_text(encoding="utf-8"), config_text)
                 self.assertFalse((codex_root / "agents").exists())
 
-    def test_provider_overrides_do_not_mask_non_code_mode_only(self) -> None:
+    def test_provider_overrides_use_public_agents_surface_only(self) -> None:
         overrides = provider_probe.provider_overrides(Path("provider-sandbox"))
 
-        self.assertFalse(any("non_code_mode_only" in override for override in overrides))
+        self.assertIn("agents.enabled=true", overrides)
+        self.assertIn("agents.max_concurrent_threads_per_session=2", overrides)
+        self.assertFalse(any("multi_agent_v2" in override for override in overrides))
 
 
 class ProviderTelemetryWordingTests(unittest.TestCase):

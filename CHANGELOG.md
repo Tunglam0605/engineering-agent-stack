@@ -6,6 +6,15 @@ All notable project changes will be documented here.
 
 No unreleased changes.
 
+## [0.6.4] - 2026-09-08
+
+### Fixed
+
+- Stop generating or forcing the experimental `features.multi_agent_v2` Codex table. Live A/B acceptance on Codex 0.153.4 reproduced `Encrypted function output content could not be decrypted or decoded` with V2 enabled while the same custom `scout` child completed through the public `[agents]` surface.
+- Align Codex and EAS child concurrency at two active children per session, preserving the seven generated roles and v0.6.3 bounded recovery behavior.
+- Make installer validation reject `features.multi_agent_v2.enabled=true`, while tolerating an explicitly disabled legacy table so existing users can migrate without destructive config rewrites.
+- Update provider probes to exercise native public subagent routing instead of masking failures by forcing experimental feature flags.
+
 ## [0.6.3] - 2026-09-08
 
 ### Hardened

@@ -90,7 +90,7 @@ Checkpoints do not rewind state or dispatch work. Native executor termination, a
 
 ## v0.6 — Extensions and presets
 
-Status: **v0.6.0 released; architecture frozen. v0.6.3 adds bounded orchestration recovery and conservative concurrency without changing the frozen architecture. v0.6.2 hardens exact-artifact release promotion and pins official Node 24 Actions, retaining v0.6.1 isolated wheel verification. Runtime/capability architecture is unchanged; no v0.7 scope is included.** See the [v0.6 research checkpoint](../research/v0.6/research-checkpoint.md) and [research package](../research/v0.6/README.md) for evidence, proposed boundaries, and implementation sequence.
+Status: **v0.6.0 released; architecture frozen. v0.6.4 removes the failing experimental Codex multi-agent compatibility path; v0.6.3 adds bounded orchestration recovery and conservative concurrency without changing the frozen architecture. v0.6.2 hardens exact-artifact release promotion and pins official Node 24 Actions, retaining v0.6.1 isolated wheel verification. Runtime/capability architecture is unchanged; no v0.7 scope is included.** See the [v0.6 research checkpoint](../research/v0.6/research-checkpoint.md) and [research package](../research/v0.6/README.md) for evidence, proposed boundaries, and implementation sequence.
 
 Implemented scope:
 

@@ -2,7 +2,7 @@
 """Codex provider/runtime capability probe for Engineering Agent Stack.
 
 This command is intentionally NOT a release gate. It exercises provider-owned
-behavior such as spawn_agent, custom-role selection, Multi-Agent V2 routing,
+behavior such as spawn_agent, custom-role selection, native subagent routing,
 child-model metadata, and effective read/write behavior.
 """
 
@@ -65,10 +65,7 @@ def provider_overrides(sandbox: Path) -> List[str]:
     )
     overrides = [
         "agents.enabled=true",
-        "features.multi_agent_v2.enabled=true",
-        "features.multi_agent_v2.wait_agent_enabled=true",
-        "features.multi_agent_v2.hide_spawn_agent_metadata=false",
-        "features.multi_agent_v2.expose_spawn_agent_model_overrides=true",
+        "agents.max_concurrent_threads_per_session=2",
         "developer_instructions=" + toml_string(instructions),
     ]
     for role in CORE_ROLES:
