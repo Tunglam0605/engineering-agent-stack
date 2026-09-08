@@ -90,14 +90,15 @@ Checkpoints do not rewind state or dispatch work. Native executor termination, a
 
 ## v0.6 — Extensions and presets
 
+Status: **research checkpoint complete; implementation not started.** See the [v0.6 research checkpoint](../research/v0.6/research-checkpoint.md) and [research package](../research/v0.6/README.md) for evidence, proposed boundaries, and implementation sequence.
+
 Candidates:
 
-- extension manifest/schema
-- `embedded` preset
-- `ros2` / robotics preset
-- security/release preset
-- capability discovery
-- Codex plugin/skill packaging where it adds measured value
+- declarative extension manifest/schema, with no arbitrary extension code execution
+- initial presets: `embedded`, `ros2`, `release`; security preset deferred
+- Skills / Rules / Config boundaries and deterministic resolution
+- read-only, evidence-based capability discovery and preset recommendations
+- provider skill packaging where it adds measured value, keeping all seven core roles unchanged
 
 ## v0.7 — Team distribution
 

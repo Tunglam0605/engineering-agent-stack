@@ -27,6 +27,22 @@ This project does **not** claim ownership of upstream projects, their names, doc
 
 Thank you to the maintainers and contributors of these projects for publishing work that the wider engineering community can inspect, compare, challenge, and learn from.
 
+## v0.6 research and architecture audit sources
+
+The [v0.6 audit](research/v0.6/README.md) additionally studies the following conceptual sources. It revisits `can1357/oh-my-pi`, `Yeachan-Heo/oh-my-codex`, and `openai/openai-agents-python` above for capability packaging, canonical workflow rules, and enforcement boundaries. Source notes record inspected revisions and file-level license concerns; no upstream material is copied.
+
+| Upstream project | Research contribution |
+|---|---|
+| [agentskills/agentskills](https://github.com/agentskills/agentskills) | Portable skill format and progressive disclosure. |
+| [anthropics/skills](https://github.com/anthropics/skills) | Bounded skill bodies, variant references, and evaluation. |
+| [obra/superpowers](https://github.com/obra/superpowers) | Reusable skill criteria and baseline pressure testing. |
+| [github/spec-kit](https://github.com/github/spec-kit) | Preset composition, manifests, compatibility, catalogs, and precedence. |
+| [modelcontextprotocol/modelcontextprotocol](https://github.com/modelcontextprotocol/modelcontextprotocol) | Capability negotiation, control ownership, and consent boundaries. |
+| [zephyrproject-rtos/west](https://github.com/zephyrproject-rtos/west) | Manifest versioning and explicit dependency evidence. |
+| [zephyrproject-rtos/zephyr](https://github.com/zephyrproject-rtos/zephyr) | Embedded quality rooted in external standards; no proprietary MISRA text reused. |
+| [ros-infrastructure/rep](https://github.com/ros-infrastructure/rep) | REP-2004 quality declarations and justified evidence. |
+| [astral-sh/ruff](https://github.com/astral-sh/ruff) | Deterministic configuration selection and explicit inheritance. |
+
 ## Relationship to upstream projects
 
 The entries above are **research inputs**, not dependencies by default. Decisions derived from them are tracked in [`research/matrix/repository-comparison.yaml`](research/matrix/repository-comparison.yaml) using `ADOPT`, `ADAPT`, `EXPERIMENT`, `REJECT`, or `HISTORICAL` labels.

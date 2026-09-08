@@ -1,6 +1,6 @@
 version: 3
 status: research-wave-2-plus-authoritative-codex
-updated: 2026-09-07
+updated: 2026-09-08
 repositories:
   - name: openai/codex
     focus: authoritative-codex-runtime-and-custom-agent-contract
@@ -23,6 +23,7 @@ repositories:
 
   - name: Yeachan-Heo/oh-my-codex
     focus: codex-orchestration
+    v06_audit: research/v0.6/source-notes/oh-my-codex.md
     decisions:
       direct_first: ADOPT
       leader_owned_verification: ADOPT
@@ -64,6 +65,7 @@ repositories:
 
   - name: openai/openai-agents-python
     focus: multi-agent-runtime
+    v06_audit: research/v0.6/source-notes/openai-agents-sdk.md
     decisions:
       explicit_handoffs: ADOPT
       guardrails: ADOPT
@@ -133,6 +135,7 @@ repositories:
 
   - name: can1357/oh-my-pi
     focus: coding-agent-runtime-resolution-and-observability
+    v06_audit: research/v0.6/source-notes/oh-my-pi.md
     decisions:
       delegation_preflight: ADAPT
       role_model_runtime_resolution: ADAPT
@@ -142,3 +145,80 @@ repositories:
       memory_as_authority: REJECT
       full_native_tool_runtime: REJECT
       large_provider_catalog: REJECT
+
+  # v0.6 conceptual research decisions; no implementation implied.
+  - name: agentskills/agentskills
+    focus: portable-skill-format-and-disclosure
+    v06_audit: research/v0.6/source-notes/agent-skills.md
+    decisions:
+      skill_format_compatibility: ADAPT
+      progressive_disclosure: ADAPT
+      required_metadata: ADOPT
+      metadata_as_execution_permission: REJECT
+
+  - name: anthropics/skills
+    focus: skill-authoring-variants-and-evaluation
+    v06_audit: research/v0.6/source-notes/anthropic-skills.md
+    decisions:
+      bounded_bodies_and_variant_references: ADAPT
+      baseline_and_trigger_evaluation: ADOPT
+      wholesale_catalog_import: REJECT
+
+  - name: obra/superpowers
+    focus: reusable-skill-admission-and-pressure-tests
+    v06_audit: research/v0.6/source-notes/superpowers.md
+    decisions:
+      skill_pressure_tests: ADAPT
+      mechanical_constraint_automation: ADOPT
+      project_conventions_as_skills: REJECT
+      workflow_summary_trigger_metadata: REJECT
+
+  - name: github/spec-kit
+    focus: declarative-composition-and-compatibility-research
+    v06_audit: research/v0.6/source-notes/spec-kit.md
+    decisions:
+      manifest_versioning_and_compatibility: ADOPT
+      explicit_precedence: ADOPT
+      curated_presets: ADAPT
+      recursive_content_composition: REJECT
+      broad_environment_cascade: REJECT
+
+  - name: modelcontextprotocol/modelcontextprotocol
+    focus: capability-control-negotiation-and-consent
+    v06_audit: research/v0.6/source-notes/mcp.md
+    decisions:
+      advertisement_authorization_separation: ADOPT
+      explicit_capability_declarations: ADAPT
+      annotations_as_enforcement: REJECT
+
+  - name: zephyrproject-rtos/west
+    focus: manifest-versioning-and-dependency-evidence
+    v06_audit: research/v0.6/source-notes/zephyr-west.md
+    decisions:
+      version_compatibility_validation: ADOPT
+      dependency_inventory: ADAPT
+      recursive_package_solver_initially: REJECT
+
+  - name: zephyrproject-rtos/zephyr
+    focus: embedded-quality-and-external-standard-provenance
+    v06_audit: research/v0.6/source-notes/zephyr-west.md
+    decisions:
+      standards_based_quality_evidence: ADAPT
+      proprietary_rule_text_reuse: REJECT
+      preset_as_compliance_certification: REJECT
+
+  - name: ros-infrastructure/rep
+    focus: rep-2004-quality-declarations
+    v06_audit: research/v0.6/source-notes/ros2-rep-2004.md
+    decisions:
+      evidence_and_justification: ADOPT
+      quality_categories_as_candidate_gates: ADAPT
+      preset_as_quality_certification: REJECT
+
+  - name: astral-sh/ruff
+    focus: deterministic-configuration-selection
+    v06_audit: research/v0.6/source-notes/ruff.md
+    decisions:
+      deterministic_resolution: ADOPT
+      explicit_layers: ADAPT
+      hidden_config_cascade: REJECT

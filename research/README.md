@@ -31,3 +31,5 @@ Each source repository is assessed on:
 Research notes describe patterns, not copied prompts. Source repositories retain their own licenses and authorship. When implementation code or text is ever reused, its license obligations must be reviewed explicitly.
 
 See [`matrix/repository-comparison.yaml`](matrix/repository-comparison.yaml) for the living comparison.
+
+The [v0.6 Research & Architecture Audit](v0.6/README.md) has a **completed research checkpoint (implementation not started)** covering Skills, Rules, Config, Presets, and declarative Extensions. Its recommendations are not implemented.
