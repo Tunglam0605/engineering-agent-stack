@@ -7,7 +7,7 @@ import sys
 from typing import Optional, Sequence
 
 from .health import doctor_payload, render_payload, status_payload
-from .goals import goal_gate, goal_init, goal_status, goal_transition
+from .goals import goal_gate, goal_init, goal_status, goal_transition, goal_workflow
 from .operations import init_project, run_installer, uninstall, update_source
 from .version import __version__
 
@@ -86,6 +86,28 @@ def build_parser() -> argparse.ArgumentParser:
     goal_transition_parser.add_argument("state", choices=("pending", "running", "completed", "failed", "blocked"))
     goal_transition_parser.add_argument("--project", type=Path, default=Path.cwd())
     goal_transition_parser.add_argument("--json", action="store_true")
+    goal_transition_parser.add_argument('--approval', help='revision-scoped explicit approval ID')
+
+    for command in ('checkpoint', 'plan', 'approve', 'recover', 'export'):
+        workflow = goal_sub.add_parser(command, help='durable workflow ' + command)
+        workflow.add_argument('goal_id')
+        workflow.add_argument('--project', type=Path, default=Path.cwd())
+        workflow.add_argument('--json', action='store_true')
+        if command == 'checkpoint':
+            workflow.add_argument('--stage', required=True)
+            workflow.add_argument('--evidence', default='{}', help='JSON object of bounded evidence references')
+            workflow.add_argument('--revision', type=int, required=True)
+        elif command == 'approve':
+            workflow.add_argument('--action', required=True, choices=('recover', 'transition:pending',
+                'transition:running', 'transition:completed', 'transition:failed', 'transition:blocked'))
+            workflow.add_argument('--target', required=True)
+            workflow.add_argument('--revision', type=int, required=True)
+            workflow.add_argument('--approver', required=True)
+            workflow.add_argument('--reason', required=True)
+            workflow.add_argument('--executor-stopped-evidence', required=True)
+        elif command == 'recover':
+            workflow.add_argument('assignment_id')
+            workflow.add_argument('--approval', required=True)
 
     return parser
 
@@ -149,8 +171,10 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
                 )
             if args.goal_command == "transition":
                 return goal_transition(
-                    args.goal_id, args.project, args.assignment_id, args.state, as_json=args.json
+                    args.goal_id, args.project, args.assignment_id, args.state, as_json=args.json,
+                    approval_id=args.approval,
                 )
+            return goal_workflow(args)
 
     except (OSError, RuntimeError, ValueError, KeyError, json.JSONDecodeError) as exc:
         print("ERROR: {}".format(exc))

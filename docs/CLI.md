@@ -108,3 +108,17 @@ Shows total/active assignments, reader/writer concurrency, per-role counts, soft
 Committed mutations use a per-goal transaction lock plus state revision/CAS, so concurrent callers cannot silently lose assignments or bypass writer capacity. A lock timeout fails closed and does not auto-delete a possibly live lock.
 
 The goal gate is opt-in stack-controlled enforcement. Native provider child calls that bypass the EAS gate remain outside this enforcement boundary.
+
+## Durable workflow commands (v0.5.0)
+
+All accept `--project PATH` and `--json`. See [WORKFLOW.md](WORKFLOW.md) for evidence semantics and the complete recovery sequence.
+
+| Command | Required arguments |
+|---|---|
+| `eas goal checkpoint GOAL` | `--stage TEXT --revision N` (optional `--evidence JSON_OBJECT`) |
+| `eas goal plan GOAL` | none; read-only checkpoint, revision and suspicion |
+| `eas goal approve GOAL` | `--action ACTION --target ASSIGNMENT --revision N --approver TEXT --reason TEXT --executor-stopped-evidence TEXT` |
+| `eas goal recover GOAL ASSIGNMENT` | `--approval ID` |
+| `eas goal export GOAL` | none; always emits machine-readable JSON |
+
+Risky `goal transition` calls additionally require `--approval ID` bound to `transition:STATE`. Stale/timeout suspicion is not proof an executor stopped and never frees capacity. Recovery consumes explicit approval atomically and preserves assignment identity. Retries return historical receipts without reapplying mutations. Approval is a local attestation, not authenticated identity or automatic evidence verification.

@@ -1,4 +1,4 @@
-version: 1
+version: 2
 status: candidate
 purpose: durable-goal-lifecycle-state
 required_fields:
@@ -9,6 +9,7 @@ required_fields:
   - created_at
   - updated_at
   - assignments
+  - workflow
 assignment_required_fields:
   - assignment_id
   - role
@@ -17,6 +18,8 @@ assignment_required_fields:
   - write_scope
   - created_at
   - updated_at
+assignment_optional_fields:
+  - attempt_started_at
 decision_values:
   - SPAWN
   - REUSE
@@ -28,3 +31,18 @@ notes:
   - Provider-native child spawning is not transparently intercepted unless orchestration explicitly consults this gate.
   - State revision prevents stale-state overwrite; per-goal lock serializes evaluate-and-commit transactions.
   - Goal IDs are lowercase and Windows-reserved names are rejected for cross-platform path identity.
+workflow_fields:
+  checkpoint: nullable stage/evidence/created_at/revision object
+  approvals: list of action/target/revision/approver/reason/executor_stopped_evidence/created_at/expires_at/id objects
+  receipts: list of approval_id/action/assignment_id/state/revision/created_at objects
+compatibility:
+  read_versions: [1, 2]
+  write_version: 2
+  legacy_migration: on-next-mutation-only
+export:
+  format: eas-goal-trace
+  version: 1
+  authoritative: state
+  observational: observations
+  observations_transactional: false
+  completeness_scope: readable-records-only-not-event-delivery

@@ -2,7 +2,7 @@
 
 > Turn Codex into a bounded engineering team: **7 focused roles, direct-first routing, safe writes, independent verification, and a small distribution CLI.**
 
-[![Status](https://img.shields.io/badge/status-v0.4.0%20stable-blue)](#release-status)
+[![Status](https://img.shields.io/badge/status-v0.5.0%20stable-blue)](#release-status)
 [![CI](https://github.com/Tunglam0605/engineering-agent-stack/actions/workflows/validate.yml/badge.svg)](https://github.com/Tunglam0605/engineering-agent-stack/actions/workflows/validate.yml)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.9%2B-blue)](pyproject.toml)
@@ -304,7 +304,7 @@ See:
 
 ## Executable goal lifecycle gate
 
-For long-running multi-agent work, EAS v0.4 can persist goal state under Git metadata (`.git/eas/goals/`) and make an executable lifecycle decision before dispatch:
+For long-running multi-agent work, EAS can persist goal state under Git metadata (`.git/eas/goals/`) and make an executable lifecycle decision before dispatch:
 
 ```text
 spawn request
@@ -324,10 +324,16 @@ eas goal status ota-hardening --json
 
 Writer roles require `--scope`. Use `--fresh-context --reason TEXT` only when a matching child is stale/wrong. Committed mutations are serialized by a per-goal transaction lock and protected by a state revision, preventing stale/lost updates. Exit codes follow the stack planning convention: `0` for `SPAWN/REUSE`, `4` for `ESCALATE`, and `3` for `REJECT`. This is an executable EAS gate for stack-controlled orchestration; it does **not** claim to transparently intercept arbitrary provider-native `spawn_agent` calls.
 
+Checkpoint verification/review evidence with `eas goal checkpoint`, inspect interruption with `eas goal plan`, then record explicit stopped-executor evidence with `eas goal approve` before `eas goal recover`. Recovery preserves the assignment ID. See the [workflow and recovery guide](docs/WORKFLOW.md) for the complete sequence and enforcement boundary.
+
 ## Release status
 
-**v0.4.0** adds executable lifecycle enforcement and durable goal telemetry while keeping the seven-role/model map stable:
+**v0.5.0** adds durable workflow checkpoints, explicit approval evidence, and safe assignment recovery while keeping the seven-role/model map stable:
 
+- `eas goal checkpoint/plan/approve/recover/export`;
+- revision-scoped approval consumption and idempotent recovery receipts;
+- stale/timeout suspicion without automatic executor replacement;
+- machine-readable export separating durable state from observational JSONL;
 - stable `eas` CLI;
 - executable `eas goal gate` decisions (`REUSE / SPAWN / ESCALATE / REJECT`);
 - atomic goal state under Git metadata with append-only JSONL events;

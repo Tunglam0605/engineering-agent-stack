@@ -64,6 +64,9 @@ quality_gate:
   verify_every_change: true
 lifecycle:
   reuse_strategy: resume-before-spawn
+  stale_after_seconds: 3600
+  timeout_after_seconds: 86400
+  approval_ttl_seconds: 900
   reuse_match_keys:
     - role
     - task_domain

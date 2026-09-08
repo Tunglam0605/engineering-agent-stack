@@ -52,6 +52,7 @@ jobs:
           /tmp/eas-package-smoke/bin/eas version
           /tmp/eas-package-smoke/bin/python scripts/generate_codex_adapter.py --check
           /tmp/eas-package-smoke/bin/python -c "import yaml, tomli, eas_cli, runtime; assert eas_cli.__version__"
+          /tmp/eas-package-smoke/bin/python scripts/smoke_goal_recovery.py --repo "$GITHUB_WORKSPACE"
 
       - name: Offline acceptance
         run: python scripts/acceptance_core.py --offline --report /tmp/eas-release-acceptance.md
@@ -100,6 +101,8 @@ jobs:
           & $py .\scripts\generate_codex_adapter.py --check
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           & $py -c "import yaml, tomli, eas_cli, runtime; assert eas_cli.__version__"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          & $py .\scripts\smoke_goal_recovery.py --repo "$env:GITHUB_WORKSPACE"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Windows offline acceptance

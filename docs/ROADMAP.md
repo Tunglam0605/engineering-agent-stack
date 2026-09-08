@@ -76,13 +76,17 @@ The gate is stack-controlled enforcement and does not claim transparent intercep
 
 ## v0.5 — Durable workflow and recovery
 
-Candidates:
+Status: **v0.5.0 release target implemented.**
 
-- checkpoint/restart of parent workflow stage
-- resumable verification/review state
-- explicit human approval gates for destructive/high-risk actions
-- stale-assignment recovery and timeout policy
-- trace export linking goal events, provider observations, and quality gates
+- durable parent stage and bounded verification/review/provider evidence references
+- revision-scoped explicit approval evidence for risky stack-controlled lifecycle operations
+- stale/timeout suspicion, with capacity retained until explicit reconciliation
+- recovery preserving assignment ID and requiring prior-executor-stopped evidence
+- atomic approval consumption and idempotent recovery receipts
+- trace export separating durable snapshot evidence from observational JSONL
+- Python 3.9 and Linux/Windows package recovery smoke
+
+Checkpoints do not rewind state or dispatch work. Native executor termination, authenticated approval services, and transparent native-call interception remain outside this release.
 
 ## v0.6 — Extensions and presets
 

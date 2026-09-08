@@ -57,6 +57,16 @@ Avoid gratuitous version suffixes such as `v030`, `retry-2`, or `final-final` wh
 
 Committed goal lifecycle changes are serialized by a per-goal lock under Git metadata and protected by a monotonic state revision. A stale caller must fail rather than overwrite a newer assignment registry. Lock files are not silently broken on timeout; an operator should confirm the other EAS process is gone before removing a stale lock.
 
+## Durable recovery and approval
+
+The canonical routing policy defines inactivity, total-attempt timeout and approval TTL in seconds. Pending/running assignments crossing either threshold become suspect, never automatically stopped or failed. They continue reserving capacity; stack-controlled dispatch escalates until reconciliation.
+
+Recovery requires explicit operator attestation that the prior executor stopped, bound to action, assignment and the current revision, with approver, reason and expiry. Approval issuance advances the revision and binds to that resulting snapshot. Consumption and mutation share the goal transaction. Recovery preserves the assignment ID and original scope, resets the attempt clock and returns it to pending without native dispatch. Consumed approvals return historical receipts on retry and cannot rewind later execution.
+
+Active-to-failed/blocked transitions, changes out of failed/blocked, running-to-pending reset and transitions of suspect assignments require this approval evidence. Reactivation continues to enforce capacity and scope conflicts. Nonsuspect ordinary completion remains supported. Checkpoints carry bounded parent-stage and verification/review/provider evidence references, never rollback or execution authority. Corrupt durable state fails closed; observational JSONL is not a recovery source.
+
+These attestations are checked by stack-controlled APIs; they do not authenticate operator identity or independently prove a provider process exited. See [workflow operations and trust boundary](../docs/WORKFLOW.md).
+
 ## Observability
 
 The agent registry may summarize total, active, completed/failed/blocked, terminal, and per-role assignment counts. Unknown provider telemetry remains unknown. Fan-out warnings are policy signals, not fabricated provider measurements.

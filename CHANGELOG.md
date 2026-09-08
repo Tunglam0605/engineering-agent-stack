@@ -6,6 +6,24 @@ All notable project changes will be documented here.
 
 No unreleased changes.
 
+## [0.5.0] - 2026-09-08
+
+### Added
+- Durable workflow checkpoints with bounded verification, review and provider evidence references.
+- `eas goal checkpoint`, `plan`, `approve`, `recover`, and machine-readable `export`.
+- Revision-scoped explicit approval evidence, expiry, atomic consumption and idempotent receipts for recovery and risky lifecycle transitions.
+- Policy-defined stale/timeout suspicion that retains capacity and requires evidence the prior executor stopped before recovery of the same assignment ID.
+- Concurrency, corruption, crash-boundary, approval, export and installed-package recovery coverage.
+
+### Changed
+- Version 2 goal snapshots include workflow evidence; valid v1 snapshots migrate on their next mutation.
+- Snapshot writes flush/fsync before atomic replacement and sync the directory on POSIX; crash-left locks remain operator-controlled.
+- Export explicitly distinguishes authoritative durable evidence from nontransactional JSONL observations, including parse warnings and completeness limits.
+- Release package smoke exercises recovery on Linux and Windows outside the source tree.
+
+### Safety boundary
+- Enforcement covers stack-controlled goal operations only. Approval is a local operator attestation, not identity authentication or native process verification. No native spawn interception, process termination, or automatic dispatch is claimed.
+
 ## [0.4.0] - 2026-09-08
 
 ### Added

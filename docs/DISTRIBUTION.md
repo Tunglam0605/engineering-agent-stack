@@ -78,7 +78,9 @@ A successful update uses `git merge --ff-only origin/main`, checks generated ada
 eas = eas_cli.cli:main
 ```
 
-Developers may install the CLI with `pip install .`. The package has no unconditional runtime dependencies; The managed/package runtime includes PyYAML for adapter generation; Python 3.9/3.10 additionally installs `tomli` because `tomllib` is standard-library only from Python 3.11. The one-line bootstrap remains the recommended full-stack installation because it also manages the source checkout and generated Codex artifacts.
+Developers may install the CLI with `pip install .`. The managed/package runtime includes PyYAML for adapter generation; Python 3.9/3.10 additionally installs `tomli` because `tomllib` is standard-library only from Python 3.11. The one-line bootstrap remains the recommended full-stack installation because it also manages the source checkout and generated Codex artifacts.
+
+The v0.5.0 wheel includes `runtime.workflow` and snapshot validation. Goal commands still require a canonical source checkout (`EAS_REPO` or the managed checkout) for role/policy data. Release smoke runs installed goal recovery outside the source tree on Linux and Windows. Version 2 goal snapshots are not writable by older releases; see [workflow migration and durability](WORKFLOW.md).
 
 ## Release gate
 

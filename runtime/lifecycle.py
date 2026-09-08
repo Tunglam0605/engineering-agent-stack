@@ -13,6 +13,7 @@ from typing import Dict, Iterator, List, Optional, Tuple
 import yaml
 
 from .preflight import _canonical_scope
+from .workflow_state import empty_workflow, strict_json, timestamp, validate_workflow
 
 ACTIVE_STATES = {"pending", "running"}
 RESUMABLE_STATES = {"pending", "running", "completed"}
@@ -62,6 +63,7 @@ class GoalAssignment:
     change_set: Optional[str] = None
     created_at: str = field(default_factory=_utc_now)
     updated_at: str = field(default_factory=_utc_now)
+    attempt_started_at: Optional[str] = None
 
     def __post_init__(self) -> None:
         self.assignment_id = _nonempty("assignment_id", self.assignment_id)
@@ -74,6 +76,10 @@ class GoalAssignment:
             self.change_set = _nonempty("change_set", self.change_set)
         self.created_at = _nonempty("created_at", self.created_at)
         self.updated_at = _nonempty("updated_at", self.updated_at)
+        timestamp(self.created_at)
+        timestamp(self.updated_at)
+        if self.attempt_started_at is not None:
+            timestamp(self.attempt_started_at)
 
     @classmethod
     def from_dict(cls, payload: dict) -> "GoalAssignment":
@@ -88,6 +94,7 @@ class GoalAssignment:
             change_set=payload.get("change_set"),
             created_at=payload["created_at"],
             updated_at=payload["updated_at"],
+            attempt_started_at=payload.get("attempt_started_at"),
         )
 
 
@@ -99,6 +106,7 @@ class GoalState:
     revision: int = 0
     created_at: str = field(default_factory=_utc_now)
     updated_at: str = field(default_factory=_utc_now)
+    workflow: dict = field(default_factory=empty_workflow)
 
     def __post_init__(self) -> None:
         self.goal_id = _validate_goal_id(self.goal_id)
@@ -115,25 +123,34 @@ class GoalState:
             raise ValueError("assignment ids must be unique")
         self.created_at = _nonempty("created_at", self.created_at)
         self.updated_at = _nonempty("updated_at", self.updated_at)
+        timestamp(self.created_at)
+        timestamp(self.updated_at)
+        for ident in ids:
+            if not re.fullmatch(r'a-[0-9]{4,}', ident) or int(ident[2:]) >= self.next_sequence:
+                raise ValueError('assignment id must precede next_sequence')
+        validate_workflow(self.workflow, self.revision, set(ids))
 
     def as_dict(self) -> dict:
         return {
-            "version": 1,
+            "version": 2,
             "goal_id": self.goal_id,
             "next_sequence": self.next_sequence,
             "revision": self.revision,
             "created_at": self.created_at,
             "updated_at": self.updated_at,
             "assignments": [asdict(item) for item in self.assignments],
+            "workflow": self.workflow,
         }
 
     @classmethod
     def from_dict(cls, payload: dict) -> "GoalState":
-        if not isinstance(payload, dict) or payload.get("version") != 1:
-            raise ValueError("goal state must be a version 1 object")
+        if not isinstance(payload, dict) or type(payload.get('version')) is not int or payload['version'] not in (1, 2):
+            raise ValueError("goal state must be a version 1 or 2 object")
         assignments = payload.get("assignments")
         if not isinstance(assignments, list):
             raise ValueError("goal state assignments must be a list")
+        if payload['version'] == 2 and 'revision' not in payload:
+            raise ValueError('version 2 goal state requires revision')
         return cls(
             goal_id=payload["goal_id"],
             next_sequence=payload["next_sequence"],
@@ -141,6 +158,7 @@ class GoalState:
             created_at=payload["created_at"],
             updated_at=payload["updated_at"],
             assignments=[GoalAssignment.from_dict(item) for item in assignments],
+            workflow=payload['workflow'] if payload['version'] == 2 else payload.get('workflow', empty_workflow()),
         )
 
 
@@ -172,6 +190,9 @@ class LifecyclePolicy:
     max_architect_per_goal: int
     max_reviewer_per_change_set: int
     max_same_role_domain_scope_active: int
+    stale_after_seconds: int
+    timeout_after_seconds: int
+    approval_ttl_seconds: int
 
     @classmethod
     def from_repository(cls, root: Path) -> "LifecyclePolicy":
@@ -190,6 +211,9 @@ class LifecyclePolicy:
             "max_architect_per_goal": limits.get("default_max_architect_assignments_per_goal"),
             "max_reviewer_per_change_set": limits.get("default_max_reviewer_assignments_per_change_set"),
             "max_same_role_domain_scope_active": limits.get("max_same_role_domain_scope_active"),
+            "stale_after_seconds": lifecycle.get('stale_after_seconds', 3600),
+            "timeout_after_seconds": lifecycle.get('timeout_after_seconds', 86400),
+            "approval_ttl_seconds": lifecycle.get('approval_ttl_seconds', 900),
         }
         for name, value in values.items():
             if not isinstance(value, int) or isinstance(value, bool) or value < 1:
@@ -260,10 +284,16 @@ class GoalStore:
         if not self.state_path.is_file():
             raise ValueError("goal is not initialized: " + self.goal_id)
         try:
-            payload = json.loads(self.state_path.read_text(encoding="utf-8"))
-        except json.JSONDecodeError as exc:
+            payload = strict_json(self.state_path.read_text(encoding="utf-8"))
+        except (ValueError, UnicodeError) as exc:
             raise ValueError("goal state is invalid JSON: " + str(exc)) from exc
-        return GoalState.from_dict(payload)
+        try:
+            state = GoalState.from_dict(payload)
+        except (KeyError, TypeError) as exc:
+            raise ValueError('malformed goal state') from exc
+        if state.goal_id != self.goal_id:
+            raise ValueError('goal state id does not match store')
+        return state
 
     def load(self) -> GoalState:
         return self._load_unlocked()
@@ -287,9 +317,19 @@ class GoalStore:
         payload = state.as_dict()
         payload["revision"] = next_revision
         payload["updated_at"] = next_updated_at
+        GoalState.from_dict(payload)
         temp = self.state_path.with_suffix(".json.tmp")
-        temp.write_text(json.dumps(payload, sort_keys=True, indent=2) + "\n", encoding="utf-8")
+        with temp.open('w', encoding='utf-8', newline='\n') as handle:
+            handle.write(json.dumps(payload, sort_keys=True, indent=2, allow_nan=False) + '\n')
+            handle.flush()
+            os.fsync(handle.fileno())
         temp.replace(self.state_path)
+        if os.name == 'posix':
+            directory_fd = os.open(str(self.directory), os.O_RDONLY)
+            try:
+                os.fsync(directory_fd)
+            finally:
+                os.close(directory_fd)
         state.revision = next_revision
         state.updated_at = next_updated_at
 
@@ -340,6 +380,20 @@ class LifecycleGate:
         if role not in self.role_write:
             raise ValueError("unknown role: " + role)
         return self.role_write[role]
+
+    def suspects(self, state: GoalState) -> List[dict]:
+        now = datetime.now(timezone.utc)
+        result = []
+        for item in state.assignments:
+            if item.state not in ACTIVE_STATES:
+                continue
+            age = (now - timestamp(item.attempt_started_at or item.created_at)).total_seconds()
+            idle = (now - timestamp(item.updated_at)).total_seconds()
+            reason = ('timeout' if age >= self.policy.timeout_after_seconds else
+                      'stale' if idle >= self.policy.stale_after_seconds else None)
+            if reason:
+                result.append({'assignment_id': item.assignment_id, 'reason': reason})
+        return result
 
     def _counters(self, state: GoalState) -> dict:
         active = [item for item in state.assignments if item.state in ACTIVE_STATES]
@@ -423,6 +477,9 @@ class LifecycleGate:
                 counters,
                 dict(justification),
             )
+
+        if self.suspects(state):
+            return decision('ESCALATE', ['suspect executor requires explicit reconciliation before dispatch'])
 
         exact = [
             item
@@ -600,7 +657,8 @@ class LifecycleGate:
             return result, assignment
 
     def _transition_locked(
-        self, store: GoalStore, state: GoalState, assignment_id: str, new_state: str
+        self, store: GoalStore, state: GoalState, assignment_id: str, new_state: str,
+        approval_id: Optional[str] = None,
     ) -> GoalAssignment:
         if not store._lock_held:
             raise RuntimeError("assignment transition requires the goal lock")
@@ -610,6 +668,20 @@ class LifecycleGate:
         for item in state.assignments:
             if item.assignment_id == assignment_id:
                 old = item.state
+                from .workflow import Workflow
+                flow = Workflow(self)
+                action = 'transition:' + new_state
+                if approval_id:
+                    receipt = flow.receipt(state, approval_id, action, assignment_id)
+                    if receipt:
+                        # Return historical acknowledgement without another state write.
+                        return GoalAssignment.from_dict({**asdict(item), 'state': receipt['state']})
+                suspect = any(s['assignment_id'] == assignment_id for s in self.suspects(state))
+                risky = (suspect or (old in ACTIVE_STATES and new_state in {'failed', 'blocked'})
+                         or (old in {'failed', 'blocked'} and new_state != old)
+                         or (old == 'running' and new_state == 'pending'))
+                if risky or approval_id:
+                    flow.require_approval(state, approval_id, action, assignment_id)
                 if old not in ACTIVE_STATES and new_state in ACTIVE_STATES:
                     counters = self._counters(state)
                     writer = self._role_is_writer(item.role)
@@ -630,6 +702,10 @@ class LifecycleGate:
                         raise ValueError("reader capacity reached; cannot reactivate assignment")
                 item.state = new_state
                 item.updated_at = _utc_now()
+                if old not in ACTIVE_STATES and new_state in ACTIVE_STATES or old == 'running' and new_state == 'pending':
+                    item.attempt_started_at = item.updated_at
+                if approval_id:
+                    flow.record_receipt(state, approval_id, action, item)
                 store._save_unlocked(state)
                 store._append_event_unlocked(
                     "assignment_transition",
@@ -639,11 +715,12 @@ class LifecycleGate:
         raise ValueError("assignment not found: " + assignment_id)
 
     def transition_atomic(
-        self, store: GoalStore, assignment_id: str, new_state: str
+        self, store: GoalStore, assignment_id: str, new_state: str,
+        approval_id: Optional[str] = None,
     ) -> GoalAssignment:
         with store.locked():
             state = store._load_unlocked()
-            return self._transition_locked(store, state, assignment_id, new_state)
+            return self._transition_locked(store, state, assignment_id, new_state, approval_id)
 
     def summary(self, state: GoalState) -> dict:
         counters = self._counters(state)
@@ -659,4 +736,6 @@ class LifecycleGate:
             **counters,
             "budget_state": budget,
             "assignments": [asdict(item) for item in state.assignments],
+            "suspect": self.suspects(state),
+            "checkpoint": state.workflow['checkpoint'],
         }

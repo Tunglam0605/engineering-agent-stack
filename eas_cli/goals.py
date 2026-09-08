@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Optional
 
 from runtime.lifecycle import GoalStore, LifecycleGate
+from runtime.workflow import Workflow
 
 from .paths import resolve_repo
 
@@ -45,6 +46,8 @@ def _render(payload: dict, as_json: bool) -> None:
         return
     if payload.get("command") == "goal-transition":
         print("{} -> {}".format(payload["assignment_id"], payload["state"]))
+        return
+    print(json.dumps(payload, sort_keys=True, indent=2))
 
 
 def goal_init(goal_id: str, project: Path, *, as_json: bool = False) -> int:
@@ -122,11 +125,12 @@ def goal_transition(
     state_name: str,
     *,
     as_json: bool = False,
+    approval_id: Optional[str] = None,
 ) -> int:
     project_root = _git_root(project)
     store = GoalStore(project_root, goal_id)
     gate = LifecycleGate(resolve_repo(required=True))
-    assignment = gate.transition_atomic(store, assignment_id, state_name)
+    assignment = gate.transition_atomic(store, assignment_id, state_name, approval_id=approval_id)
     payload = {
         "command": "goal-transition",
         "goal_id": goal_id,
@@ -134,4 +138,25 @@ def goal_transition(
         "state": assignment.state,
     }
     _render(payload, as_json)
+    return 0
+
+
+def goal_workflow(args) -> int:
+    store = GoalStore(_git_root(args.project), args.goal_id)
+    flow = Workflow(LifecycleGate(resolve_repo(required=True)))
+    command = args.goal_command
+    if command == 'checkpoint':
+        payload = flow.checkpoint(store, args.stage, json.loads(args.evidence), args.revision)
+    elif command == 'approve':
+        payload = flow.approve(store, args.action, args.target, args.revision, args.approver,
+                               args.reason, args.executor_stopped_evidence)
+    elif command == 'recover':
+        payload = flow.recover(store, args.assignment_id, args.approval)
+    elif command == 'plan':
+        payload = flow.plan(store)
+    elif command == 'export':
+        payload = flow.export(store)
+    else:
+        raise ValueError('unknown workflow command')
+    _render(payload, args.json or command == 'export')
     return 0

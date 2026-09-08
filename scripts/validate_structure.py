@@ -27,6 +27,8 @@ REQUIRED = [
     "scripts/provider_probe_codex.py", "scripts/provider-probe.ps1",
     "scripts/codex_capture_lib.py", "scripts/benchmark_task_lib.py", "scripts/normalize_codex_exec.py", "scripts/capture_codex_exec.py", "scripts/promote_run_capture.py", "scripts/prepare_benchmark_task.py", "scripts/grade_benchmark_task.py", "scripts/agent_status.py", "scripts/resolve_delegation.py",
     "tests/test_runtime_first.py", "tests/test_cli_distribution.py",
+    "runtime/workflow.py", "runtime/workflow_state.py", "tests/test_durable_workflow.py",
+    "docs/WORKFLOW.md", "scripts/smoke_goal_recovery.py",
 ]
 
 CORE_ROLES = ["scout", "researcher", "implementer", "debugger", "test-engineer", "reviewer", "architect"]
