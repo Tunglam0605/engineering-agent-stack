@@ -26,6 +26,17 @@ Delegate when the task benefits from isolated context, specialist evidence, inde
 - `reviewer`: independent correctness/regression review; do not self-review an implementation through the same worker.
 - `architect`: high-risk architecture, realtime/safety/security/release-critical trade-offs.
 
+### Lifecycle and fan-out control
+
+- Resume before spawn: before creating a new child, prefer a follow-up/resume on an existing child when role, problem domain, and scope are materially the same and its evidence remains relevant.
+- Spawn a fresh child only when independent parallelism materially reduces elapsed time, independent review needs a separate context, or the existing child context is stale/mismatched.
+- Default to at most 3 parallel read-only children and 1 writer scope owner. Do not create multiple active children with the same role and same effective scope.
+- Treat 8 child assignments in one goal as a soft reconciliation point: inspect active/done work, merge overlapping investigations, and explicitly justify any further spawn.
+- Treat 12 child assignments as the ordinary hard fan-out ceiling. Beyond it, integrate, serialize, or escalate instead of spawning more children. Explicit acceptance diagnostics and a required independent safety/release review may exceed the ceiling only with a stated reason.
+- Architect is normally one consultation per goal. Continue the same architect by follow-up when the decision is unchanged; use another architect only if assumptions/interfaces/safety constraints materially changed.
+- Reviewer is normally one independent reviewer per meaningful change-set. Reuse that reviewer for fix verification instead of spawning a new reviewer for every patch.
+- Use short stable names such as `scout: gateway`, `debugger: packaging`, or `reviewer: release`; avoid version/retry suffixes when an existing child can be resumed.
+
 ### Execution constraints
 
 - The parent owns decomposition, context allocation, integration, escalation, and the final answer.

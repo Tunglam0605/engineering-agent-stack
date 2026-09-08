@@ -97,9 +97,11 @@ Classify
                                   done                      escalate
 ```
 
-## Concurrency
+## Concurrency and lifecycle
 
 Parallelism is valuable mainly for independent, read-heavy work. Concurrent write assignments require disjoint path ownership. Shared-file work is serialized unless a future transactional mechanism proves safe.
+
+The default lifecycle policy is resume-before-spawn: at most three read-only children in parallel, one writer scope owner, a soft reconciliation point at eight child assignments per goal, and an ordinary hard spawn ceiling at twelve. Architect is normally one consultation per goal and reviewer one independent worker per meaningful change-set; follow-up/resume is preferred when continuity is useful. These are orchestration-policy limits, not a claim that provider-native spawn APIs are automatically intercepted. See `policies/agent-lifecycle.md`.
 
 ## Escalation
 

@@ -141,6 +141,48 @@ def main() -> int:
             failures,
         )
 
+    lifecycle = routing_policy.get("lifecycle")
+    limits = routing_policy.get("limits")
+    if not isinstance(lifecycle, dict):
+        failures.append("routing policy: lifecycle must be a mapping")
+    else:
+        if lifecycle.get("reuse_strategy") != "resume-before-spawn":
+            failures.append("routing policy: lifecycle.reuse_strategy must be resume-before-spawn")
+        match_keys = lifecycle.get("reuse_match_keys")
+        if not isinstance(match_keys, list) or not all(
+            isinstance(item, str) and item.strip() for item in match_keys
+        ):
+            failures.append("routing policy: lifecycle.reuse_match_keys must be a list of non-empty strings")
+        elif not {"role", "task_domain", "write_scope"}.issubset(set(match_keys)):
+            failures.append("routing policy: lifecycle.reuse_match_keys must include role, task_domain, write_scope")
+
+    if not isinstance(limits, dict):
+        failures.append("routing policy: limits must be a mapping")
+    else:
+        expected_positive = (
+            "default_max_parallel_readers",
+            "default_max_parallel_writers",
+            "soft_max_child_assignments_per_goal",
+            "hard_max_child_assignments_per_goal",
+            "default_max_architect_assignments_per_goal",
+            "default_max_reviewer_assignments_per_change_set",
+            "max_same_role_scope_active",
+        )
+        for key in expected_positive:
+            value = limits.get(key)
+            if not isinstance(value, int) or isinstance(value, bool) or value < 1:
+                failures.append(f"routing policy: limits.{key} must be a positive integer")
+        soft = limits.get("soft_max_child_assignments_per_goal")
+        hard = limits.get("hard_max_child_assignments_per_goal")
+        if isinstance(soft, int) and not isinstance(soft, bool) and isinstance(hard, int) and not isinstance(hard, bool) and hard < soft:
+            failures.append("routing policy: hard child-assignment limit must be >= soft limit")
+        if limits.get("default_max_parallel_readers") != 3:
+            failures.append("routing policy: default_max_parallel_readers must be 3 under the bounded lifecycle policy")
+        if limits.get("default_max_parallel_writers") != 1:
+            failures.append("routing policy: default_max_parallel_writers must be 1")
+        if limits.get("recursive_delegation") is not False:
+            failures.append("routing policy: recursive_delegation must be false")
+
     codex_provider = codex_role_map.get("provider")
     if not isinstance(codex_provider, str) or not codex_provider.strip():
         failures.append("Codex role-profiles.yaml: provider must be a non-empty string")

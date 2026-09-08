@@ -18,6 +18,10 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--input", type=Path, required=True, help="JSON status snapshot")
     parser.add_argument("--format", choices=("text", "json"), default="text")
+    parser.add_argument("--summary", action="store_true", help="include goal fan-out summary")
+    parser.add_argument("--soft-limit", type=int, default=8)
+    parser.add_argument("--hard-limit", type=int, default=12)
+    parser.add_argument("--goal-id", help="parent assignment id to summarize when snapshot contains multiple goals")
     args = parser.parse_args()
     try:
         payload = json.loads(args.input.read_text(encoding="utf-8"))
@@ -27,7 +31,29 @@ def main() -> int:
     except (OSError, ValueError, json.JSONDecodeError, KeyError, TypeError) as exc:
         print("ERROR: " + str(exc), file=sys.stderr)
         return 2
-    print(registry.to_json() if args.format == "json" else registry.to_text())
+    try:
+        if args.format == "json":
+            if args.summary:
+                body = registry.as_dict()
+                body["summary"] = registry.summary(
+                    soft_limit=args.soft_limit, hard_limit=args.hard_limit, goal_id=args.goal_id
+                )
+                print(json.dumps(body, sort_keys=True, separators=(",", ":")))
+            else:
+                print(registry.to_json())
+        else:
+            text = registry.to_text()
+            if text:
+                print(text)
+            if args.summary:
+                print(
+                    registry.summary_text(
+                        soft_limit=args.soft_limit, hard_limit=args.hard_limit, goal_id=args.goal_id
+                    )
+                )
+    except ValueError as exc:
+        print("ERROR: " + str(exc), file=sys.stderr)
+        return 2
     return 0
 
 

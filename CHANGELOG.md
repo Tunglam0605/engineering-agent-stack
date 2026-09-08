@@ -6,6 +6,18 @@ All notable project changes will be documented here.
 
 No unreleased changes.
 
+## [0.3.1] - 2026-09-08
+
+### Added
+- Goal-level fan-out guidance with an 8-assignment soft reconciliation point and 12-assignment ordinary hard ceiling.
+- Resume-before-spawn lifecycle policy and stable role/domain assignment naming.
+- Agent-registry fan-out summary with active/terminal/per-role counts and budget state.
+
+### Changed
+- Default parallel read-only children reduced from 4 to 3; writer ownership remains 1 scope owner.
+- Architect defaults to one consultation per goal and reviewer to one independent worker per meaningful change-set, with follow-up reuse preferred.
+- Parent Codex instructions now explicitly reconcile existing children before spawning more work.
+
 ## [0.3.0] - 2026-09-08
 
 ### Added

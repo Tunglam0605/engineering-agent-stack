@@ -84,7 +84,7 @@ class CliDistributionTests(unittest.TestCase):
         result = self.run_cli("version")
 
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertEqual(result.stdout.strip(), "eas 0.3.0")
+        self.assertEqual(result.stdout.strip(), "eas 0.3.1")
 
         wrapper = subprocess.run(
             [PYTHON, str(ROOT / "scripts" / "eas.py"), "version"],
@@ -96,7 +96,7 @@ class CliDistributionTests(unittest.TestCase):
             check=False,
         )
         self.assertEqual(wrapper.returncode, 0, wrapper.stderr)
-        self.assertEqual(wrapper.stdout.strip(), "eas 0.3.0")
+        self.assertEqual(wrapper.stdout.strip(), "eas 0.3.1")
 
     def test_doctor_and_status_json_are_read_only_and_structured(self) -> None:
         before = sorted(path.relative_to(self.home) for path in self.home.rglob("*"))
@@ -109,7 +109,7 @@ class CliDistributionTests(unittest.TestCase):
         doctor = json.loads(doctor_result.stdout)
         status = json.loads(status_result.stdout)
         self.assertEqual(doctor["command"], "doctor")
-        self.assertEqual(doctor["version"], "0.3.0")
+        self.assertEqual(doctor["version"], "0.3.1")
         self.assertIn(doctor["core"]["status"], {"HEALTHY", "DEGRADED"})
         self.assertEqual(doctor["provider"], {"status": "UNKNOWN", "probed": False})
         self.assertEqual(
@@ -117,7 +117,7 @@ class CliDistributionTests(unittest.TestCase):
             {"python", "git", "codex", "source", "personal", "project"},
         )
         self.assertEqual(status["command"], "status")
-        self.assertEqual(status["version"], "0.3.0")
+        self.assertEqual(status["version"], "0.3.1")
         self.assertEqual(status["roles"]["expected"], 7)
         self.assertEqual(len(status["roles"]["canonical"]), 7)
         self.assertEqual(
@@ -425,7 +425,7 @@ class CliDistributionTests(unittest.TestCase):
 
     def test_release_tag_validator_accepts_only_package_version(self) -> None:
         good = subprocess.run(
-            [PYTHON, str(ROOT / "scripts" / "validate_release_tag.py"), "--tag", "v0.3.0"],
+            [PYTHON, str(ROOT / "scripts" / "validate_release_tag.py"), "--tag", "v0.3.1"],
             cwd=str(ROOT), text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, encoding="utf-8", check=False,
         )
         bad = subprocess.run(

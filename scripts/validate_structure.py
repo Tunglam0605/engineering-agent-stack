@@ -15,7 +15,7 @@ REQUIRED = [
     "policies/delegation.md", "policies/context-budget.md", "policies/escalation.md", "policies/quality-gates.md",
     "schemas/agent-contract.yaml", "schemas/assignment-result.yaml", "schemas/benchmark-record.yaml", "schemas/run-capture.yaml", "schemas/benchmark-task.yaml",
     "schemas/delegation-request.yaml", "schemas/delegation-request.example.yaml", "schemas/delegation-preflight.yaml", "schemas/resolved-execution-plan.yaml", "schemas/agent-status.yaml", "schemas/context-packet-benchmark.yaml",
-    "runtime/__init__.py", "runtime/contracts.py", "runtime/preflight.py", "runtime/registry.py", "runtime/context_packet.py",
+    "runtime/__init__.py", "runtime/contracts.py", "runtime/preflight.py", "runtime/registry.py", "runtime/context_packet.py", "policies/agent-lifecycle.md",
     "eas_cli/__init__.py", "eas_cli/__main__.py", "eas_cli/version.py", "eas_cli/paths.py", "eas_cli/health.py", "eas_cli/operations.py", "eas_cli/cli.py",
     "agents/core/README.md", "agents/specialists/README.md",
     "evals/README.md", "evals/routing-cases.yaml",

@@ -72,6 +72,85 @@ class AgentRegistry:
     def as_dict(self) -> dict:
         return {"agents": [self._agents[key].as_dict() for key in sorted(self._agents)]}
 
+    @staticmethod
+    def _validate_limit(name: str, value: int) -> None:
+        if not isinstance(value, int) or isinstance(value, bool) or value < 1:
+            raise ValueError(name + " must be a positive integer")
+
+    def summary(
+        self,
+        *,
+        soft_limit: int = 8,
+        hard_limit: int = 12,
+        goal_id: Optional[str] = None,
+    ) -> dict:
+        self._validate_limit("soft_limit", soft_limit)
+        self._validate_limit("hard_limit", hard_limit)
+        if hard_limit < soft_limit:
+            raise ValueError("hard_limit must be greater than or equal to soft_limit")
+        if goal_id is not None and (not isinstance(goal_id, str) or not goal_id.strip()):
+            raise ValueError("goal_id must be null or a non-empty string")
+
+        all_agents = list(self._agents.values())
+        observed_goals = sorted(
+            {item.parent_assignment_id for item in all_agents if item.parent_assignment_id is not None}
+        )
+        if goal_id is None and len(observed_goals) > 1:
+            raise ValueError("goal_id is required when registry contains multiple parent goals")
+        if goal_id is not None and goal_id not in observed_goals:
+            raise ValueError("goal_id was not found in registry: " + goal_id)
+        effective_goal = goal_id if goal_id is not None else (observed_goals[0] if observed_goals else None)
+        agents = (
+            [item for item in all_agents if item.parent_assignment_id == effective_goal]
+            if effective_goal is not None
+            else all_agents
+        )
+        active_states = {"pending", "running"}
+        terminal_states = {"completed", "failed", "blocked"}
+        by_role: Dict[str, int] = {}
+        for item in agents:
+            by_role[item.role] = by_role.get(item.role, 0) + 1
+
+        total = len(agents)
+        if total >= hard_limit:
+            budget_state = "hard_limit"
+        elif total >= soft_limit:
+            budget_state = "soft_limit"
+        else:
+            budget_state = "within_budget"
+
+        return {
+            "goal_id": effective_goal,
+            "total_assignments": total,
+            "active_assignments": sum(item.state in active_states for item in agents),
+            "terminal_assignments": sum(item.state in terminal_states for item in agents),
+            "completed_assignments": sum(item.state == "completed" for item in agents),
+            "failed_assignments": sum(item.state == "failed" for item in agents),
+            "blocked_assignments": sum(item.state == "blocked" for item in agents),
+            "by_role": {key: by_role[key] for key in sorted(by_role)},
+            "soft_limit": soft_limit,
+            "hard_limit": hard_limit,
+            "budget_state": budget_state,
+        }
+
+    def summary_text(
+        self,
+        *,
+        soft_limit: int = 8,
+        hard_limit: int = 12,
+        goal_id: Optional[str] = None,
+    ) -> str:
+        summary = self.summary(soft_limit=soft_limit, hard_limit=hard_limit, goal_id=goal_id)
+        roles = ",".join(
+            key + "=" + str(value) for key, value in summary["by_role"].items()
+        ) or "none"
+        return (
+            "SUMMARY goal={goal} total={total_assignments} active={active_assignments} "
+            "completed={completed_assignments} failed={failed_assignments} blocked={blocked_assignments} "
+            "terminal={terminal_assignments} budget={budget_state} "
+            "soft={soft_limit} hard={hard_limit} roles={roles}"
+        ).format(goal=summary["goal_id"] or "?", roles=roles, **summary)
+
     def to_json(self) -> str:
         return json.dumps(self.as_dict(), sort_keys=True, separators=(",", ":"))
 

@@ -1,4 +1,4 @@
-version: 3
+version: 4
 status: candidate
 default: direct
 rules:
@@ -62,11 +62,31 @@ quality_gate:
     - critical-risk
     - release-critical
   verify_every_change: true
+lifecycle:
+  reuse_strategy: resume-before-spawn
+  reuse_match_keys:
+    - role
+    - task_domain
+    - write_scope
+  spawn_new_only_when:
+    - independent_parallelism_materially_improves_elapsed_time
+    - independent_review_requires_separate_context
+    - existing_child_context_is_stale_or_wrong
+  naming:
+    format: "<role>: <domain>"
+    avoid_version_suffix: true
 limits:
-  default_max_parallel_readers: 4
+  default_max_parallel_readers: 3
   default_max_parallel_writers: 1
   recursive_delegation: false
+  soft_max_child_assignments_per_goal: 8
+  hard_max_child_assignments_per_goal: 12
+  default_max_architect_assignments_per_goal: 1
+  default_max_reviewer_assignments_per_change_set: 1
+  max_same_role_scope_active: 1
 notes:
   - Rule order is significant; the first matching rule wins.
   - Critical risk is gated before normal task-shape routing; an independent critical review remains a reviewer task at the critical profile.
   - This file routes already-classified signals. Natural-language task classification is evaluated separately.
+  - Lifecycle limits are orchestration policy, not a claim that provider-native spawn APIs are transparently intercepted.
+  - At the soft goal budget, reconcile/reuse existing children before any new spawn; at the hard ordinary-spawn ceiling, integrate, serialize, or escalate instead of creating more children.

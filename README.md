@@ -2,7 +2,7 @@
 
 > Turn Codex into a bounded engineering team: **7 focused roles, direct-first routing, safe writes, independent verification, and a small distribution CLI.**
 
-[![Status](https://img.shields.io/badge/status-v0.3.0%20stable-blue)](#release-status)
+[![Status](https://img.shields.io/badge/status-v0.3.1%20stable-blue)](#release-status)
 [![CI](https://github.com/Tunglam0605/engineering-agent-stack/actions/workflows/validate.yml/badge.svg)](https://github.com/Tunglam0605/engineering-agent-stack/actions/workflows/validate.yml)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.9%2B-blue)](pyproject.toml)
@@ -104,8 +104,11 @@ Task
 Current policy keeps parallelism conservative:
 
 ```text
-maximum parallel readers: 4
+maximum parallel readers: 3
 default parallel writer ownership: 1 scope owner
+soft child-assignment budget: 8 per goal
+hard ordinary-spawn ceiling: 12 per goal
+resume-before-spawn: enabled
 recursive delegation: disabled
 ```
 
@@ -297,9 +300,14 @@ See:
 
 ## Release status
 
-**v0.3.0** focuses on distribution and operational safety:
+**v0.3.1** keeps the v0.3 distribution surface stable and hardens orchestration lifecycle:
 
 - stable `eas` CLI;
+- resume-before-spawn lifecycle policy;
+- soft/hard per-goal child-assignment budgets;
+- conservative 3-reader / 1-writer parallelism;
+- architect/reviewer reuse guidance and stable assignment naming;
+- fan-out summary observability in the agent registry;
 - Windows and POSIX bootstrap installers;
 - read-only `doctor` / `status`;
 - safe project initialization;
