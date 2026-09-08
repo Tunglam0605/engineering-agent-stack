@@ -2,7 +2,7 @@
 
 > Turn Codex into a bounded engineering team: **7 focused roles, direct-first routing, safe writes, independent verification, and a small distribution CLI.**
 
-[![Status](https://img.shields.io/badge/status-v0.5.0%20stable-blue)](#release-status)
+[![Status](https://img.shields.io/badge/status-v0.6.0%20stable-blue)](#release-status)
 [![CI](https://github.com/Tunglam0605/engineering-agent-stack/actions/workflows/validate.yml/badge.svg)](https://github.com/Tunglam0605/engineering-agent-stack/actions/workflows/validate.yml)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.9%2B-blue)](pyproject.toml)
@@ -53,6 +53,15 @@ codex
 ```
 
 `eas init` installs project-scoped Codex role files and one managed orchestration block inside `AGENTS.md`. Existing project instructions outside that block are preserved.
+
+For v0.6 projects, activate one tracked declarative preset explicitly:
+
+```powershell
+eas init . --preset embedded   # or ros2 / release
+eas project status
+```
+
+This creates `.eas/project.toml` plus a canonical capability snapshot under `.git/eas/capabilities/`. Detection is read-only and never auto-selects a preset. Existing `.eas/project.toml` is never overwritten.
 
 Then give Codex the engineering task normally:
 
@@ -123,7 +132,14 @@ eas init [PROJECT]
 eas check
 eas update [--check]
 eas uninstall
+eas preset list
+eas preset show PRESET
+eas preset detect [--project PATH]
+eas preset check [PRESET] [--project PATH]
+eas project status [--project PATH]
+eas project migrate-snapshot [--project PATH]
 eas goal init GOAL_ID
+eas goal bind-capabilities GOAL_ID --revision N
 eas goal gate GOAL_ID --role ROLE --domain DOMAIN [--scope PATH] [--commit]
 eas goal transition GOAL_ID ASSIGNMENT_ID STATE
 eas goal status GOAL_ID [--json]
@@ -159,6 +175,46 @@ eas uninstall --project C:\Projects\robot --project-instructions
 ```
 
 See [`docs/CLI.md`](docs/CLI.md) for the command contract.
+
+## Declarative presets and capabilities (v0.6)
+
+v0.6 keeps the **same seven core roles** and adds a declarative capability layer rather than more agents.
+
+```text
+core defaults
+   < extension defaults
+   < active preset
+   < .eas/project.toml
+   < explicit allowlisted CLI override
+        |
+        v
+ResolvedCapabilitySnapshot (SHA-256)
+        |
+        +--> lazy skill selection (max 3)
+        +--> trusted rule checker references
+        `--> goal/preflight binding
+```
+
+Built-in presets:
+
+| Preset | Intended context | Detection boundary |
+|---|---|---|
+| `embedded` | STM32, FreeRTOS, realtime firmware and MCU integration | `.ioc`, `FreeRTOSConfig.h`, STM32 layout/build evidence |
+| `ros2` | ROS 2 nodes, interfaces, QoS, launch and integration | `package.xml`, ament/rclcpp, colcon evidence |
+| `release` | packaging, provenance and release-process hardening | release workflow/changelog/version context only; **never readiness** |
+
+Extensions are **declarative only**: no scripts, hooks, entrypoints, arbitrary code loading, dependency solver, preset inheritance, or MCP auto-launch. Rules may reference only trusted EAS-core checker IDs. Skill bodies/references are loaded only after bounded deterministic metadata selection.
+
+Useful commands:
+
+```powershell
+eas preset list
+eas preset detect --project .
+eas preset check embedded --project .
+eas project status --project .
+```
+
+See [`research/v0.6/contract-freeze.md`](research/v0.6/contract-freeze.md) for the frozen contract.
 
 ## Safety model
 
@@ -240,7 +296,7 @@ eas_cli/         distribution CLI: health, lifecycle, update and status
 agents/          provider-neutral core role definitions
 config/          semantic compute profiles and deterministic routing policy
 policies/        delegation, context, escalation and quality rules
-runtime/         provider-neutral preflight, plan, registry and context contracts
+runtime/         provider-neutral preflight, lifecycle, capability resolution and snapshot contracts
 adapters/        provider-specific generated artifacts
 benchmarks/      controlled quality/cost/latency experiments
 research/        source analysis and provenance
@@ -328,7 +384,19 @@ Checkpoint verification/review evidence with `eas goal checkpoint`, inspect inte
 
 ## Release status
 
-**v0.5.0** adds durable workflow checkpoints, explicit approval evidence, and safe assignment recovery while keeping the seven-role/model map stable:
+**v0.6.0** adds a deterministic declarative capability layer while preserving the v0.5 lifecycle/recovery/model-routing contracts and exactly seven core roles:
+
+- five strict public contracts: extension manifest, skill, rule, preset and project profile;
+- built-in `embedded`, `ros2`, and `release` presets;
+- exact deterministic precedence and per-value provenance lineage;
+- strict YAML/TOML validation and cross-platform path/case safety;
+- read-only evidence-based preset detection with ambiguity handling and no auto-activation;
+- metadata-first lazy skill selection bounded to at most three skills;
+- trusted checker registry separating declarative rules from executable enforcement;
+- canonical SHA-256 capability snapshots under `.git/eas/capabilities/`;
+- explicit project/goal snapshot migration with no silent rebind;
+- `eas preset ...`, `eas project ...`, and `eas init --preset ...` CLI surfaces;
+- durable v0.5 workflow checkpoints, explicit approval evidence, and safe assignment recovery remain intact:
 
 - `eas goal checkpoint/plan/approve/recover/export`;
 - revision-scoped approval consumption and idempotent recovery receipts;

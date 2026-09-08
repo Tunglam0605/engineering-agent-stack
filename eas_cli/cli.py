@@ -7,8 +7,12 @@ import sys
 from typing import Optional, Sequence
 
 from .health import doctor_payload, render_payload, status_payload
-from .goals import goal_gate, goal_init, goal_status, goal_transition, goal_workflow
+from .goals import goal_bind_capabilities, goal_gate, goal_init, goal_status, goal_transition, goal_workflow
 from .operations import init_project, run_installer, uninstall, update_source
+from .capabilities import (
+    initialize_profile_and_snapshot, preset_check, preset_detect, preset_list,
+    preset_show, project_migrate_snapshot, project_status,
+)
 from .version import __version__
 
 
@@ -35,6 +39,7 @@ def build_parser() -> argparse.ArgumentParser:
     init.add_argument("project", nargs="?", type=Path, default=Path.cwd())
     init.add_argument("--dry-run", action="store_true")
     init.add_argument("--force", action="store_true")
+    init.add_argument("--preset", choices=("embedded", "ros2", "release"), help="create tracked .eas/project.toml and bind a capability snapshot")
 
     check = sub.add_parser("check", help="verify a personal or project installation")
     scope = check.add_mutually_exclusive_group()
@@ -51,6 +56,33 @@ def build_parser() -> argparse.ArgumentParser:
     remove_scope.add_argument("--personal", action="store_true")
     remove.add_argument("--project-instructions", action="store_true")
     remove.add_argument("--dry-run", action="store_true")
+
+
+    preset = sub.add_parser("preset", help="inspect declarative v0.6 presets")
+    preset_sub = preset.add_subparsers(dest="preset_command", required=True)
+    preset_list_parser = preset_sub.add_parser("list", help="list built-in presets")
+    preset_list_parser.add_argument("--json", action="store_true")
+    preset_show_parser = preset_sub.add_parser("show", help="show one built-in preset")
+    preset_show_parser.add_argument("preset_id", choices=("embedded", "ros2", "release"))
+    preset_show_parser.add_argument("--json", action="store_true")
+    preset_detect_parser = preset_sub.add_parser("detect", help="read-only project capability recommendation")
+    preset_detect_parser.add_argument("--project", type=Path, default=Path.cwd())
+    preset_detect_parser.add_argument("--json", action="store_true")
+    preset_check_parser = preset_sub.add_parser("check", help="validate a preset and trusted checker references")
+    preset_check_parser.add_argument("preset_id", nargs="?", choices=("embedded", "ros2", "release"))
+    preset_check_parser.add_argument("--project", type=Path, default=Path.cwd())
+    preset_check_parser.add_argument("--override", action="append", default=[], help="allowlisted PATH=JSON_VALUE override")
+    preset_check_parser.add_argument("--json", action="store_true")
+
+    project_cmd = sub.add_parser("project", help="inspect tracked project capability state")
+    project_sub = project_cmd.add_subparsers(dest="project_command", required=True)
+    project_status_parser = project_sub.add_parser("status", help="show profile, detection and snapshot binding")
+    project_status_parser.add_argument("--project", type=Path, default=Path.cwd())
+    project_status_parser.add_argument("--json", action="store_true")
+    project_migrate_parser = project_sub.add_parser("migrate-snapshot", help="explicitly replace a drifted capability snapshot")
+    project_migrate_parser.add_argument("--project", type=Path, default=Path.cwd())
+    project_migrate_parser.add_argument("--expected-old-digest")
+    project_migrate_parser.add_argument("--json", action="store_true")
 
     goal = sub.add_parser("goal", help="manage bounded per-goal lifecycle state")
     goal_sub = goal.add_subparsers(dest="goal_command", required=True)
@@ -87,6 +119,12 @@ def build_parser() -> argparse.ArgumentParser:
     goal_transition_parser.add_argument("--project", type=Path, default=Path.cwd())
     goal_transition_parser.add_argument("--json", action="store_true")
     goal_transition_parser.add_argument('--approval', help='revision-scoped explicit approval ID')
+
+    goal_bind_parser = goal_sub.add_parser("bind-capabilities", help="explicitly bind/migrate a goal to the current project capability snapshot")
+    goal_bind_parser.add_argument("goal_id")
+    goal_bind_parser.add_argument("--project", type=Path, default=Path.cwd())
+    goal_bind_parser.add_argument("--revision", type=int, required=True)
+    goal_bind_parser.add_argument("--json", action="store_true")
 
     for command in ('checkpoint', 'plan', 'approve', 'recover', 'export'):
         workflow = goal_sub.add_parser(command, help='durable workflow ' + command)
@@ -133,7 +171,13 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             return run_installer(dry_run=args.dry_run, force=args.force)
 
         if args.command == "init":
-            return init_project(args.project, dry_run=args.dry_run, force=args.force)
+            if args.preset:
+                # Fail before project-role writes if an existing profile would be overwritten.
+                initialize_profile_and_snapshot(args.project, args.preset, dry_run=True)
+            code = init_project(args.project, dry_run=args.dry_run, force=args.force)
+            if code == 0 and args.preset and not args.dry_run:
+                initialize_profile_and_snapshot(args.project, args.preset, dry_run=False)
+            return code
 
         if args.command == "check":
             if args.project_instructions and args.project is None:
@@ -156,6 +200,27 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
                 dry_run=args.dry_run,
             )
 
+
+        if args.command == "preset":
+            if args.preset_command == "list":
+                return preset_list(as_json=args.json)
+            if args.preset_command == "show":
+                return preset_show(args.preset_id, as_json=args.json)
+            if args.preset_command == "detect":
+                return preset_detect(args.project, as_json=args.json)
+            if args.preset_command == "check":
+                return preset_check(
+                    args.project, args.preset_id, overrides=args.override, as_json=args.json
+                )
+
+        if args.command == "project":
+            if args.project_command == "status":
+                return project_status(args.project, as_json=args.json)
+            if args.project_command == "migrate-snapshot":
+                return project_migrate_snapshot(
+                    args.project, args.expected_old_digest, as_json=args.json
+                )
+
         if args.command == "goal":
             if args.goal_command == "init":
                 return goal_init(args.goal_id, args.project, as_json=args.json)
@@ -173,6 +238,10 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
                 return goal_transition(
                     args.goal_id, args.project, args.assignment_id, args.state, as_json=args.json,
                     approval_id=args.approval,
+                )
+            if args.goal_command == "bind-capabilities":
+                return goal_bind_capabilities(
+                    args.goal_id, args.project, args.revision, as_json=args.json
                 )
             return goal_workflow(args)
 

@@ -1,0 +1,21 @@
+kind: preset
+schema_version: 1
+id: release
+version: 0.6.0
+description: Release preparation, packaging, provenance, validation and guarded publication.
+skills: [release.hardening, release.provenance]
+required_rules: [release.clean-tree, release.version-consistency]
+defaults:
+  selection:
+    max_skills: 3
+    context_budget_tokens: 5000
+  skills:
+    enabled: [release.hardening, release.provenance]
+  rules:
+    required_rules: [release.clean-tree, release.version-consistency]
+  domain:
+    target: release
+  release:
+    require_clean_tree: true
+    require_tests: true
+detection_hints: [release-workflow, changelog, package-version]

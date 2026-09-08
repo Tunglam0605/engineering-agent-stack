@@ -1,0 +1,9 @@
+kind: rule
+schema_version: 1
+id: ros2.runtime-boundary
+version: 0.6.0
+classification: guidance
+scope: [ros2]
+severity: warning
+evidence: [node-graph, ownership]
+text: Node responsibilities, data ownership, callback execution model, QoS, and failure boundaries must be explicit.

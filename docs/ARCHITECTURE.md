@@ -63,6 +63,51 @@ This layer is **not a transparent hook inside provider-native runtimes**. Instal
 
 The lightweight agent registry is observability, not orchestration authority. Unknown provider telemetry stays unknown.
 
+### 5a. Declarative capability layer (v0.6)
+
+v0.6 inserts a deterministic capability-resolution layer **before** stack-controlled execution without replacing the existing preflight/lifecycle engine:
+
+```text
+tracked .eas/project.toml / explicit preset
+        |
+        v
+strict contract loader
+        |
+        v
+built-in declarative catalog
+        |
+        +--> read-only detector (recommendation only)
+        |
+        v
+core < extension < preset < project < CLI resolver
+        |
+        v
+ResolvedCapabilitySnapshot (canonical JSON + SHA-256)
+        |
+        +--> lazy bounded skill selection (max 3)
+        +--> trusted checker references
+        +--> delegation-plan digest
+        `--> .git/eas/capabilities/snapshot.json
+                 |
+                 `--> goal lifecycle binding / explicit migration
+```
+
+Public declarative contracts are exactly `extension-manifest`, `skill`, `rule`, `preset`, and `project-profile`. The built-in presets are `embedded`, `ros2`, and `release`. The seven core roles remain unchanged.
+
+The extension trust boundary is intentionally closed: no scripts, hooks, entrypoints, dynamic imports/eval, dependency solver, preset inheritance, MCP auto-launch, or remote-code/schema loading. Rules may reference only trusted EAS-core checker IDs; extension content does not supply executable validators.
+
+Resolver precedence is exactly:
+
+```text
+core defaults < extension defaults < preset < .eas/project.toml < explicit CLI override
+```
+
+Ordinary lists replace atomically. `rules.required_rules` is the only additive list. Unknown/null/deep-merge fields and equal-precedence extension conflicts fail closed. Per-field lineage and source digests are stored in the resolved snapshot.
+
+Detection identifies repository context, never readiness. A tracked project profile remains authoritative when detector evidence disagrees. Snapshot drift/corruption blocks configured stack-controlled operations until explicit migration; legacy projects without `.eas/project.toml` keep v0.5 semantics.
+
+See [`../research/v0.6/contract-freeze.md`](../research/v0.6/contract-freeze.md) for the normative contract.
+
 ### 6. Evaluation layer
 
 Evals answer: "Does this routing/role/prompt preserve required quality?"

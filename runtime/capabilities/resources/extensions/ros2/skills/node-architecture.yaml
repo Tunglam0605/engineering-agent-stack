@@ -1,0 +1,11 @@
+kind: skill
+schema_version: 1
+id: ros2.node-architecture
+version: 0.6.0
+summary: Design ROS 2 nodes, topics, services, actions, QoS, ownership, and lifecycle boundaries before code.
+roles: [scout, researcher, implementer, debugger, reviewer, architect]
+task_tags: [ros2, node, qos, architecture]
+triggers: [ros2, node, topic, qos, lifecycle, nav2]
+body: bodies/node-architecture.md
+references: []
+context_cost: 1000

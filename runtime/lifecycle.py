@@ -107,6 +107,7 @@ class GoalState:
     created_at: str = field(default_factory=_utc_now)
     updated_at: str = field(default_factory=_utc_now)
     workflow: dict = field(default_factory=empty_workflow)
+    capability_snapshot_digest: Optional[str] = None
 
     def __post_init__(self) -> None:
         self.goal_id = _validate_goal_id(self.goal_id)
@@ -129,10 +130,16 @@ class GoalState:
             if not re.fullmatch(r'a-[0-9]{4,}', ident) or int(ident[2:]) >= self.next_sequence:
                 raise ValueError('assignment id must precede next_sequence')
         validate_workflow(self.workflow, self.revision, set(ids))
+        if self.capability_snapshot_digest is not None and (
+            not isinstance(self.capability_snapshot_digest, str)
+            or not re.fullmatch(r"[0-9a-f]{64}", self.capability_snapshot_digest)
+        ):
+            raise ValueError("capability_snapshot_digest must be a lowercase SHA-256 hex digest or null")
 
     def as_dict(self) -> dict:
-        return {
-            "version": 2,
+        version = 3 if self.capability_snapshot_digest is not None else 2
+        payload = {
+            "version": version,
             "goal_id": self.goal_id,
             "next_sequence": self.next_sequence,
             "revision": self.revision,
@@ -141,16 +148,21 @@ class GoalState:
             "assignments": [asdict(item) for item in self.assignments],
             "workflow": self.workflow,
         }
+        if version == 3:
+            payload["capability_snapshot_digest"] = self.capability_snapshot_digest
+        return payload
 
     @classmethod
     def from_dict(cls, payload: dict) -> "GoalState":
-        if not isinstance(payload, dict) or type(payload.get('version')) is not int or payload['version'] not in (1, 2):
-            raise ValueError("goal state must be a version 1 or 2 object")
+        if not isinstance(payload, dict) or type(payload.get('version')) is not int or payload['version'] not in (1, 2, 3):
+            raise ValueError("goal state must be a version 1, 2 or 3 object")
         assignments = payload.get("assignments")
         if not isinstance(assignments, list):
             raise ValueError("goal state assignments must be a list")
-        if payload['version'] == 2 and 'revision' not in payload:
-            raise ValueError('version 2 goal state requires revision')
+        if payload['version'] in (2, 3) and 'revision' not in payload:
+            raise ValueError('version 2/3 goal state requires revision')
+        if payload['version'] == 3 and 'capability_snapshot_digest' not in payload:
+            raise ValueError('version 3 goal state requires capability_snapshot_digest')
         return cls(
             goal_id=payload["goal_id"],
             next_sequence=payload["next_sequence"],
@@ -158,7 +170,8 @@ class GoalState:
             created_at=payload["created_at"],
             updated_at=payload["updated_at"],
             assignments=[GoalAssignment.from_dict(item) for item in assignments],
-            workflow=payload['workflow'] if payload['version'] == 2 else payload.get('workflow', empty_workflow()),
+            workflow=payload['workflow'] if payload['version'] in (2, 3) else payload.get('workflow', empty_workflow()),
+            capability_snapshot_digest=payload.get("capability_snapshot_digest"),
         )
 
 
@@ -351,14 +364,54 @@ class GoalStore:
         with self.locked():
             self._append_event_unlocked(event, payload)
 
-    def initialize(self) -> GoalState:
+    def initialize(self, capability_snapshot_digest: Optional[str] = None) -> GoalState:
         with self.locked():
             if self.state_path.exists():
-                return self._load_unlocked()
-            state = GoalState(goal_id=self.goal_id)
+                state = self._load_unlocked()
+                if capability_snapshot_digest is not None and state.capability_snapshot_digest != capability_snapshot_digest:
+                    raise RuntimeError(
+                        "goal capability binding differs or is absent; use explicit bind-capabilities migration"
+                    )
+                return state
+            state = GoalState(
+                goal_id=self.goal_id, capability_snapshot_digest=capability_snapshot_digest
+            )
             self._save_unlocked(state)
-            self._append_event_unlocked("goal_initialized", {"goal_id": self.goal_id})
+            event = {"goal_id": self.goal_id}
+            if capability_snapshot_digest is not None:
+                event["capability_snapshot_digest"] = capability_snapshot_digest
+            self._append_event_unlocked("goal_initialized", event)
             return state
+
+    def bind_capability_snapshot(self, digest: str, expected_revision: int) -> GoalState:
+        if not isinstance(digest, str) or not re.fullmatch(r"[0-9a-f]{64}", digest):
+            raise ValueError("digest must be a lowercase SHA-256 hex string")
+        if type(expected_revision) is not int or expected_revision < 0:
+            raise ValueError("expected_revision must be a non-negative integer")
+        with self.locked():
+            state = self._load_unlocked()
+            if state.revision != expected_revision:
+                raise RuntimeError("goal revision changed; re-read state before capability migration")
+            if any(item.state in ACTIVE_STATES for item in state.assignments):
+                raise RuntimeError("cannot migrate capability binding while assignments are active")
+            if state.capability_snapshot_digest == digest:
+                return state
+            previous = state.capability_snapshot_digest
+            state.capability_snapshot_digest = digest
+            self._save_unlocked(state)
+            self._append_event_unlocked(
+                "capability_snapshot_bound",
+                {"previous_digest": previous, "digest": digest, "explicit": True},
+            )
+            return state
+
+    def require_capability_snapshot(self, digest: str) -> GoalState:
+        state = self.load()
+        if state.capability_snapshot_digest != digest:
+            raise RuntimeError(
+                "goal capability snapshot binding mismatch; explicit migration is required"
+            )
+        return state
 
 
 class LifecycleGate:

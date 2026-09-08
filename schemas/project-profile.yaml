@@ -1,0 +1,14 @@
+version: 1
+status: stable
+purpose: eas-v0.6-project-profile
+kind: project-profile
+required_fields: [kind, schema_version, id, preset]
+optional_fields: [values, required_rules, skills]
+path: .eas/project.toml
+constraints:
+  tracked: true
+  secrets_forbidden: true
+  local_override_file: unsupported
+notes:
+  - A tracked profile is authoritative over read-only detection; detection never auto-activates a preset.
+  - eas init --preset never overwrites an existing profile.

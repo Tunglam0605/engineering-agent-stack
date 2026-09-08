@@ -1,0 +1,20 @@
+kind: extension-manifest
+schema_version: 1
+id: ros2
+version: 0.6.0
+description: Declarative ROS 2 architecture and integration capability pack.
+requires_eas: ">=0.6.0,<0.7.0"
+provenance:
+  source: eas-builtin
+  revision: v0.6.0
+  license: MIT
+provides:
+  skills:
+    - skills/node-architecture.yaml
+    - skills/interface-testing.yaml
+  rules:
+    - rules/interface-compat.yaml
+    - rules/runtime-boundary.yaml
+  presets:
+    - presets/ros2.yaml
+defaults: {}

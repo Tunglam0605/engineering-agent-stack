@@ -6,6 +6,31 @@ All notable project changes will be documented here.
 
 No unreleased changes.
 
+## [0.6.0] - 2026-09-08
+
+### Added
+- Strict declarative v0.6 contracts for extension manifests, skills, rules, presets and tracked project profiles.
+- Built-in `embedded`, `ros2`, and `release` capability packs packaged inside the Python wheel.
+- Deterministic five-level configuration resolver with per-value lineage, atomic list replacement and additive `required_rules`.
+- Read-only evidence-based preset detection with bounded confidence, explicit ambiguity and no automatic activation.
+- Metadata-first lazy skill discovery/selection with a default maximum of three skills and explicit context budget.
+- Trusted core checker registry so declarative packages can reference checks without shipping executable validators.
+- Canonical SHA-256 `ResolvedCapabilitySnapshot` state under `.git/eas/capabilities/` with corruption/drift refusal.
+- `eas preset list/show/detect/check`, `eas project status/migrate-snapshot`, `eas init --preset`, and explicit `eas goal bind-capabilities`.
+- v0.6 negative-first regression coverage for parser/schema/path/merge/detection/skill/snapshot/profile/CLI boundaries.
+
+### Changed
+- Delegation requests and resolved execution plans can carry an optional capability snapshot digest; preflight can require an exact current digest.
+- Configured v0.6 goals use version 3 durable state containing the capability digest, while legacy/unconfigured projects retain v0.5 version-2 behavior.
+- Stack-controlled goal gate/transition/workflow paths require the configured project and goal snapshot bindings to agree.
+- Python packaging includes `runtime.capabilities` and all built-in declarative resources for source-independent wheel installs.
+
+### Safety boundary
+- v0.6 extensions are data only: scripts, hooks, entrypoints, dynamic import/eval, dependency solving, preset inheritance, remote code/schema loading and MCP auto-launch are unsupported and fail closed.
+- Presets/extensions cannot add roles or modify protected lifecycle/recovery/write-lease/approval/model/provider/routing semantics.
+- Release detection identifies process context only and never claims release readiness.
+- Capability drift is never silently rebound; project and goal migration are explicit revision/digest-checked operations.
+
 ## [0.5.0] - 2026-09-08
 
 ### Added

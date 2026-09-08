@@ -1,0 +1,21 @@
+version: 1
+status: stable-internal
+purpose: eas-v0.6-resolved-capability-snapshot
+required_fields:
+  - schema_version
+  - eas_version
+  - project_id
+  - active_preset
+  - sources
+  - resolved_values
+  - lineage
+  - selected_skills
+  - selected_rules
+  - detection
+  - digest
+persistence: .git/eas/capabilities/snapshot.json
+canonicalization: utf8-sorted-key-compact-json-sha256
+notes:
+  - Drift or corruption fails closed.
+  - Existing bindings never change silently; migration is explicit.
+  - The digest may bind preflight, goal lifecycle, checkpoint and recovery evidence.

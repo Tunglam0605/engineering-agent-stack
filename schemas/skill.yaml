@@ -1,0 +1,14 @@
+version: 1
+status: stable
+purpose: eas-v0.6-skill
+kind: skill
+required_fields: [kind, schema_version, id, version, summary, roles, task_tags, body, context_cost]
+optional_fields: [triggers, references]
+constraints:
+  schema_version: 1
+  roles: exactly-from-seven-core-roles
+  body_and_references: package-relative-lazy-loaded-resources
+  max_selected_default: 3
+notes:
+  - Discovery reads metadata only; body and references load only after deterministic selection.
+  - Skills grant no execution permissions.

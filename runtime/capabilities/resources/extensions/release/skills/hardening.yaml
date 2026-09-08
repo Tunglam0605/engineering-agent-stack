@@ -1,0 +1,11 @@
+kind: skill
+schema_version: 1
+id: release.hardening
+version: 0.6.0
+summary: Prepare a bounded release by validating tests, packaging, clean-tree state, and rollback-safe update behavior.
+roles: [implementer, debugger, test-engineer, reviewer, architect]
+task_tags: [release, packaging, validation]
+triggers: [release, tag, package, wheel, publish]
+body: bodies/hardening.md
+references: []
+context_cost: 1000

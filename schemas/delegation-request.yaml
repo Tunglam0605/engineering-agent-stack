@@ -39,7 +39,10 @@ context_budget_fields:
 optional_fields:
   - disabled_roles
   - active_write_leases
+  - capability_snapshot_digest
 notes:
   - YAML scalar types are strict; strings such as "false" are not accepted as booleans.
   - Write scopes must be repository-relative and must not contain parent traversal.
   - Only PASS preflight results may produce a resolved execution plan.
+optional_field_types:
+  capability_snapshot_digest: null-or-lowercase-sha256-hex

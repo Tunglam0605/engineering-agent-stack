@@ -78,6 +78,9 @@ def build_request(payload: Dict[str, Any]) -> DelegationRequest:
         review_required=require_boolean(payload, "review_required", default=False),
         review_planned=require_boolean(payload, "review_planned", default=False),
         risk_class=require_string(payload, "risk_class") if "risk_class" in payload else "normal",
+        capability_snapshot_digest=require_string(
+            payload, "capability_snapshot_digest", allow_none=True
+        ),
     )
 
 
@@ -119,6 +122,7 @@ def result_payload(payload: Dict[str, Any]) -> tuple:
             "model": result.resolved_model,
             "reasoning_effort": result.resolved_effort,
             "review_required": result.effective_review_required,
+            "capability_snapshot_digest": result.capability_snapshot_digest,
         },
         "execution_plan": plan,
     }

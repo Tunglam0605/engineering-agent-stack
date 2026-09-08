@@ -1,0 +1,10 @@
+kind: rule
+schema_version: 1
+id: ros2.interface-compat
+version: 0.6.0
+classification: validator
+scope: [ros2, interface]
+severity: error
+evidence: [interface-map, compatibility-check]
+text: ROS 2 interface changes must preserve or explicitly migrate topic/service/action contracts and QoS assumptions.
+checker_id: core.contract-shape

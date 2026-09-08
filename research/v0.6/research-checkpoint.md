@@ -1,6 +1,6 @@
 # v0.6 research checkpoint
 
-Status: **research complete enough for architecture approval; runtime implementation has not started**.
+Status: **CLOSED — architecture frozen; v0.6.0 implementation validated against the frozen contract.**
 
 ## Recommended architecture
 
@@ -21,10 +21,14 @@ The same snapshot is pinned to stack-controlled preflight, lifecycle admission, 
 9. Detection recommends with evidence/rationale only; no silent activation.
 10. Missing/unsupported/stale required evidence remains UNKNOWN/unverified and blocks/escalates as declared.
 
-## Proposed implementation sequence after approval
+## Implemented sequence
 
-A. closed schemas + strict parser + resolver + snapshot/explain (read-only); B. project profile + built-in declarative `embedded/ros2/release` packages and recommendation-only detection; C. bind snapshot to preflight/lifecycle/goal/recovery with state migration; D. trusted validator registry and real stack-controlled gates; E. adapter/progressive skill rendering + benchmark/release hardening.
+A. closed schemas + strict parser + deterministic resolver + canonical snapshot; B. tracked project profile + built-in declarative `embedded/ros2/release` packages and recommendation-only detection; C. explicit snapshot binding to preflight/lifecycle/goal/recovery with state migration; D. trusted checker registry and stack-controlled validation boundaries; E. metadata-first lazy skill loading, Python 3.9 regression coverage, and clean-wheel release hardening.
 
 Non-goals: extra role catalog, full runtime/marketplace/dependency solver, package code execution, custom provider permissions/model maps, silent auto-activation, compliance certification, or transparent interception of native Codex child calls.
 
 Research execution note: Codex hit quota after collecting substantial evidence and Claude fallback could not establish a usable API session; artifacts were completed locally from retained evidence. No runtime files were modified by this checkpoint.
+
+## Freeze handoff
+
+Research questions required for v0.6 implementation are closed. The normative handoff is [`contract-freeze.md`](contract-freeze.md). No source study identified a need for additional core roles, executable extensions, dependency solving, preset inheritance, or implicit activation. Any implementation deviation from the freeze requires an explicit architecture revision rather than a silent compatibility shim.

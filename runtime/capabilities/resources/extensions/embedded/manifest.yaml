@@ -1,0 +1,20 @@
+kind: extension-manifest
+schema_version: 1
+id: embedded
+version: 0.6.0
+description: Declarative embedded and realtime engineering capability pack.
+requires_eas: ">=0.6.0,<0.7.0"
+provenance:
+  source: eas-builtin
+  revision: v0.6.0
+  license: MIT
+provides:
+  skills:
+    - skills/realtime-control.yaml
+    - skills/integration.yaml
+  rules:
+    - rules/realtime-budget.yaml
+    - rules/validation-evidence.yaml
+  presets:
+    - presets/embedded.yaml
+defaults: {}

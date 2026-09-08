@@ -1,0 +1,10 @@
+kind: rule
+schema_version: 1
+id: release.clean-tree
+version: 0.6.0
+classification: gate
+scope: [release]
+severity: error
+evidence: [git-status]
+text: A release gate requires a clean tracked and untracked source tree after generated artifacts are verified.
+checker_id: core.clean-tree

@@ -1,0 +1,19 @@
+kind: preset
+schema_version: 1
+id: embedded
+version: 0.6.0
+description: STM32, FreeRTOS, firmware, driver, realtime-control and MCU integration work.
+skills: [embedded.realtime-control, embedded.integration]
+required_rules: [embedded.realtime-budget, embedded.validation-evidence]
+defaults:
+  selection:
+    max_skills: 3
+    context_budget_tokens: 6000
+  skills:
+    enabled: [embedded.realtime-control, embedded.integration]
+  rules:
+    required_rules: [embedded.realtime-budget, embedded.validation-evidence]
+  domain:
+    target: embedded
+    mcu_family: stm32
+detection_hints: [stm32-ioc, freertos-config, stm32-cmake]

@@ -1,0 +1,12 @@
+version: 1
+status: stable
+purpose: eas-v0.6-rule
+kind: rule
+required_fields: [kind, schema_version, id, version, classification, scope, severity, evidence, text]
+optional_fields: [checker_id]
+allowed_values:
+  classification: [guidance, validator, gate]
+  severity: [info, warning, error]
+notes:
+  - Guidance has no checker_id and makes no automatic enforcement claim.
+  - Validator/gate rules may reference only trusted core checker IDs; package code never executes.

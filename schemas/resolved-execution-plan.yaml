@@ -14,3 +14,7 @@ required_fields:
 notes:
   - Role and semantic compute profile remain independent from provider and concrete model.
   - Provider-specific execution belongs in adapters, not this canonical contract.
+optional_fields:
+  - capability_snapshot_digest
+field_types:
+  capability_snapshot_digest: null-or-lowercase-sha256-hex

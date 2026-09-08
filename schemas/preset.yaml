@@ -1,0 +1,13 @@
+version: 1
+status: stable
+purpose: eas-v0.6-preset
+kind: preset
+required_fields: [kind, schema_version, id, version, description, skills, required_rules, defaults, detection_hints]
+constraints:
+  schema_version: 1
+  one_active_preset: true
+  builtins: [embedded, ros2, release]
+  inheritance: unsupported-fail-closed
+  dependencies: unsupported-fail-closed
+notes:
+  - Preset order is deterministic and participates in skill-selection tie breaking.

@@ -22,7 +22,7 @@ Installs the seven generated roles for personal Codex. It reuses `scripts/instal
 
 Use `--force` only after reviewing a locally modified managed role.
 
-### `eas init [PROJECT] [--dry-run] [--force]`
+### `eas init [PROJECT] [--dry-run] [--force] [--preset {embedded,ros2,release}]`
 
 Initializes one Git repository with:
 
@@ -122,3 +122,65 @@ All accept `--project PATH` and `--json`. See [WORKFLOW.md](WORKFLOW.md) for evi
 | `eas goal export GOAL` | none; always emits machine-readable JSON |
 
 Risky `goal transition` calls additionally require `--approval ID` bound to `transition:STATE`. Stale/timeout suspicion is not proof an executor stopped and never frees capacity. Recovery consumes explicit approval atomically and preserves assignment identity. Retries return historical receipts without reapplying mutations. Approval is a local attestation, not authenticated identity or automatic evidence verification.
+
+
+## Capability and preset commands (v0.6)
+
+v0.6 adds a declarative capability layer. It does not add agents, change provider/model routing, or execute extension code.
+
+### `eas preset list [--json]`
+
+Lists the three built-in presets: `embedded`, `ros2`, and `release`.
+
+### `eas preset show PRESET [--json]`
+
+Shows one validated built-in preset, including declared skills, required rules and defaults.
+
+### `eas preset detect [--project PATH] [--json]`
+
+Runs a bounded **read-only** capability detector. Results are recommendation evidence only:
+
+- `RECOMMENDED` with `HIGH|MEDIUM|LOW` confidence;
+- `AMBIGUOUS/UNKNOWN` when strong evidence competes;
+- `NONE/UNKNOWN` when no bounded evidence exists.
+
+Detection never writes `.eas/project.toml` and never auto-activates a preset. Release-context detection never claims release readiness.
+
+### `eas preset check [PRESET] [--project PATH] [--override PATH=JSON_VALUE] [--json]`
+
+Validates the preset and runs only EAS-core trusted checker IDs referenced by validator/gate rules. Guidance is reported as guidance rather than claimed as automatic enforcement.
+
+CLI override paths are deliberately limited to:
+
+```text
+selection.max_skills
+selection.context_budget_tokens
+skills.enabled
+rules.required_rules
+```
+
+Protected lifecycle/recovery/write/model/provider/role fields are rejected.
+
+### `eas project status [--project PATH] [--json]`
+
+Reports:
+
+- tracked `.eas/project.toml` state;
+- read-only detection evidence and any conflict with the tracked profile;
+- capability snapshot state: `UNBOUND`, `BOUND`, `DRIFT`, or `CORRUPT`.
+
+The tracked profile remains authoritative; detector disagreement is surfaced, not applied.
+
+### `eas project migrate-snapshot [--project PATH] [--expected-old-digest SHA256] [--json]`
+
+Explicitly replaces the persisted `.git/eas/capabilities/snapshot.json` binding after configuration changes. Optional expected-old-digest gives compare-and-swap protection. No automatic drift rebind exists.
+
+### `eas init PROJECT --preset PRESET`
+
+Initializes the existing EAS project-managed Codex artifacts and creates tracked `.eas/project.toml` plus the initial capability snapshot. The profile non-overwrite check runs before project-role writes. Existing `.eas/project.toml` is never overwritten, including with `--force`.
+
+### `eas goal bind-capabilities GOAL_ID --revision N [--project PATH] [--json]`
+
+Explicitly migrates a legacy or drifted goal to the current project capability snapshot. Migration is revision-checked and refused while assignments are active.
+
+Configured v0.6 projects require the same snapshot digest for stack-controlled goal gate/transition/checkpoint/approval/recovery/export paths. Projects without `.eas/project.toml` retain v0.5 lifecycle behavior.

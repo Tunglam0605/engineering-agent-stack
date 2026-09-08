@@ -29,6 +29,13 @@ REQUIRED = [
     "tests/test_runtime_first.py", "tests/test_cli_distribution.py",
     "runtime/workflow.py", "runtime/workflow_state.py", "tests/test_durable_workflow.py",
     "docs/WORKFLOW.md", "scripts/smoke_goal_recovery.py",
+    "runtime/capabilities/__init__.py", "runtime/capabilities/models.py", "runtime/capabilities/parser.py",
+    "runtime/capabilities/resolver.py", "runtime/capabilities/builtins.py", "runtime/capabilities/detection.py",
+    "runtime/capabilities/skills.py", "runtime/capabilities/trusted.py", "runtime/capabilities/snapshot.py",
+    "runtime/capabilities/project.py", "eas_cli/capabilities.py", "tests/test_capabilities_v06.py",
+    "schemas/extension-manifest.yaml", "schemas/skill.yaml", "schemas/rule.yaml", "schemas/preset.yaml",
+    "schemas/project-profile.yaml", "schemas/resolved-capability-snapshot.yaml",
+    "research/v0.6/contract-freeze.md",
 ]
 
 CORE_ROLES = ["scout", "researcher", "implementer", "debugger", "test-engineer", "reviewer", "architect"]

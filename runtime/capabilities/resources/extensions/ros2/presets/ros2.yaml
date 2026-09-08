@@ -1,0 +1,19 @@
+kind: preset
+schema_version: 1
+id: ros2
+version: 0.6.0
+description: ROS 2 packages, nodes, launch systems, interfaces, QoS and robot integration.
+skills: [ros2.node-architecture, ros2.interface-testing]
+required_rules: [ros2.interface-compat, ros2.runtime-boundary]
+defaults:
+  selection:
+    max_skills: 3
+    context_budget_tokens: 6000
+  skills:
+    enabled: [ros2.node-architecture, ros2.interface-testing]
+  rules:
+    required_rules: [ros2.interface-compat, ros2.runtime-boundary]
+  domain:
+    target: ros2
+    ros_distro: humble
+detection_hints: [package-xml, ament-cmake, colcon]

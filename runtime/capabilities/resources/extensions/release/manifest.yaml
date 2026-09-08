@@ -1,0 +1,20 @@
+kind: extension-manifest
+schema_version: 1
+id: release
+version: 0.6.0
+description: Declarative release hardening, provenance, packaging, and evidence capability pack.
+requires_eas: ">=0.6.0,<0.7.0"
+provenance:
+  source: eas-builtin
+  revision: v0.6.0
+  license: MIT
+provides:
+  skills:
+    - skills/hardening.yaml
+    - skills/provenance.yaml
+  rules:
+    - rules/clean-tree.yaml
+    - rules/version-consistency.yaml
+  presets:
+    - presets/release.yaml
+defaults: {}

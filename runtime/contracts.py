@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass, field
+import re
 from typing import List, Optional
 
 SUPPORTED_AGENT_STATES = {"pending", "running", "completed", "failed", "blocked"}
@@ -50,6 +51,7 @@ class DelegationRequest:
     review_required: bool
     review_planned: bool
     risk_class: str = "normal"
+    capability_snapshot_digest: Optional[str] = None
 
     def __post_init__(self) -> None:
         for field_name in ("task", "route_mode", "role", "profile", "provider", "risk_class"):
@@ -70,6 +72,11 @@ class DelegationRequest:
             value = getattr(self, field_name)
             if value is not None and (not isinstance(value, str) or not value.strip()):
                 raise ValueError(f"{field_name} must be null or a non-empty string")
+        if self.capability_snapshot_digest is not None and (
+            not isinstance(self.capability_snapshot_digest, str)
+            or not re.fullmatch(r"[0-9a-f]{64}", self.capability_snapshot_digest)
+        ):
+            raise ValueError("capability_snapshot_digest must be a lowercase SHA-256 hex digest or null")
         if not isinstance(self.write_scope, list) or not all(
             isinstance(item, str) and item.strip() for item in self.write_scope
         ):
@@ -133,6 +140,7 @@ class ResolvedExecutionPlan:
     review: ReviewResolution
     context_budget: ContextBudget
     preflight: PreflightSummary
+    capability_snapshot_digest: Optional[str] = None
 
     def as_dict(self) -> dict:
         return asdict(self)

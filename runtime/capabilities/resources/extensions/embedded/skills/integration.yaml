@@ -1,0 +1,11 @@
+kind: skill
+schema_version: 1
+id: embedded.integration
+version: 0.6.0
+summary: Inspect MCU to host integration boundaries, protocols, timing, and failure handling.
+roles: [scout, researcher, implementer, debugger, reviewer, architect]
+task_tags: [embedded, integration, uart, can, ethernet]
+triggers: [uart, can, rs485, ethernet, gateway, protocol]
+body: bodies/integration.md
+references: []
+context_cost: 900

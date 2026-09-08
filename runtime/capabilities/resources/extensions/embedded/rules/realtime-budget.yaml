@@ -1,0 +1,9 @@
+kind: rule
+schema_version: 1
+id: embedded.realtime-budget
+version: 0.6.0
+classification: guidance
+scope: [embedded, realtime]
+severity: error
+evidence: [timing-budget, blocking-analysis]
+text: Realtime paths must state frequency, latency budget, blocking behavior, and ownership before implementation.

@@ -6,8 +6,11 @@ from typing import Optional
 
 from runtime.lifecycle import GoalStore, LifecycleGate
 from runtime.workflow import Workflow
+from runtime.capabilities.project import ProjectCapabilityService, load_project_profile
+from runtime.capabilities.snapshot import bind_snapshot, read_snapshot
 
 from .paths import resolve_repo
+from .version import __version__
 
 
 def _git_root(project: Path) -> Path:
@@ -18,6 +21,38 @@ def _git_root(project: Path) -> Path:
         if probe.parent == probe:
             raise ValueError("project is not inside a Git repository")
         probe = probe.parent
+
+
+
+
+def _capability_service() -> ProjectCapabilityService:
+    return ProjectCapabilityService(eas_version=__version__)
+
+
+def _current_bound_digest(project_root: Path, *, create_if_missing: bool = False) -> Optional[str]:
+    if load_project_profile(project_root) is None:
+        return None
+    snapshot = _capability_service().resolve_snapshot(project_root)
+    persisted = read_snapshot(project_root)
+    if persisted is None:
+        if not create_if_missing:
+            raise RuntimeError(
+                "project capability snapshot is unbound; initialize or explicitly migrate the snapshot first"
+            )
+        bind_snapshot(project_root, snapshot)
+        persisted = snapshot
+    if persisted.digest != snapshot.digest:
+        raise RuntimeError(
+            "project capability snapshot drift detected; run explicit project migrate-snapshot before lifecycle operations"
+        )
+    return snapshot.digest
+
+
+def _require_goal_binding(project_root: Path, store: GoalStore) -> Optional[str]:
+    digest = _current_bound_digest(project_root, create_if_missing=False)
+    if digest is not None:
+        store.require_capability_snapshot(digest)
+    return digest
 
 
 def _render(payload: dict, as_json: bool) -> None:
@@ -53,12 +88,14 @@ def _render(payload: dict, as_json: bool) -> None:
 def goal_init(goal_id: str, project: Path, *, as_json: bool = False) -> int:
     project_root = _git_root(project)
     store = GoalStore(project_root, goal_id)
-    state = store.initialize()
+    digest = _current_bound_digest(project_root, create_if_missing=True)
+    state = store.initialize(capability_snapshot_digest=digest)
     payload = {
         "command": "goal-init",
         "goal_id": state.goal_id,
         "state_path": str(store.state_path),
         "event_path": str(store.event_path),
+        "capability_snapshot_digest": state.capability_snapshot_digest,
     }
     _render(payload, as_json)
     return 0
@@ -69,7 +106,17 @@ def goal_status(goal_id: str, project: Path, *, as_json: bool = False) -> int:
     store = GoalStore(project_root, goal_id)
     state = store.load()
     gate = LifecycleGate(resolve_repo(required=True))
-    payload = {"command": "goal-status", **gate.summary(state)}
+    binding = {"required": False, "status": "LEGACY", "goal_digest": state.capability_snapshot_digest, "project_digest": None}
+    if load_project_profile(project_root) is not None:
+        binding["required"] = True
+        try:
+            project_digest = _current_bound_digest(project_root, create_if_missing=False)
+            binding["project_digest"] = project_digest
+            binding["status"] = "BOUND" if state.capability_snapshot_digest == project_digest else "MIGRATION_REQUIRED"
+        except (RuntimeError, ValueError) as exc:
+            binding["status"] = "PROJECT_SNAPSHOT_ERROR"
+            binding["error"] = str(exc)
+    payload = {"command": "goal-status", **gate.summary(state), "capability_binding": binding}
     _render(payload, as_json)
     return 0
 
@@ -92,6 +139,7 @@ def goal_gate(
 ) -> int:
     project_root = _git_root(project)
     store = GoalStore(project_root, goal_id)
+    _require_goal_binding(project_root, store)
     gate = LifecycleGate(resolve_repo(required=True))
     if commit:
         decision, assignment = gate.evaluate_and_commit(
@@ -129,6 +177,7 @@ def goal_transition(
 ) -> int:
     project_root = _git_root(project)
     store = GoalStore(project_root, goal_id)
+    _require_goal_binding(project_root, store)
     gate = LifecycleGate(resolve_repo(required=True))
     assignment = gate.transition_atomic(store, assignment_id, state_name, approval_id=approval_id)
     payload = {
@@ -141,8 +190,36 @@ def goal_transition(
     return 0
 
 
+def goal_bind_capabilities(
+    goal_id: str,
+    project: Path,
+    revision: int,
+    *,
+    as_json: bool = False,
+) -> int:
+    root = _git_root(project)
+    if load_project_profile(root) is None:
+        raise ValueError("goal capability migration requires a tracked .eas/project.toml")
+    digest = _current_bound_digest(root, create_if_missing=True)
+    if digest is None:
+        raise RuntimeError("capability digest could not be resolved")
+    store = GoalStore(root, goal_id)
+    state = store.bind_capability_snapshot(digest, revision)
+    payload = {
+        "command": "goal-bind-capabilities",
+        "goal_id": goal_id,
+        "revision": state.revision,
+        "capability_snapshot_digest": state.capability_snapshot_digest,
+        "explicit_migration": True,
+    }
+    _render(payload, as_json)
+    return 0
+
+
 def goal_workflow(args) -> int:
-    store = GoalStore(_git_root(args.project), args.goal_id)
+    root = _git_root(args.project)
+    store = GoalStore(root, args.goal_id)
+    _require_goal_binding(root, store)
     flow = Workflow(LifecycleGate(resolve_repo(required=True)))
     command = args.goal_command
     if command == 'checkpoint':

@@ -1,0 +1,11 @@
+kind: skill
+schema_version: 1
+id: ros2.interface-testing
+version: 0.6.0
+summary: Verify ROS 2 interfaces, message compatibility, launch wiring, timing, and failure modes.
+roles: [debugger, test-engineer, reviewer]
+task_tags: [ros2, testing, interface]
+triggers: [topic, service, action, launch, rosbag, test]
+body: bodies/interface-testing.md
+references: []
+context_cost: 850

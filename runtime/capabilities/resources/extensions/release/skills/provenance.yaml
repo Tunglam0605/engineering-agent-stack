@@ -1,0 +1,11 @@
+kind: skill
+schema_version: 1
+id: release.provenance
+version: 0.6.0
+summary: Review source provenance, acknowledgements, generated artifacts, and version consistency before release.
+roles: [researcher, test-engineer, reviewer, architect]
+task_tags: [release, provenance, research]
+triggers: [provenance, acknowledgement, source, license, changelog]
+body: bodies/provenance.md
+references: []
+context_cost: 800

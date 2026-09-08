@@ -1,0 +1,10 @@
+kind: rule
+schema_version: 1
+id: release.version-consistency
+version: 0.6.0
+classification: validator
+scope: [release, packaging]
+severity: error
+evidence: [package-version, cli-version]
+text: Package metadata and CLI version must agree before a release tag is accepted.
+checker_id: core.version-consistency

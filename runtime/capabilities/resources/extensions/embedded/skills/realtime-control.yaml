@@ -1,0 +1,11 @@
+kind: skill
+schema_version: 1
+id: embedded.realtime-control
+version: 0.6.0
+summary: Design or modify bounded realtime MCU control code with timing and ownership evidence.
+roles: [implementer, debugger, test-engineer, architect]
+task_tags: [embedded, realtime, stm32, freertos]
+triggers: [stm32, freertos, interrupt, dma, control loop]
+body: bodies/realtime-control.md
+references: []
+context_cost: 1100

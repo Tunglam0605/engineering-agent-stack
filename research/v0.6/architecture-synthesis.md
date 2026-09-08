@@ -1,6 +1,6 @@
 # Proposed v0.6 architecture synthesis
 
-Status: **research/architecture audit in progress; not implemented**. Recommendations below are **EAS inference**, informed by linked evidence. This is not a schema, loader contract, CLI specification, or replacement for [current architecture](../../docs/ARCHITECTURE.md).
+Status: **historical research synthesis; architecture is frozen in [`contract-freeze.md`](contract-freeze.md) and implemented in v0.6.0**. Recommendations below are **EAS inference** from the pre-freeze phase. Where this document differs from the freeze or runtime, the freeze/runtime is authoritative.
 
 ## Conceptual model
 
@@ -14,7 +14,7 @@ Keep all seven roles unchanged. A role owns an engineering responsibility; a com
 | **PRESET** | Curated composition of skills, rules, and config defaults for a domain or process. | Explicitly selected `embedded`, `ros2`, or `release`. |
 | **EXTENSION** | Versioned capability package providing skills, rules, config schemas, detection hints, and/or presets. | Declarative distribution unit, never an agent or new executable runtime. |
 
-Procedure versus mechanical constraint is informed by [Superpowers][SW]; separating workflow surfaces from canonical rules by [oh-my-codex][OT]. A project-only convention belongs in project rules, not a new skill. EAS v0.6 manifests/config/presets are not implemented.
+Procedure versus mechanical constraint is informed by [Superpowers][SW]; separating workflow surfaces from canonical rules by [oh-my-codex][OT]. A project-only convention belongs in project rules, not a new skill. EAS v0.6 manifests/config/presets are implemented under the frozen declarative contract.
 
 ## Progressive disclosure and skill quality
 
@@ -27,7 +27,7 @@ Draft EAS admission policy:
 - Record a pressure scenario exposing the intended weakness without the skill (**RED**); rerun with a versioned skill and acceptance evidence (**GREEN**); add adversarial variants to close loopholes (**refactor**). Include time pressure, incomplete evidence, tempting shortcuts, positive triggers, and near-miss negative triggers. This adapts [pressure testing][SW] and [baseline/trigger evaluations][AC].
 - Compare equivalent tasks/environments; record skill revision, provider/compute profile, outcome, omissions, and context cost. An unrelated tool failure does not establish RED. Claim no superiority or readiness without recorded results.
 
-These are future evaluation requirements; no skill or pressure test is implemented here.
+These remain evaluation guidance; v0.6 implements bounded lazy skill loading but does not claim pressure-test superiority.
 
 ## Rules, enforcement, and security
 
@@ -49,7 +49,7 @@ Capability metadata is untrusted input, not authority. MCP's prompt/resource/too
 
 **ADAPT** multi-capability packaging; **REJECT** oh-my-pi's executable factory/module runtime for v0.6. Its bundling/loading behavior motivates this boundary, not implementation reuse. [Authoring][OE] [Loading][OL]
 
-Proposed restrictions for later design:
+Frozen restrictions implemented in v0.6:
 
 - Loading validates/reads data only: no import-time code, hooks, installers, custom tool/command registration, detection scripts, network callbacks, or automatic `.mcp.json` server launch.
 - Agent Skills permits bundled scripts; compatibility does not require EAS execution. Extension-supplied executables are ineligible for execution through the v0.6 package mechanism. References to approved project tools remain subject to existing execution policy. Decide later whether inert scripts are retained or rejected at validation.
@@ -57,9 +57,9 @@ Proposed restrictions for later design:
 - `effect` is declared intent requiring verification, not a sandbox. `read-write` can describe eventual workflow or managed materialization; discovery itself remains read-only. Reject unsupported capabilities.
 - Provider discovery/rendering belongs in adapters. Generated content records canonical source, generator, revision, and hash. Hashes detect drift, not publisher trust.
 
-### Manifest concepts for the later schema phase
+### Manifest concepts carried into the frozen schema
 
-**ADOPT** versioning/compatibility, informed by [Spec Kit manifests][PE] and [west schema][WS]. Recommend these concepts without choosing serialized shape or creating a schema:
+**ADOPT** versioning/compatibility, informed by [Spec Kit manifests][PE] and [west schema][WS]. The freeze selected a strict serialized contract from these concepts:
 
 | Concept | Purpose |
 |---|---|
@@ -86,11 +86,10 @@ core defaults
   < extension defaults
   < preset
   < project profile (.eas/project.toml)
-  < local project override (.eas/project.local.toml, gitignored)
   < explicit CLI override
 ```
 
-Those files and CLI options are not created here. Environment variables should supply only named secrets or ephemeral integration values, with redacted reporting; reject a broad hidden environment cascade.
+The implemented v0.6 resolver uses exactly these five layers and intentionally has no `.eas/project.local.toml`. Environment variables are not a general configuration layer.
 
 Resolution recommendations:
 
@@ -116,7 +115,7 @@ A `west.yml` may suggest embedded context but cannot prove the target; a package
 - **Deferred alternative:** loose skills/project rules only; simpler distribution but weaker package identity/compatibility and repeatability.
 - **Rejected alternative:** executable plugins, recursive composition and specialist catalogs; larger trust/routing/maintenance burden without local evidence of need.
 
-This audit implements none of these. Out of scope: loader/runtime, commands/schemas, marketplace/install/update system, dependency solver, new agents/compute mappings, superiority claims, safety certification, automatic domain activation.
+The shipped v0.6 implements only the recommended declarative subset: strict loader/parser, schemas, resolver, snapshots, CLI surfaces, three built-in presets, detection, and lazy skills. Still out of scope: marketplace/install/update system for third-party extensions, dependency solver, new agents/compute mappings, superiority claims, safety certification, and automatic domain activation.
 
 ## Open decisions and next evidence
 

@@ -37,6 +37,7 @@ class PreflightResult:
     resolved_effort: Optional[str]
     recursive_delegation_allowed: bool
     effective_review_required: bool
+    capability_snapshot_digest: Optional[str] = None
 
     def to_execution_plan(self, assignment_id: str) -> ResolvedExecutionPlan:
         if self.decision != "PASS":
@@ -71,6 +72,7 @@ class PreflightResult:
             ),
             context_budget=self.request.context_budget,
             preflight=PreflightSummary(decision=self.decision, reasons=[]),
+            capability_snapshot_digest=self.capability_snapshot_digest,
         )
 
 
@@ -185,6 +187,7 @@ class DelegationPreflight:
         *,
         disabled_roles: Optional[Set[str]] = None,
         active_write_leases: Optional[Iterable[WriteLease]] = None,
+        required_capability_snapshot_digest: Optional[str] = None,
     ) -> PreflightResult:
         if not isinstance(request, DelegationRequest):
             raise ValueError("request must be a DelegationRequest")
@@ -205,6 +208,19 @@ class DelegationPreflight:
                 raise ValueError("active_write_leases must be an iterable of WriteLease") from exc
         rejects: List[PreflightReason] = []
         escalations: List[PreflightReason] = []
+
+        if required_capability_snapshot_digest is not None:
+            if (
+                not isinstance(required_capability_snapshot_digest, str)
+                or not re.fullmatch(r"[0-9a-f]{64}", required_capability_snapshot_digest)
+            ):
+                raise ValueError("required_capability_snapshot_digest must be lowercase SHA-256 hex")
+            if request.capability_snapshot_digest != required_capability_snapshot_digest:
+                rejects.append(PreflightReason(
+                    code="capability_snapshot_mismatch",
+                    message="delegation request is not bound to the current capability snapshot",
+                    severity="error",
+                ))
 
         def reject(code: str, message: str) -> None:
             rejects.append(PreflightReason(code=code, message=message, severity="error"))
@@ -336,4 +352,5 @@ class DelegationPreflight:
             resolved_effort=resolved_effort,
             recursive_delegation_allowed=self.recursive_delegation_allowed,
             effective_review_required=effective_review_required,
+            capability_snapshot_digest=request.capability_snapshot_digest,
         )

@@ -1,10 +1,10 @@
 # v0.6 Research & Architecture Audit
 
-Status: **research checkpoint complete; architecture proposed; not implemented**. Source inspection, deep audits, gap analysis, and synthesis were recorded on 2026-09-08. Implementation-specific validation remains future work.
+Status: **research closed; architecture frozen; v0.6.0 implementation validated and release-ready pending repository release gates**. The normative contract is [`contract-freeze.md`](contract-freeze.md).
 
 ## Scope
 
-Study Skills + Rules + Config + Presets before implementation design. Preserve v0.5.0 behavior and the seven core roles: scout, researcher, implementer, debugger, test-engineer, reviewer, architect. This package creates no skills, rules, presets, schemas, loader, extension runtime, CLI commands, model mappings, or provider artifacts. Names and fields below are recommendations for a later phase.
+This directory preserves the research and architecture evidence that preceded implementation. The shipped v0.6 runtime lives under `runtime/capabilities/`, `eas_cli/`, and `schemas/`; this research package remains evidence/provenance material rather than execution authority. The seven core roles remain scout, researcher, implementer, debugger, test-engineer, reviewer, architect.
 
 ## Method and evidence status
 
@@ -55,7 +55,7 @@ Run on 2026-09-08 in the Windows research worktree:
 
 | Command | Result |
 |---|---|
-| `python scripts/validate_structure.py` | PASS: 145 required artifacts; existing seven-role structure preserved. |
+| `python scripts/validate_structure.py` | PASS: 164 required artifacts; seven-role structure and v0.6 capability artifacts present. |
 | `python scripts/validate_provenance.py` | PASS: 25 canonical research sources acknowledged. |
 | `python scripts/validate_agents.py` | PASS: seven contracts and compatible routing/provider mappings. |
 | `python scripts/evaluate_routing.py` | PASS: 10 deterministic cases. |
@@ -63,5 +63,11 @@ Run on 2026-09-08 in the Windows research worktree:
 | `python scripts/validate_benchmarks.py` | PASS: five planned experiments and five tasks. |
 | `python scripts/generate_codex_adapter.py --check` | PASS: eight generated artifacts in sync. |
 | `git diff --check` | PASS: no whitespace errors. |
+| `py -3.9 -m unittest discover -s tests -v` | PASS: 139 tests, 2 platform skips. |
+| clean wheel build + isolated Python 3.9 install | PASS: v0.6.0 wheel contains all three built-in capability packs and runs `eas preset list/show` outside the source tree. |
 
-These results validate existing repository contracts, not proposed v0.6 behavior or domain qualification. No release/package test run is claimed for this documentation-only change.
+These results validate the implemented v0.6 contract and packaging boundary. They do not certify any external embedded/ROS2 project or claim provider-native interception.
+
+## Architecture freeze
+
+The v0.6 implementation MUST follow [`contract-freeze.md`](contract-freeze.md): exactly seven core roles, declarative-only extensions, five public contract kinds, one active preset, deterministic precedence, read-only detection, lazy bounded skill loading, trusted checker IDs, and explicit capability-snapshot migration. Runtime implementation does not reopen the research scope unless validation exposes a material contradiction.

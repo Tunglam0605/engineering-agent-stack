@@ -1,0 +1,10 @@
+kind: rule
+schema_version: 1
+id: embedded.validation-evidence
+version: 0.6.0
+classification: validator
+scope: [embedded]
+severity: error
+evidence: [build, targeted-tests]
+text: Embedded changes require bounded build and targeted verification evidence.
+checker_id: core.contract-shape

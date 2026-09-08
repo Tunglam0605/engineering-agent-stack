@@ -1,0 +1,17 @@
+version: 1
+status: stable
+purpose: eas-v0.6-extension-manifest
+kind: extension-manifest
+required_fields: [kind, schema_version, id, version, description, requires_eas, provenance, provides]
+optional_fields: [defaults]
+constraints:
+  declarative_only: true
+  executable_fields_forbidden: true
+  schema_version: 1
+  id: lowercase-ascii-bounded
+  version: semver-2.0
+  requires_eas: bounded-comparator-range
+  provides: package-relative-paths
+notes:
+  - Extensions cannot define agents, models, providers, permissions, scripts, hooks, entrypoints, imports, eval, or MCP auto-launch.
+  - v0.6 has no extension dependency solver.
