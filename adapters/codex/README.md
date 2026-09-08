@@ -17,6 +17,7 @@ Canonical inputs:
 ```text
 agents/core/*.yaml
 config/model-profiles.yaml
+config/project-identity.yaml
 adapters/codex/role-profiles.yaml
 ```
 
@@ -25,6 +26,7 @@ Generated outputs:
 ```text
 adapters/codex/agents/*.toml
 adapters/codex/config.toml.example
+adapters/codex/AGENTS.md.example  # canonical identity block is generated
 ```
 
 Generate/check:
@@ -57,7 +59,9 @@ Normal session settings such as `model`, `model_reasoning_effort`, and `sandbox_
 
 Global subagent controls remain under `[agents]` in `.codex/config.toml` or the personal config. The example intentionally contains only those public global controls; it does not depend on internal role-registration mechanisms.
 
-The generated Multi-Agent V2 example sets `non_code_mode_only = false`. Engineering and coding are this stack's primary use case, so installed projects must expose collaboration in code mode; role instructions and delegation policy determine when a child is warranted.
+The generated config uses the public `[agents]` surface only. The provider/session ceiling is four children; EAS runtime policy adaptively resolves effective caps of 2/3/4 and retains one writer scope owner. The experimental `features.multi_agent_v2` path is intentionally not enabled.
+
+Every generated role also inherits the canonical public EAS identity from `config/project-identity.yaml`, keeping EAS authorship distinct from the underlying model/provider.
 
 ## Safe installation
 
@@ -75,7 +79,7 @@ After project-scoped validation, personal installation is available with:
 python scripts/install_codex.py --personal
 ```
 
-The installer refuses to overwrite differing role files unless `--force` is supplied; forced replacement creates `.bak` files. Existing `config.toml` files are never rewritten automatically. They are parsed and checked for agents, Multi-Agent V2, wait support, and CodeMode collaboration; `--check` fails until incompatible preserved settings are merged manually. Spawn metadata visibility and spawn-agent model-override exposure remain optional telemetry/diagnostic knobs even though the generated example recommends values for them.
+The installer refuses to overwrite differing role files unless `--force` is supplied; forced replacement creates `.bak` files. Existing `config.toml` files are never rewritten automatically. They are parsed against the required public `[agents]` settings, including the four-child provider ceiling; `--check` also rejects an enabled legacy `features.multi_agent_v2` table.
 
 See [`../../docs/INSTALL_CODEX.md`](../../docs/INSTALL_CODEX.md).
 

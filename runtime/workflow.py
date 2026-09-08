@@ -178,13 +178,14 @@ class Workflow:
             item.state = 'failed'
             item.recovery['phase'] = 'replaced'
             decision = self.gate.evaluate(state, role=item.role, task_domain=item.task_domain,
-                                          write_scope=item.write_scope, change_set=item.change_set)
+                                          write_scope=item.write_scope, change_set=item.change_set,
+                                          concurrency_mode=item.concurrency_mode)
             if decision.action != 'SPAWN':
                 raise ValueError('replacement blocked by lifecycle policy: ' + '; '.join(decision.reasons))
             from .lifecycle import GoalAssignment
             child = GoalAssignment(assignment_id=decision.proposed_assignment_id, role=item.role,
                                    task_domain=item.task_domain, state='pending', write_scope=list(item.write_scope),
-                                   change_set=item.change_set,
+                                   change_set=item.change_set, concurrency_mode=item.concurrency_mode,
                                    recovery={**item.recovery, 'phase': 'healthy', 'replacements': 1, 'handoff': handoff})
             state.assignments.append(child)
             state.next_sequence += 1

@@ -19,6 +19,7 @@ ACTIVE_STATES = {"pending", "running"}
 RESUMABLE_STATES = {"pending", "running", "completed"}
 SUPPORTED_STATES = {"pending", "running", "completed", "failed", "blocked"}
 ACTIONS = {"SPAWN", "REUSE", "ESCALATE", "REJECT"}
+CONCURRENCY_MODES = {"auto", "conservative", "balanced", "read-heavy"}
 ALLOWED_HARD_LIMIT_EXCEPTIONS = {
     "acceptance-diagnostic",
     "required-safety-review",
@@ -65,6 +66,7 @@ class GoalAssignment:
     updated_at: str = field(default_factory=_utc_now)
     attempt_started_at: Optional[str] = None
     recovery: Optional[dict] = None
+    concurrency_mode: str = "auto"
 
     def __post_init__(self) -> None:
         from .reliability import validate_recovery
@@ -77,6 +79,9 @@ class GoalAssignment:
         self.write_scope = _normalize_scopes(self.write_scope)
         if self.change_set is not None:
             self.change_set = _nonempty("change_set", self.change_set)
+        self.concurrency_mode = _nonempty("concurrency_mode", self.concurrency_mode)
+        if self.concurrency_mode not in CONCURRENCY_MODES:
+            raise ValueError("unsupported concurrency_mode: " + self.concurrency_mode)
         self.created_at = _nonempty("created_at", self.created_at)
         self.updated_at = _nonempty("updated_at", self.updated_at)
         timestamp(self.created_at)
@@ -99,6 +104,7 @@ class GoalAssignment:
             updated_at=payload["updated_at"],
             attempt_started_at=payload.get("attempt_started_at"),
             recovery=payload.get("recovery"),
+            concurrency_mode=payload.get("concurrency_mode", "auto"),
         )
 
 
@@ -210,20 +216,46 @@ class LifecyclePolicy:
     stale_after_seconds: int
     timeout_after_seconds: int
     approval_ttl_seconds: int
-    max_active_children: int = 2
+    max_active_children: int = 4
+    conservative_cap: int = 2
+    balanced_cap: int = 3
+    read_heavy_cap: int = 4
+    default_reader_mode: str = "balanced"
+    default_writer_mode: str = "conservative"
+
+    def effective_active_cap(self, *, writer: bool, mode: str = "auto") -> tuple[str, int]:
+        if mode not in CONCURRENCY_MODES:
+            raise ValueError("unsupported concurrency_mode: " + str(mode))
+        resolved = self.default_writer_mode if writer and mode == "auto" else (
+            self.default_reader_mode if mode == "auto" else mode
+        )
+        if writer and resolved == "read-heavy":
+            raise ValueError("read-heavy concurrency is only valid for read-only assignments")
+        caps = {
+            "conservative": self.conservative_cap,
+            "balanced": self.balanced_cap,
+            "read-heavy": self.read_heavy_cap,
+        }
+        return resolved, min(caps[resolved], self.max_active_children)
 
     @classmethod
     def from_repository(cls, root: Path) -> "LifecyclePolicy":
         data = yaml.safe_load((root / "config" / "routing-policy.yaml").read_text(encoding="utf-8"))
         limits = data.get("limits") if isinstance(data, dict) else None
         lifecycle = data.get("lifecycle") if isinstance(data, dict) else None
-        if not isinstance(limits, dict) or not isinstance(lifecycle, dict):
-            raise ValueError("routing policy lifecycle/limits must be mappings")
+        concurrency = data.get("concurrency") if isinstance(data, dict) else None
+        if not isinstance(limits, dict) or not isinstance(lifecycle, dict) or not isinstance(concurrency, dict):
+            raise ValueError("routing policy lifecycle/limits/concurrency must be mappings")
+        if concurrency.get("strategy") != "adaptive":
+            raise ValueError("routing policy concurrency.strategy must be adaptive")
+        modes = concurrency.get("modes")
+        if not isinstance(modes, dict):
+            raise ValueError("routing policy concurrency.modes must be a mapping")
         if lifecycle.get("reuse_strategy") != "resume-before-spawn":
             raise ValueError("routing policy must use resume-before-spawn")
         values = {
             "max_parallel_readers": limits.get("default_max_parallel_readers"),
-            "max_active_children": limits.get("default_max_active_children", 2),
+            "max_active_children": limits.get("default_max_active_children", 4),
             "max_parallel_writers": limits.get("default_max_parallel_writers"),
             "soft_limit": limits.get("soft_max_child_assignments_per_goal"),
             "hard_limit": limits.get("hard_max_child_assignments_per_goal"),
@@ -233,6 +265,9 @@ class LifecyclePolicy:
             "stale_after_seconds": lifecycle.get('stale_after_seconds', 3600),
             "timeout_after_seconds": lifecycle.get('timeout_after_seconds', 86400),
             "approval_ttl_seconds": lifecycle.get('approval_ttl_seconds', 900),
+            "conservative_cap": modes.get("conservative"),
+            "balanced_cap": modes.get("balanced"),
+            "read_heavy_cap": modes.get("read-heavy"),
         }
         for name, value in values.items():
             if not isinstance(value, int) or isinstance(value, bool) or value < 1:
@@ -241,7 +276,17 @@ class LifecyclePolicy:
             raise ValueError("hard_limit must be >= soft_limit")
         if values['max_active_children'] > 4:
             raise ValueError('max_active_children must be within 1..4')
-        return cls(**values)
+        if concurrency.get("provider_session_cap") != values["max_active_children"]:
+            raise ValueError("provider_session_cap must equal default_max_active_children")
+        if not (values["conservative_cap"] <= values["balanced_cap"] <= values["read_heavy_cap"] <= values["max_active_children"]):
+            raise ValueError("adaptive concurrency caps must be ordered and within provider cap")
+        default_reader_mode = concurrency.get("default_reader_mode")
+        default_writer_mode = concurrency.get("default_writer_mode")
+        if default_reader_mode not in {"conservative", "balanced", "read-heavy"}:
+            raise ValueError("invalid default_reader_mode")
+        if default_writer_mode not in {"conservative", "balanced"}:
+            raise ValueError("invalid default_writer_mode")
+        return cls(**values, default_reader_mode=default_reader_mode, default_writer_mode=default_writer_mode)
 
 
 class GoalStore:
@@ -495,6 +540,7 @@ class LifecycleGate:
         exception_kind: Optional[str] = None,
         material_change: bool = False,
         fresh_context: bool = False,
+        concurrency_mode: str = "auto",
     ) -> LifecycleDecision:
         role = _nonempty("role", role)
         task_domain = _nonempty("task_domain", task_domain)
@@ -514,20 +560,33 @@ class LifecycleGate:
         if fresh_context and not override_reason:
             raise ValueError("fresh_context requires override_reason")
 
-        justification = {
-            "reconciled": reconciled,
-            "override_reason": override_reason,
-            "exception_kind": exception_kind,
-            "material_change": material_change,
-            "fresh_context": fresh_context,
-        }
         writer = self._role_is_writer(role)
+        concurrency_mode = _nonempty("concurrency_mode", concurrency_mode)
+        resolved_concurrency_mode, effective_active_cap = self.policy.effective_active_cap(
+            writer=writer, mode=concurrency_mode
+        )
         if writer and not scopes:
             raise ValueError("write-capable role requires a non-empty write_scope")
         if not writer and scopes:
             raise ValueError("read-only role must not receive write_scope")
 
         counters = self._counters(state)
+        concurrency_downshift = None
+        if counters["active_writers"] and effective_active_cap > self.policy.conservative_cap:
+            effective_active_cap = self.policy.conservative_cap
+            concurrency_downshift = "active-writer-present"
+        justification = {
+            "reconciled": reconciled,
+            "override_reason": override_reason,
+            "exception_kind": exception_kind,
+            "material_change": material_change,
+            "fresh_context": fresh_context,
+            "requested_concurrency_mode": concurrency_mode,
+            "resolved_concurrency_mode": resolved_concurrency_mode,
+            "effective_max_active_children": effective_active_cap,
+            "concurrency_downshift": concurrency_downshift,
+        }
+        counters = {**counters, "effective_max_active_children": effective_active_cap}
 
         def decision(
             action: str,
@@ -570,7 +629,7 @@ class LifecycleGate:
             return decision("REUSE", ["resume-before-spawn active match"], active_exact[-1].assignment_id)
 
         candidates = exact
-        if counters['active'] >= self.policy.max_active_children:
+        if counters['active'] >= effective_active_cap:
             if not writer and counters['active_readers'] >= self.policy.max_parallel_readers:
                 return decision('ESCALATE', ['reader capacity reached; wait at scheduling barrier'])
             if writer and counters['active_writers'] >= self.policy.max_parallel_writers:
@@ -656,6 +715,8 @@ class LifecycleGate:
             reasons.append("soft-limit reconciliation accepted")
         if fresh_context:
             reasons.append("fresh-context override accepted")
+        if concurrency_downshift:
+            reasons.append("adaptive concurrency downshift: " + concurrency_downshift)
         return decision("SPAWN", reasons, proposed_id=proposed)
 
     def _commit_spawn_locked(
@@ -680,6 +741,7 @@ class LifecycleGate:
             state="pending",
             write_scope=write_scope,
             change_set=change_set,
+            concurrency_mode=decision.justification.get("resolved_concurrency_mode", "auto"),
         )
         state.assignments.append(assignment)
         state.next_sequence += 1
@@ -703,6 +765,7 @@ class LifecycleGate:
         exception_kind: Optional[str] = None,
         material_change: bool = False,
         fresh_context: bool = False,
+        concurrency_mode: str = "auto",
     ) -> Tuple[LifecycleDecision, Optional[GoalAssignment]]:
         with store.locked():
             state = store._load_unlocked()
@@ -717,6 +780,7 @@ class LifecycleGate:
                 exception_kind=exception_kind,
                 material_change=material_change,
                 fresh_context=fresh_context,
+                concurrency_mode=concurrency_mode,
             )
             assignment: Optional[GoalAssignment] = None
             if result.action == "SPAWN":
@@ -791,8 +855,13 @@ class LifecycleGate:
                         raise ValueError("writer capacity reached; cannot reactivate assignment")
                     if not writer and counters["active_readers"] >= self.policy.max_parallel_readers:
                         raise ValueError("reader capacity reached; cannot reactivate assignment")
-                    if counters['active'] >= self.policy.max_active_children:
-                        raise ValueError('active child capacity reached; cannot reactivate assignment')
+                    _, effective_active_cap = self.policy.effective_active_cap(
+                        writer=writer, mode=item.concurrency_mode
+                    )
+                    if counters["active_writers"] and effective_active_cap > self.policy.conservative_cap:
+                        effective_active_cap = self.policy.conservative_cap
+                    if counters['active'] >= effective_active_cap:
+                        raise ValueError('active child capacity reached for assignment concurrency mode; cannot reactivate assignment')
                 item.state = new_state
                 item.updated_at = _utc_now()
                 if old not in ACTIVE_STATES and new_state in ACTIVE_STATES or old == 'running' and new_state == 'pending':

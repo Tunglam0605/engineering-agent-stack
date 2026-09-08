@@ -125,7 +125,17 @@ class CliDistributionTests(unittest.TestCase):
         self.assertEqual(
             status["policy"],
             {
-                "status": "OK", "readers": 3, "writers": 1,
+                "status": "OK",
+                "max_session_children": 4,
+                "adaptive_concurrency": {
+                    "strategy": "adaptive",
+                    "conservative": 2,
+                    "balanced": 3,
+                    "read_heavy": 4,
+                    "default_reader_mode": "balanced",
+                    "default_writer_mode": "conservative",
+                },
+                "readers": 4, "writers": 1,
                 "soft_child_budget": 8, "hard_child_ceiling": 12,
                 "reuse_strategy": "resume-before-spawn",
                 "recursive_delegation": False,

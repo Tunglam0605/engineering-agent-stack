@@ -86,7 +86,8 @@ Initializes atomic goal state and an append-only JSONL event stream. Goal IDs ar
 
 ### `eas goal gate GOAL_ID --role ROLE --domain DOMAIN [options]`
 
-Returns one lifecycle action before a child dispatch:
+Returns one lifecycle action before a child dispatch. `--concurrency-mode auto|conservative|balanced|read-heavy` selects the adaptive scheduling intent; `auto` is the default and resolves by role write intent.
+
 
 - `REUSE` — continue an existing matching assignment;
 - `SPAWN` — a new assignment is within policy;
@@ -191,9 +192,9 @@ Explicitly migrates a legacy or drifted goal to the current project capability s
 
 Configured v0.6 projects require the same snapshot digest for stack-controlled goal gate/transition/checkpoint/approval/recovery/export paths. Projects without `.eas/project.toml` retain v0.5 lifecycle behavior.
 
-## Codex subagent compatibility (v0.6.4)
+## Codex subagent compatibility and adaptive concurrency (v0.6.5)
 
-EAS uses the public Codex `[agents]` configuration surface with `max_concurrent_threads_per_session = 2`. Do not enable the legacy experimental `[features.multi_agent_v2]` table: live Codex 0.153.4 A/B acceptance reproduced encrypted child-output failures when it was enabled. `eas` installation checks reject `features.multi_agent_v2.enabled=true`.
+EAS uses the public Codex `[agents]` surface with `max_concurrent_threads_per_session = 4` as a provider/session ceiling. The EAS lifecycle gate then applies adaptive effective caps of 2/3/4 rather than treating four as the normal fan-out. Do not enable the legacy experimental `[features.multi_agent_v2]` table: live Codex 0.153.4 A/B acceptance reproduced encrypted child-output failures when it was enabled. `eas` installation checks reject `features.multi_agent_v2.enabled=true`.
 
 For an existing personal install, remove that experimental table (or set `enabled = false`) and verify Codex with `--strict-config` before running live subagent acceptance.
 

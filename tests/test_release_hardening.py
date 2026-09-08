@@ -31,7 +31,7 @@ class GeneratedCodexConfigTests(unittest.TestCase):
         config = generator.tomllib.loads(rendered)
 
         self.assertTrue(config["agents"]["enabled"])
-        self.assertEqual(config["agents"]["max_concurrent_threads_per_session"], 2)
+        self.assertEqual(config["agents"]["max_concurrent_threads_per_session"], 4)
         self.assertNotIn("multi_agent_v2", config.get("features", {}))
 
 
@@ -222,7 +222,7 @@ class InstallerConfigValidationTests(unittest.TestCase):
         config = """\
 [agents]
 enabled = true
-max_concurrent_threads_per_session = 2
+max_concurrent_threads_per_session = 4
 
 [features.multi_agent_v2]
 enabled = false
@@ -245,7 +245,7 @@ wait_agent_enabled = true
         rendered = generator.render_config_example(
             generator.load_agents(),
             generator.load_yaml(generator.MODEL_PROFILES_PATH),
-        ).replace("max_concurrent_threads_per_session = 2", "max_concurrent_threads_per_session = 4")
+        ).replace("max_concurrent_threads_per_session = 4", "max_concurrent_threads_per_session = 3")
 
         problems = self.validate(rendered)
 
@@ -286,7 +286,7 @@ wait_agent_enabled = true
         overrides = provider_probe.provider_overrides(Path("provider-sandbox"))
 
         self.assertIn("agents.enabled=true", overrides)
-        self.assertIn("agents.max_concurrent_threads_per_session=2", overrides)
+        self.assertIn("agents.max_concurrent_threads_per_session=4", overrides)
         self.assertFalse(any("multi_agent_v2" in override for override in overrides))
 
 

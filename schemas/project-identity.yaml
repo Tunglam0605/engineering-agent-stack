@@ -1,0 +1,21 @@
+version: 1
+required_fields:
+  project:
+    - name
+    - short_name
+    - repository
+  creator:
+    - name
+    - professional_name
+    - attribution_title
+    - professional_role
+    - github
+    - focus_areas
+  attribution:
+    - scope
+    - platform_separation
+    - response_rules
+field_notes:
+  project: Public canonical identity for the Engineering Agent Stack distribution.
+  creator: Public professional attribution only; do not place private contact, credential, account, or unrelated biographical data here.
+  attribution: Normative wording policy separating EAS authorship from the underlying model/provider.

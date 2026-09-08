@@ -134,6 +134,7 @@ def goal_gate(
     exception_kind: Optional[str] = None,
     material_change: bool = False,
     fresh_context: bool = False,
+    concurrency_mode: str = "auto",
     commit: bool = False,
     as_json: bool = False,
 ) -> int:
@@ -146,7 +147,7 @@ def goal_gate(
             store, role=role, task_domain=task_domain, write_scope=write_scope,
             change_set=change_set, reconciled=reconciled, override_reason=override_reason,
             exception_kind=exception_kind, material_change=material_change,
-            fresh_context=fresh_context,
+            fresh_context=fresh_context, concurrency_mode=concurrency_mode,
         )
         payload = {"command": "goal-gate", **decision.as_dict(), "committed": True}
         if assignment is not None:
@@ -159,7 +160,7 @@ def goal_gate(
             state, role=role, task_domain=task_domain, write_scope=write_scope,
             change_set=change_set, reconciled=reconciled, override_reason=override_reason,
             exception_kind=exception_kind, material_change=material_change,
-            fresh_context=fresh_context,
+            fresh_context=fresh_context, concurrency_mode=concurrency_mode,
         )
         payload = {"command": "goal-gate", **decision.as_dict(), "committed": False}
     _render(payload, as_json)

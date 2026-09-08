@@ -15,6 +15,8 @@ SCHEMA_PATH = ROOT / "schemas" / "agent-contract.yaml"
 MODEL_PROFILES_PATH = ROOT / "config" / "model-profiles.yaml"
 ROUTING_POLICY_PATH = ROOT / "config" / "routing-policy.yaml"
 CODEX_ROLE_MAP_PATH = ROOT / "adapters" / "codex" / "role-profiles.yaml"
+IDENTITY_PATH = ROOT / "config" / "project-identity.yaml"
+PARENT_INSTRUCTIONS_PATH = ROOT / "adapters" / "codex" / "AGENTS.md.example"
 
 
 def load_yaml(path: Path) -> dict[str, Any]:
@@ -57,12 +59,47 @@ def main() -> int:
     model_profiles = load_yaml(MODEL_PROFILES_PATH)
     routing_policy = load_yaml(ROUTING_POLICY_PATH)
     codex_role_map = load_yaml(CODEX_ROLE_MAP_PATH)
+    identity = load_yaml(IDENTITY_PATH)
 
     required = contract.get("required_fields", [])
     known_profiles = set(model_profiles.get("profiles", {}))
 
     failures: list[str] = []
     agents: dict[str, dict[str, Any]] = {}
+
+    project_identity = identity.get("project")
+    creator_identity = identity.get("creator")
+    attribution_identity = identity.get("attribution")
+    if identity.get("version") != 1:
+        failures.append("project identity: version must be 1")
+    if not isinstance(project_identity, dict) or not isinstance(creator_identity, dict) or not isinstance(attribution_identity, dict):
+        failures.append("project identity: project/creator/attribution must be mappings")
+    else:
+        allowed_creator = {"name", "professional_name", "attribution_title", "professional_role", "github", "focus_areas"}
+        if set(creator_identity) != allowed_creator:
+            failures.append("project identity: creator fields must remain public-professional and canonical")
+        for label, mapping, fields in (
+            ("project", project_identity, ("name", "short_name", "repository")),
+            ("creator", creator_identity, ("name", "professional_name", "attribution_title", "professional_role", "github")),
+            ("attribution", attribution_identity, ("scope", "platform_separation")),
+        ):
+            for field in fields:
+                if not isinstance(mapping.get(field), str) or not mapping[field].strip():
+                    failures.append(f"project identity: {label}.{field} must be a non-empty string")
+        if not isinstance(creator_identity.get("focus_areas"), list) or not creator_identity.get("focus_areas"):
+            failures.append("project identity: creator.focus_areas must be a non-empty list")
+        if not isinstance(attribution_identity.get("response_rules"), list) or not attribution_identity.get("response_rules"):
+            failures.append("project identity: attribution.response_rules must be a non-empty list")
+        try:
+            parent_text = PARENT_INSTRUCTIONS_PATH.read_text(encoding="utf-8")
+        except OSError as exc:
+            failures.append("project identity: cannot read parent instructions: " + str(exc))
+        else:
+            for expected in (project_identity.get("name"), creator_identity.get("name"), creator_identity.get("professional_name")):
+                if isinstance(expected, str) and expected not in parent_text:
+                    failures.append("project identity: parent instructions missing canonical attribution: " + expected)
+            if "foundation model" not in parent_text or "provider" not in parent_text.lower():
+                failures.append("project identity: parent instructions must preserve provider/foundation-model boundary")
 
     agent_paths = sorted(CORE_DIR.glob("*.yaml"))
     if not agent_paths:
@@ -142,7 +179,22 @@ def main() -> int:
         )
 
     lifecycle = routing_policy.get("lifecycle")
+    concurrency = routing_policy.get("concurrency")
     limits = routing_policy.get("limits")
+    if not isinstance(concurrency, dict):
+        failures.append("routing policy: concurrency must be a mapping")
+    else:
+        modes = concurrency.get("modes")
+        if concurrency.get("strategy") != "adaptive":
+            failures.append("routing policy: concurrency.strategy must be adaptive")
+        if concurrency.get("provider_session_cap") != 4:
+            failures.append("routing policy: concurrency.provider_session_cap must be 4")
+        if concurrency.get("default_reader_mode") != "balanced":
+            failures.append("routing policy: concurrency.default_reader_mode must be balanced")
+        if concurrency.get("default_writer_mode") != "conservative":
+            failures.append("routing policy: concurrency.default_writer_mode must be conservative")
+        if modes != {"conservative": 2, "balanced": 3, "read-heavy": 4}:
+            failures.append("routing policy: adaptive concurrency modes must be conservative=2, balanced=3, read-heavy=4")
     if not isinstance(lifecycle, dict):
         failures.append("routing policy: lifecycle must be a mapping")
     else:
@@ -176,8 +228,10 @@ def main() -> int:
         hard = limits.get("hard_max_child_assignments_per_goal")
         if isinstance(soft, int) and not isinstance(soft, bool) and isinstance(hard, int) and not isinstance(hard, bool) and hard < soft:
             failures.append("routing policy: hard child-assignment limit must be >= soft limit")
-        if limits.get("default_max_parallel_readers") != 3:
-            failures.append("routing policy: default_max_parallel_readers must be 3 under the bounded lifecycle policy")
+        if limits.get("default_max_parallel_readers") != 4:
+            failures.append("routing policy: default_max_parallel_readers must be 4 under adaptive concurrency")
+        if limits.get("default_max_active_children") != 4:
+            failures.append("routing policy: default_max_active_children must be 4 as the provider ceiling")
         if limits.get("default_max_parallel_writers") != 1:
             failures.append("routing policy: default_max_parallel_writers must be 1")
         if limits.get("recursive_delegation") is not False:

@@ -2,7 +2,7 @@
 
 Engineering Agent Stack now separates **stack-owned release acceptance** from **Codex provider/runtime diagnostics**.
 
-That boundary is intentional. Repository structure, routing policy, installer behavior, direct-first behavior, and bounded write scope are under this project's control. `spawn_agent`, Multi-Agent V2 role selection, child-model routing, and provider telemetry are controlled by the current Codex runtime and must not block the stack release gate.
+That boundary is intentional. Repository structure, routing policy, installer behavior, direct-first behavior, and bounded write scope are under this project's control. `spawn_agent`, native custom-role selection, child-model routing, and provider telemetry are controlled by the current Codex runtime and must not block the stack release gate.
 
 ## Prerequisites
 
@@ -95,7 +95,7 @@ On Windows `10.0.26200` with Python `3.11.15` and `codex-cli 0.153.4`:
 - Child role/model telemetry was unavailable in the public JSONL stream. Extended provider probing was not run because the basic probe was unhealthy.
 - Collaboration-call counts, token usage, latency, and other provider telemetry vary from run to run. Treat the Markdown report emitted by the current `acceptance-test.ps1` or `provider-probe.ps1` invocation as the authoritative source for exact measurements from that run.
 
-The generated adapter sets `non_code_mode_only = false`, so installed projects expose Multi-Agent V2 collaboration in code mode. The provider probe exercises that installation default rather than masking it with a probe-only override.
+The generated adapter uses the public `[agents]` surface with a session ceiling of four and does not enable the legacy experimental `multi_agent_v2` table. Provider probes exercise native custom-role spawning against that installation surface rather than forcing hidden feature flags.
 
 ## Why the split exists
 

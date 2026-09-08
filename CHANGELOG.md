@@ -6,6 +6,23 @@ All notable project changes will be documented here.
 
 No unreleased changes.
 
+## [0.6.5] - 2026-09-08
+
+### Added
+
+- Add a canonical public project identity and attribution contract for Engineering Agent Stack, with creator attribution to Nguyễn Khắc Tùng Lâm (Tùng Lâm Automation) and an explicit provider/foundation-model boundary.
+- Inject the canonical EAS identity into all seven generated Codex roles and the parent orchestration policy, without duplicating unrelated private biography.
+- Add adaptive child concurrency profiles: `conservative=2`, `balanced=3`, and `read-heavy=4`; `auto` selects conservative for write-capable work and balanced for read-only work.
+
+### Changed
+
+- Restore the Codex-native subagent path as the default execution baseline: Codex owns spawn/wait/follow-up/transport; EAS durable goal, approval and recovery services are opt-in for explicitly initialized durable workflows.
+- Reduce generated child instruction size and parent orchestration prompt size while preserving all seven role boundaries, creator attribution, provider separation, evidence discipline and release-critical review guidance.
+- Raise the Codex session ceiling to four children so EAS can use adaptive 2/3/4 advisory scheduling while keeping writer ownership serialized at one; this is a configured ceiling, not a guarantee that provider-native four-way streams are healthy in every session, and normal work should prefer 1-2 children.
+- Tighten encrypted-output recovery guidance: one same-child resume attempt, then replacement/fallback instead of repeated retries of a corrupted stream.
+- Persist the resolved concurrency mode with goal assignments and preserve it across replacement/recovery.
+- Publish canonical package/license authorship for Nguyễn Khắc Tùng Lâm (Tùng Lâm Automation).
+
 ## [0.6.4] - 2026-09-08
 
 ### Fixed

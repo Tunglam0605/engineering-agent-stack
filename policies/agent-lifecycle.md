@@ -12,15 +12,18 @@ A fresh child is justified when:
 - independent review requires a separate context; or
 - the previous child context is stale, wrong, or materially mismatched to the new scope.
 
-Do not spawn a second worker merely because the first worker completed one turn. Current Codex V2 follow-up/resume behavior can continue a bounded investigation without paying for a fresh context every time.
+Do not spawn a second worker merely because the first worker completed one turn. Follow-up/resume behavior should continue a bounded investigation without paying for a fresh context every time.
 
 ## Goal fan-out budget
 
 Default orchestration guidance:
 
 ```text
-parallel readers                    <= 3
-total active children                <= 2 (configurable 1..4)
+parallel readers                    <= 4 hard ceiling
+effective active children           = adaptive 2 / 3 / 4
+  conservative                      = 2
+  balanced                          = 3
+  read-heavy                        = 4 (read-only only)
 parallel writers                    <= 1 scope owner
 soft child-assignment budget        = 8 per goal
 hard ordinary-spawn ceiling         = 12 per goal

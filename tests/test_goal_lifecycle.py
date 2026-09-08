@@ -31,6 +31,31 @@ class LifecycleGateTests(unittest.TestCase):
             change_set=change_set,
         )
 
+    def test_adaptive_concurrency_profiles_are_bounded_and_role_aware(self) -> None:
+        reader_auto = self.gate.evaluate(
+            GoalState("goal-adaptive-reader"), role="scout", task_domain="scan", write_scope=[]
+        )
+        self.assertEqual(reader_auto.justification["resolved_concurrency_mode"], "balanced")
+        self.assertEqual(reader_auto.counters["effective_max_active_children"], 3)
+
+        reader_heavy = self.gate.evaluate(
+            GoalState("goal-adaptive-heavy"), role="researcher", task_domain="sources",
+            write_scope=[], concurrency_mode="read-heavy"
+        )
+        self.assertEqual(reader_heavy.justification["resolved_concurrency_mode"], "read-heavy")
+        self.assertEqual(reader_heavy.counters["effective_max_active_children"], 4)
+
+        writer_auto = self.gate.evaluate(
+            GoalState("goal-adaptive-writer"), role="implementer", task_domain="code", write_scope=["src/"]
+        )
+        self.assertEqual(writer_auto.justification["resolved_concurrency_mode"], "conservative")
+        self.assertEqual(writer_auto.counters["effective_max_active_children"], 2)
+        with self.assertRaisesRegex(ValueError, "read-heavy concurrency"):
+            self.gate.evaluate(
+                GoalState("goal-adaptive-invalid"), role="implementer", task_domain="code",
+                write_scope=["src/"], concurrency_mode="read-heavy"
+            )
+
     def test_resume_before_spawn_reuses_same_role_domain_scope(self) -> None:
         state = GoalState("goal-reuse", assignments=[self.assignment(1, "scout", "gateway")], next_sequence=2)
         decision = self.gate.evaluate(state, role="scout", task_domain="Gateway", write_scope=[])
@@ -121,10 +146,12 @@ class LifecycleGateTests(unittest.TestCase):
     def test_parallel_reader_and_writer_capacity_are_enforced(self) -> None:
         readers = GoalState(
             "goal-readers",
-            assignments=[self.assignment(i, "scout", "d{}".format(i), state="running") for i in range(1, 4)],
-            next_sequence=4,
+            assignments=[self.assignment(i, "scout", "d{}".format(i), state="running") for i in range(1, 5)],
+            next_sequence=5,
         )
-        decision = self.gate.evaluate(readers, role="researcher", task_domain="docs", write_scope=[])
+        decision = self.gate.evaluate(
+            readers, role="researcher", task_domain="docs", write_scope=[], concurrency_mode="read-heavy"
+        )
         self.assertEqual(decision.action, "ESCALATE")
         self.assertIn("reader capacity", decision.reasons[0])
 
@@ -161,7 +188,7 @@ class LifecycleGateTests(unittest.TestCase):
                 "goal-transition-cap", assignments=list(state.assignments), next_sequence=5
             )
             store.save(persisted)
-            with self.assertRaisesRegex(ValueError, "reader capacity reached"):
+            with self.assertRaisesRegex(ValueError, "active child capacity reached"):
                 self.gate.transition_atomic(store, "a-0001", "running")
             self.assertEqual(store.load().assignments[0].state, "completed")
 
@@ -380,7 +407,7 @@ class GoalCliTests(unittest.TestCase):
             project = Path(tmp)
             subprocess.run(["git", "init", "-q", str(project)], check=True)
             self.run_cli(["goal", "init", "capacity"], project)
-            for index in range(LifecycleGate(ROOT).policy.max_active_children):
+            for index in range(LifecycleGate(ROOT).policy.balanced_cap):
                 spawn = self.run_cli([
                     "goal", "gate", "capacity", "--role", "scout", "--domain", "d{}".format(index), "--commit"
                 ], project)

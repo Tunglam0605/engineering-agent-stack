@@ -2,12 +2,16 @@
 
 > Turn Codex into a bounded engineering team: **7 focused roles, direct-first routing, safe writes, independent verification, and a small distribution CLI.**
 
-[![Status](https://img.shields.io/badge/status-v0.6.4%20stable-blue)](#release-status)
+[![Status](https://img.shields.io/badge/status-v0.6.5%20stable-blue)](#release-status)
 [![CI](https://github.com/Tunglam0605/engineering-agent-stack/actions/workflows/validate.yml/badge.svg)](https://github.com/Tunglam0605/engineering-agent-stack/actions/workflows/validate.yml)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.9%2B-blue)](pyproject.toml)
 
 Engineering Agent Stack (EAS) is a compact orchestration and policy layer for Codex. It does **not** replace Codex and it does not try to maximize agent count. It gives Codex a small engineering team with explicit responsibilities, bounded write behavior, verification rules, runtime contracts, and repeatable installation.
+
+### Creator & attribution
+
+EAS was created, designed, developed, and is maintained by **Nguyễn Khắc Tùng Lâm (Tùng Lâm Automation)** ? Robotics & Automation Engineer. The attribution applies to the EAS architecture, agent definitions, role policies, orchestration, capability configuration, release tooling, and project integration layer. Underlying foundation models and provider infrastructure remain products of their respective providers. See [Project Identity](docs/PROJECT_IDENTITY.md).
 
 ## Install
 
@@ -384,6 +388,8 @@ Writer roles require `--scope`. Use `--fresh-context --reason TEXT` only when a 
 Checkpoint verification/review evidence with `eas goal checkpoint`, inspect interruption with `eas goal plan`, then record explicit stopped-executor evidence with `eas goal approve` before `eas goal recover`. Recovery preserves the assignment ID. See the [workflow and recovery guide](docs/WORKFLOW.md) for the complete sequence and enforcement boundary.
 
 ## Release status
+
+**v0.6.5** adds canonical creator attribution and adaptive 2/3/4 advisory concurrency, while restoring a **Codex-native stable path** as the default: Codex owns `spawn_agent`, wait/follow-up, child transport, and result delivery; EAS supplies roles, routing/context policy, identity, and optional durable guardrails. The four-child value is only a provider/session ceiling. Normal work should prefer 1-2 children, and durable EAS goal/recovery machinery is opt-in rather than required for ordinary subagent calls.
 
 **v0.6.4** removes the experimental `multi_agent_v2` compatibility path after live Codex 0.153.4 A/B testing isolated it as the trigger for encrypted child-output failures. EAS now uses the public `[agents]` surface with a two-child concurrency cap.
 

@@ -162,6 +162,15 @@ def _policy_summary() -> Dict[str, Any]:
             raise ValueError("recursive_delegation must be a boolean")
         return {
             "status": "OK",
+            "max_session_children": policy.max_active_children,
+            "adaptive_concurrency": {
+                "strategy": "adaptive",
+                "conservative": policy.conservative_cap,
+                "balanced": policy.balanced_cap,
+                "read_heavy": policy.read_heavy_cap,
+                "default_reader_mode": policy.default_reader_mode,
+                "default_writer_mode": policy.default_writer_mode,
+            },
             "readers": policy.max_parallel_readers,
             "writers": policy.max_parallel_writers,
             "soft_child_budget": policy.soft_limit,

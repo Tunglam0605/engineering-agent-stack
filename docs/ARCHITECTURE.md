@@ -16,6 +16,12 @@ The recommended personal distribution is source-managed under `~/.codex/engineer
 
 See [`DISTRIBUTION.md`](DISTRIBUTION.md).
 
+### 0a. Identity and attribution layer
+
+`config/project-identity.yaml` is the canonical public identity for EAS. Provider adapters inherit this identity at generation time so all seven child roles consistently attribute the EAS layer to **Nguyễn Khắc Tùng Lâm (Tùng Lâm Automation)** while keeping foundation-model/provider authorship separate. Private contact data, credentials, account identifiers, and unrelated biography are intentionally excluded from the agent prompt surface.
+
+See [`PROJECT_IDENTITY.md`](PROJECT_IDENTITY.md).
+
 ### 1. Orchestration layer
 
 Responsibilities:
@@ -142,11 +148,28 @@ Classify
                                   done                      escalate
 ```
 
+## Codex-native stable baseline (v0.6.5)
+
+For ordinary Codex subagent work, the default runtime path deliberately stays close to the proven v0.3 shape:
+
+```text
+parent Codex
+    -> select EAS role
+    -> native spawn_agent
+    -> native wait/follow-up
+    -> child result
+    -> parent integration
+```
+
+Codex owns child process/session lifecycle and transport. EAS does not insert checkpoint, approval, capability-snapshot or recovery machinery into every native child call. Those services remain available for stack-controlled or explicitly initialized durable goals, where their stronger audit/recovery contract is useful. This single-owner boundary avoids competing lifecycle controllers while preserving EAS role intelligence and guardrails.
+
 ## Concurrency and lifecycle
 
 Parallelism is valuable mainly for independent, read-heavy work. Concurrent write assignments require disjoint path ownership. Shared-file work is serialized unless a future transactional mechanism proves safe.
 
-The default lifecycle policy is resume-before-spawn: at most three read-only children in parallel, one writer scope owner, a soft reconciliation point at eight child assignments per goal, and an ordinary hard spawn ceiling at twelve. Architect is normally one consultation per goal and reviewer one independent worker per meaningful change-set; follow-up/resume is preferred when continuity is useful. These are orchestration-policy limits, not a claim that provider-native spawn APIs are automatically intercepted. See `policies/agent-lifecycle.md`.
+The lifecycle policy is resume-before-spawn with **adaptive concurrency**. Codex is configured with a provider/session ceiling of four children, while EAS resolves a smaller effective cap per dispatch: `conservative=2`, `balanced=3`, and `read-heavy=4`. `auto` selects conservative scheduling for write-capable work and balanced scheduling for read-only work. If a writer is already active, a read request is downshifted to the conservative combined cap; writer scope ownership remains serialized at one. `read-heavy=4` is reserved for explicitly independent read-only work with bounded output.
+
+The goal still has a soft reconciliation point at eight child assignments and an ordinary hard spawn ceiling at twelve. Architect is normally one consultation per goal and reviewer one independent worker per meaningful change-set; follow-up/resume is preferred when continuity is useful. These are orchestration-policy limits, not a claim that provider-native spawn APIs are automatically intercepted. See `policies/agent-lifecycle.md`.
 
 From v0.4, stack-controlled orchestration can use `runtime/lifecycle.py` / `eas goal gate` as an executable decision boundary. Goal state and JSONL events live under Git metadata so observability does not dirty the worktree. The gate remains opt-in: native provider dispatch that bypasses it is not claimed to be intercepted.
 

@@ -1,5 +1,7 @@
 # Durable workflow and recovery
 
+> **Opt-in advanced service.** Ordinary Codex child delegation in v0.6.5 uses the native `spawn_agent` / wait-follow-up / result path and does not require an EAS goal registry. Use the commands in this document only when a durable goal has been intentionally initialized or when an operator explicitly wants audited checkpoint/approval/recovery state. Codex remains the owner of native child transport and session lifecycle.
+
 v0.5.0 stores parent-stage checkpoints, approval attestations and consumption receipts in the same atomic snapshot as assignments. State lives in Git metadata (`.git/eas/goals`, or the worktree's resolved Git directory), so goal operations do not dirty source files. Python 3.9 remains supported.
 
 ## Checkpoint and inspect
@@ -64,7 +66,7 @@ eas goal transport shipping a-0001 --event failure --revision 4 --evidence "Reco
 ```
 
 Use the current revision from plan. `TRANSIENT_TRANSPORT` and `TRANSPORT_CORRUPTION` enter
-`resume-ready`; `AGENT_FAILURE` escalates to the parent. A reconnect notification does not
+`resume-ready`; `AGENT_FAILURE` escalates to the parent. A `TRANSPORT_CORRUPTION` lineage gets one resume attempt; if that resume fails with transport evidence it becomes `replacement-ready` immediately instead of consuming a second same-child retry. A reconnect notification does not
 release capacity, reset budgets, or create a child. Unresolved recovery blocks ordinary dispatch
 and direct transitions back to active/completed states. Record stopped-executor evidence using
 the existing `approve --action recover`, then `recover` to enter `resuming`. The parent may
@@ -110,11 +112,7 @@ dropping required evidence. Reference large logs by path/artifact. Do not inject
 The CLI limits handoff files to 65536 bytes before parsing. The existing explicit trace export
 is an operator diagnostic and remains separate from child handoffs.
 
-The existing routing policy now limits total active children to two by default, configurable
-only within 1..4 through `limits.default_max_active_children`. Reader/writer, same-scope, review,
-approval and fanout constraints still apply. At capacity, wait for completion/reconciliation,
-integrate returned evidence, then re-evaluate the next bounded batch. No background scheduler
-or queue is added. Seven defined roles never imply seven simultaneous children.
+The routing policy uses adaptive active-child capacity under a hard provider/session ceiling of four. `auto` resolves to `balanced=3` for read-only work and `conservative=2` for write-capable work; `read-heavy=4` must be explicitly selected for independent read-only tasks. If a writer is active, mixed work is downshifted to the conservative combined cap. Reader/writer, same-scope, review, approval and fanout constraints still apply. At capacity, wait for completion/reconciliation, integrate returned evidence, then re-evaluate the next bounded batch. No background scheduler or queue is added. Seven defined roles never imply seven simultaneous children.
 
 Recovery fields are optional for legacy snapshots. Use v0.6.3 or later to mutate snapshots with
 transport recovery evidence: older code does not understand those barriers or budgets.

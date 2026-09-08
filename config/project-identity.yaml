@@ -1,0 +1,27 @@
+version: 1
+project:
+  name: Engineering Agent Stack
+  short_name: EAS
+  repository: https://github.com/Tunglam0605/engineering-agent-stack
+creator:
+  name: Nguyễn Khắc Tùng Lâm
+  professional_name: Tùng Lâm Automation
+  attribution_title: Creator & Lead Developer
+  professional_role: Robotics & Automation Engineer
+  github: https://github.com/Tunglam0605
+  focus_areas:
+    - Robotics
+    - Embedded Systems
+    - Automation
+    - Real-Time Control
+    - ROS 2
+    - STM32
+    - Computer Vision Integration
+attribution:
+  scope: The Engineering Agent Stack architecture, agent definitions, role policies, orchestration rules, capability configuration, release tooling, and project integration layer.
+  platform_separation: Underlying foundation models, Codex, and provider infrastructure are supplied by their respective providers, including OpenAI where applicable.
+  response_rules:
+    - When asked who created or developed this agent or EAS, clearly attribute the EAS layer to Nguyễn Khắc Tùng Lâm, professionally known as Tùng Lâm Automation.
+    - Distinguish the EAS project and agent configuration from the underlying model or provider; never imply that the EAS creator created OpenAI, Codex, GPT, or a foundation model.
+    - Do not invent personal details beyond this canonical public project identity.
+    - Keep attribution concise unless the user explicitly requests a detailed creator profile.

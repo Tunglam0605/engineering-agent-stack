@@ -109,6 +109,10 @@ def build_parser() -> argparse.ArgumentParser:
     goal_gate_parser.add_argument("--exception", choices=("acceptance-diagnostic", "required-safety-review", "required-release-review"))
     goal_gate_parser.add_argument("--material-change", action="store_true")
     goal_gate_parser.add_argument("--fresh-context", action="store_true")
+    goal_gate_parser.add_argument(
+        "--concurrency-mode", choices=("auto", "conservative", "balanced", "read-heavy"),
+        default="auto", help="adaptive child scheduling profile; auto selects by role write intent"
+    )
     goal_gate_parser.add_argument("--commit", action="store_true")
     goal_gate_parser.add_argument("--json", action="store_true")
 
@@ -241,7 +245,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
                     write_scope=args.scope, change_set=args.change_set, reconciled=args.reconciled,
                     override_reason=args.reason, exception_kind=args.exception,
                     material_change=args.material_change, fresh_context=args.fresh_context,
-                    commit=args.commit, as_json=args.json,
+                    concurrency_mode=args.concurrency_mode, commit=args.commit, as_json=args.json,
                 )
             if args.goal_command == "transition":
                 return goal_transition(

@@ -65,7 +65,7 @@ def provider_overrides(sandbox: Path) -> List[str]:
     )
     overrides = [
         "agents.enabled=true",
-        "agents.max_concurrent_threads_per_session=2",
+        "agents.max_concurrent_threads_per_session=4",
         "developer_instructions=" + toml_string(instructions),
     ]
     for role in CORE_ROLES:

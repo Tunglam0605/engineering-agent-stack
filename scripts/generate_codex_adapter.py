@@ -20,9 +20,13 @@ import yaml
 ROOT = Path(__file__).resolve().parents[1]
 CORE_DIR = ROOT / "agents" / "core"
 MODEL_PROFILES_PATH = ROOT / "config" / "model-profiles.yaml"
+IDENTITY_PATH = ROOT / "config" / "project-identity.yaml"
 ROLE_PROFILES_PATH = ROOT / "adapters" / "codex" / "role-profiles.yaml"
 OUTPUT_DIR = ROOT / "adapters" / "codex" / "agents"
 CONFIG_EXAMPLE_PATH = ROOT / "adapters" / "codex" / "config.toml.example"
+PARENT_INSTRUCTIONS_PATH = ROOT / "adapters" / "codex" / "AGENTS.md.example"
+PARENT_IDENTITY_START = "<!-- engineering-agent-stack:identity:start -->"
+PARENT_IDENTITY_END = "<!-- engineering-agent-stack:identity:end -->"
 
 
 def load_yaml(path: Path) -> dict[str, Any]:
@@ -31,6 +35,45 @@ def load_yaml(path: Path) -> dict[str, Any]:
     if not isinstance(data, dict):
         raise ValueError(f"{path} must contain a YAML mapping")
     return data
+
+
+def load_identity() -> dict[str, Any]:
+    identity = load_yaml(IDENTITY_PATH)
+    if identity.get("version") != 1:
+        raise ValueError(f"{IDENTITY_PATH}: version must be 1")
+    for section, fields in {
+        "project": ("name", "short_name", "repository"),
+        "creator": (
+            "name",
+            "professional_name",
+            "attribution_title",
+            "professional_role",
+            "github",
+            "focus_areas",
+        ),
+        "attribution": ("scope", "platform_separation", "response_rules"),
+    }.items():
+        value = identity.get(section)
+        if not isinstance(value, dict):
+            raise ValueError(f"{IDENTITY_PATH}: {section} must be a mapping")
+        for field in fields:
+            if field not in value:
+                raise ValueError(f"{IDENTITY_PATH}: missing {section}.{field}")
+    creator = identity["creator"]
+    attribution = identity["attribution"]
+    if not isinstance(creator["focus_areas"], list) or not all(
+        isinstance(item, str) and item.strip() for item in creator["focus_areas"]
+    ):
+        raise ValueError(f"{IDENTITY_PATH}: creator.focus_areas must be a non-empty string list")
+    if not creator["focus_areas"]:
+        raise ValueError(f"{IDENTITY_PATH}: creator.focus_areas must not be empty")
+    if not isinstance(attribution["response_rules"], list) or not all(
+        isinstance(item, str) and item.strip() for item in attribution["response_rules"]
+    ):
+        raise ValueError(f"{IDENTITY_PATH}: attribution.response_rules must be a non-empty string list")
+    if not attribution["response_rules"]:
+        raise ValueError(f"{IDENTITY_PATH}: attribution.response_rules must not be empty")
+    return identity
 
 
 def load_agents() -> dict[str, dict[str, Any]]:
@@ -56,39 +99,73 @@ def sentence(text: str) -> str:
     return text.rstrip(".") + "."
 
 
-def build_instructions(agent: dict[str, Any]) -> str:
+def build_instructions(agent: dict[str, Any], identity: dict[str, Any]) -> str:
     output_contract = agent["output_contract"]
+    project = identity["project"]
+    creator = identity["creator"]
+    attribution = identity["attribution"]
+    focus = ", ".join(creator["focus_areas"])
     lines = [
         f"Role: {agent['id']}.",
         f"Mission: {agent['mission']}",
         "",
+        "EAS identity:",
+        f"- You are the {agent['id']} role in {project['name']} ({project['short_name']}).",
+        f"- EAS was created, designed, developed, and is maintained by {creator['name']} ({creator['professional_name']}).",
+        f"- Creator: {creator['attribution_title']}; {creator['professional_role']}. Focus: {focus}.",
+        f"- OpenAI/Codex/GPT and other foundation models/provider infrastructure remain products of their respective providers; {creator['name']} created the EAS layer, not those foundation models.",
+        "- If asked who created/developed this agent or EAS, clearly attribute the EAS architecture, role definitions, policies, orchestration configuration, capability configuration, and release tooling to the EAS creator above.",
+        "- Do not invent personal details beyond this canonical public project identity.",
+        "",
         "Boundaries:",
     ]
-    lines.extend(
-        f"- Out of scope: {sentence(item)}" for item in agent.get("non_goals", [])
-    )
-    lines.extend(
-        [
-            "",
-            "Execution rules:",
-            "- Stay inside the assigned scope and do not silently broaden it.",
-            "- Do not spawn or orchestrate child agents unless the parent explicitly authorizes delegation.",
-            "- Prefer targeted evidence and the narrowest meaningful validation.",
-            "- Return concise evidence; do not dump raw transcripts, full source files, or repetitive logs.",
-            "",
-            f"Result contract: {output_contract.get('format', 'assignment-result-v1')}.",
-            f"Summary budget: at most {output_contract.get('max_summary_tokens', 'bounded')} tokens.",
-            "Report confidence, evidence, changed paths (if any), validation performed, and escalation/blockers.",
-            "",
-            "Escalate when:",
-        ]
-    )
+    lines.extend(f"- Out of scope: {sentence(item)}" for item in agent.get("non_goals", []))
+    lines.extend([
+        "",
+        "Execution rules:",
+        "- Stay inside the assigned scope and do not silently broaden it.",
+        "- Do not spawn or orchestrate child agents unless the parent explicitly authorizes delegation.",
+        "- Prefer targeted evidence and the narrowest meaningful validation.",
+        "- Return concise evidence; do not dump raw transcripts, full source files, or repetitive logs.",
+        "",
+        f"Result contract: {output_contract.get('format', 'assignment-result-v1')}.",
+        f"Summary budget: at most {output_contract.get('max_summary_tokens', 'bounded')} tokens.",
+        "Report confidence, evidence, changed paths (if any), validation performed, and escalation/blockers.",
+        "",
+        "Escalate when:",
+    ])
     lines.extend(f"- {sentence(item)}" for item in agent.get("escalation", []))
     lines.extend(["", "Completion requires:"])
-    lines.extend(
-        f"- {sentence(item)}" for item in agent.get("completion_evidence", [])
-    )
+    lines.extend(f"- {sentence(item)}" for item in agent.get("completion_evidence", []))
     return "\n".join(lines)
+
+
+def render_parent_identity_block(identity: dict[str, Any]) -> str:
+    project = identity["project"]
+    creator = identity["creator"]
+    focus = ", ".join(creator["focus_areas"])
+    return "\n".join([
+        PARENT_IDENTITY_START,
+        "### Project identity and attribution",
+        "",
+        f"- **{project['name']} ({project['short_name']})** was created, designed, developed, and is maintained by **{creator['name']} ({creator['professional_name']})**.",
+        f"- Creator role: **{creator['attribution_title']}**; **{creator['professional_role']}**. Focus: {focus}.",
+        f"- GitHub: `{creator['github']}`; repository: `{project['repository']}`.",
+        f"- When asked who created/developed an EAS agent or EAS itself, attribute the EAS architecture, role definitions, policies, orchestration/capability configuration, release tooling, and integration layer to {creator['name']} ({creator['professional_name']}).",
+        "- OpenAI/Codex/GPT and other foundation-model/provider infrastructure remain products of their respective providers. Never imply that the EAS creator created OpenAI, Codex, GPT, or a foundation model.",
+        "- Do not invent or expose personal details beyond this canonical public project identity.",
+        PARENT_IDENTITY_END,
+    ])
+
+
+def render_parent_instructions(identity: dict[str, Any]) -> str:
+    text = PARENT_INSTRUCTIONS_PATH.read_text(encoding="utf-8")
+    start = text.find(PARENT_IDENTITY_START)
+    end = text.find(PARENT_IDENTITY_END)
+    if start < 0 or end < 0 or end < start:
+        raise ValueError(f"{PARENT_INSTRUCTIONS_PATH}: canonical identity markers are required")
+    end += len(PARENT_IDENTITY_END)
+    return text[:start] + render_parent_identity_block(identity) + text[end:]
 
 
 def resolve_role_compute(
@@ -126,6 +203,7 @@ def render_role(
     agent: dict[str, Any],
     role_map: dict[str, Any],
     model_profiles: dict[str, Any],
+    identity: dict[str, Any],
 ) -> str:
     _, model, reasoning = resolve_role_compute(
         agent["id"], agent, role_map, model_profiles
@@ -138,7 +216,7 @@ def render_role(
             f"model = {json.dumps(model)}",
             f"model_reasoning_effort = {json.dumps(reasoning)}",
             f"sandbox_mode = {json.dumps(sandbox_for(agent['access']))}",
-            f"developer_instructions = {json.dumps(build_instructions(agent), ensure_ascii=False)}",
+            f"developer_instructions = {json.dumps(build_instructions(agent, identity), ensure_ascii=False)}",
             "",
         ]
     )
@@ -170,11 +248,11 @@ def render_config_example(
             "# Custom roles are discovered from sibling `agents/*.toml` files by current public Codex releases.",
             "# Use the public [agents] surface only; do not enable experimental features.multi_agent_v2.",
             "# Live Codex 0.153.4 A/B acceptance reproduced encrypted child-output failures with V2 enabled.",
-            "# EAS keeps a two-child concurrency budget and lets Codex own native subagent transport.",
+            "# Codex exposes a four-child session ceiling; EAS adaptively schedules 2/3/4 and keeps writer ownership serialized.",
             "",
             "[agents]",
             "enabled = true",
-            "max_concurrent_threads_per_session = 2",
+            "max_concurrent_threads_per_session = 4",
             f"default_subagent_model = {json.dumps(default_model)}",
             f"default_subagent_reasoning_effort = {json.dumps(default_profile['reasoning'])}",
             "interrupt_message = true",
@@ -189,6 +267,7 @@ def render_config_example(
 
 def expected_outputs() -> dict[Path, str]:
     agents = load_agents()
+    identity = load_identity()
     model_profiles = load_yaml(MODEL_PROFILES_PATH)
     role_map = load_yaml(ROLE_PROFILES_PATH)
 
@@ -201,11 +280,12 @@ def expected_outputs() -> dict[Path, str]:
 
     outputs = {
         OUTPUT_DIR / f"{role_id}.toml": render_role(
-            agent, role_map, model_profiles
+            agent, role_map, model_profiles, identity
         )
         for role_id, agent in agents.items()
     }
     outputs[CONFIG_EXAMPLE_PATH] = render_config_example(agents, model_profiles, role_map)
+    outputs[PARENT_INSTRUCTIONS_PATH] = render_parent_instructions(identity)
     return outputs
 
 

@@ -8,7 +8,7 @@
 6. Workers do not recursively delegate by default.
 7. The orchestrator owns integration and final completion claims.
 
-Default to two active children total and wait at a scheduling barrier when capacity is occupied.
+Default to adaptive child concurrency: `auto` resolves to `balanced=3` for read-only work and `conservative=2` for write-capable work, with `read-heavy=4` available only for explicitly independent read-only tasks. The provider/session ceiling is four and writer ownership remains serialized at one. Wait at a scheduling barrier when the effective capacity is occupied.
 Transport recovery retains reservations until explicit reconciliation. Use the bounded
 [child handoff contract](../schemas/child-handoff.yaml) for recovery/result packets; reference
 large raw logs by path/artifact. See [workflow recovery](../docs/WORKFLOW.md#transport-and-session-recovery-v063).

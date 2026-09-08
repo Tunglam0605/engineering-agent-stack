@@ -106,14 +106,30 @@ class TransportRecoveryTests(unittest.TestCase):
         self.event('failure', CORRUPT)
         self.assertEqual(self.store.load().assignments[0].recovery['reason'], 'TRANSPORT_CORRUPTION')
 
-    def test_parallel_gate_reserves_only_two_children(self):
+    def test_parallel_gate_reserves_balanced_three_children(self):
         def spawn(index):
             return self.gate.evaluate_and_commit(GoalStore(self.store.project, 'transport'),
                 role='scout', task_domain='other-' + str(index), write_scope=[])[0].action
         with ThreadPoolExecutor(max_workers=4) as pool:
             actions = list(pool.map(spawn, range(4)))
-        self.assertEqual(actions.count('SPAWN'), 1)
-        self.assertEqual(len(self.store.load().assignments), 2)
+        self.assertEqual(actions.count('SPAWN'), 2)
+        self.assertEqual(len(self.store.load().assignments), 3)
+
+    def test_read_heavy_mode_can_fill_four_read_only_slots(self):
+        for index in range(2, 5):
+            decision, child = self.gate.evaluate_and_commit(
+                self.store, role='scout', task_domain='heavy-' + str(index), write_scope=[],
+                concurrency_mode='read-heavy'
+            )
+            self.assertEqual(decision.action, 'SPAWN')
+            self.assertIsNotNone(child)
+        blocked, child = self.gate.evaluate_and_commit(
+            self.store, role='researcher', task_domain='heavy-extra', write_scope=[],
+            concurrency_mode='read-heavy'
+        )
+        self.assertEqual(blocked.action, 'ESCALATE')
+        self.assertIsNone(child)
+        self.assertEqual(len(self.store.load().assignments), 4)
 
     def test_pending_child_cannot_start_through_transition_during_reconnect(self):
         self.gate.evaluate_and_commit(self.store, role='scout', task_domain='other', write_scope=[])

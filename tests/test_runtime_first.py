@@ -879,7 +879,7 @@ class LifecyclePolicyTests(unittest.TestCase):
     def test_lifecycle_policy_is_bounded_and_resume_first(self) -> None:
         policy = yaml.safe_load((ROOT / "config" / "routing-policy.yaml").read_text(encoding="utf-8"))
         self.assertEqual(policy["lifecycle"]["reuse_strategy"], "resume-before-spawn")
-        self.assertEqual(policy["limits"]["default_max_parallel_readers"], 3)
+        self.assertEqual(policy["limits"]["default_max_parallel_readers"], 4)
         self.assertEqual(policy["limits"]["default_max_parallel_writers"], 1)
         self.assertEqual(policy["limits"]["soft_max_child_assignments_per_goal"], 8)
         self.assertEqual(policy["limits"]["hard_max_child_assignments_per_goal"], 12)
@@ -914,8 +914,10 @@ class LifecyclePolicyTests(unittest.TestCase):
             shutil.copytree(ROOT / "agents" / "core", fixture / "agents" / "core")
             shutil.copy2(ROOT / "scripts" / "validate_agents.py", fixture / "scripts" / "validate_agents.py")
             shutil.copy2(ROOT / "config" / "model-profiles.yaml", fixture / "config" / "model-profiles.yaml")
+            shutil.copy2(ROOT / "config" / "project-identity.yaml", fixture / "config" / "project-identity.yaml")
             shutil.copy2(ROOT / "schemas" / "agent-contract.yaml", fixture / "schemas" / "agent-contract.yaml")
             shutil.copy2(ROOT / "adapters" / "codex" / "role-profiles.yaml", fixture / "adapters" / "codex" / "role-profiles.yaml")
+            shutil.copy2(ROOT / "adapters" / "codex" / "AGENTS.md.example", fixture / "adapters" / "codex" / "AGENTS.md.example")
 
             policy = yaml.safe_load((ROOT / "config" / "routing-policy.yaml").read_text(encoding="utf-8"))
             policy["lifecycle"]["reuse_match_keys"] = [{"bad": "shape"}]
