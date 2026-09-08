@@ -2,7 +2,7 @@
 
 > Turn Codex into a bounded engineering team: **7 focused roles, direct-first routing, safe writes, independent verification, and a small distribution CLI.**
 
-[![Status](https://img.shields.io/badge/status-v0.6.2%20stable-blue)](#release-status)
+[![Status](https://img.shields.io/badge/status-v0.6.3%20stable-blue)](#release-status)
 [![CI](https://github.com/Tunglam0605/engineering-agent-stack/actions/workflows/validate.yml/badge.svg)](https://github.com/Tunglam0605/engineering-agent-stack/actions/workflows/validate.yml)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.9%2B-blue)](pyproject.toml)
@@ -113,6 +113,7 @@ Task
 Current policy keeps parallelism conservative:
 
 ```text
+maximum active children: 2 (configurable 1..4)
 maximum parallel readers: 3
 default parallel writer ownership: 1 scope owner
 soft child-assignment budget: 8 per goal
@@ -384,7 +385,9 @@ Checkpoint verification/review evidence with `eas goal checkpoint`, inspect inte
 
 ## Release status
 
-**v0.6.2** builds each release bundle once, verifies its exact bytes on Linux and Windows, and publishes the same wheel and sdist with a SHA-256 manifest. Official Node 24 Actions are pinned to immutable release commits. Runtime and capability architecture, all seven core roles, and the frozen v0.6 contracts remain unchanged. See [release verification](docs/DISTRIBUTION.md#exact-artifact-promotion).
+**v0.6.3** adds bounded transport/session recovery, a two-active-child default, and bounded handoffs. EAS orchestration does not intercept Codex App reconnects or repair upstream encrypted stream decoding. See [recovery operations](docs/WORKFLOW.md#transport-and-session-recovery-v063).
+
+v0.6.2 builds each release bundle once, verifies its exact bytes on Linux and Windows, and publishes the same wheel and sdist with a SHA-256 manifest. Official Node 24 Actions are pinned to immutable release commits. Runtime and capability architecture, all seven core roles, and the frozen v0.6 contracts remain unchanged. See [release verification](docs/DISTRIBUTION.md#exact-artifact-promotion).
 
 **v0.6.0** adds a deterministic declarative capability layer while preserving the v0.5 lifecycle/recovery/model-routing contracts and exactly seven core roles:
 

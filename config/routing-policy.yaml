@@ -79,6 +79,7 @@ lifecycle:
     format: "<role>: <domain>"
     avoid_version_suffix: true
 limits:
+  default_max_active_children: 2
   default_max_parallel_readers: 3
   default_max_parallel_writers: 1
   recursive_delegation: false

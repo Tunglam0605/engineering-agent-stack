@@ -20,6 +20,7 @@ Default orchestration guidance:
 
 ```text
 parallel readers                    <= 3
+total active children                <= 2 (configurable 1..4)
 parallel writers                    <= 1 scope owner
 soft child-assignment budget        = 8 per goal
 hard ordinary-spawn ceiling         = 12 per goal
@@ -68,6 +69,12 @@ Active-to-failed/blocked transitions, changes out of failed/blocked, running-to-
 These attestations are checked by stack-controlled APIs; they do not authenticate operator identity or independently prove a provider process exited. See [workflow operations and trust boundary](../docs/WORKFLOW.md).
 
 ## Observability
+
+Transport/session recovery uses explicit reason categories and finite lineage budgets: two resumes,
+then at most one replacement with bounded handoff and stopped-executor approval. Failed corruption
+resume may use that replacement immediately. Missing evidence or exhausted recovery escalates to
+the parent. Unresolved recovery is a dispatch barrier; reconnecting executors retain capacity.
+See [transport recovery operations](../docs/WORKFLOW.md#transport-and-session-recovery-v063).
 
 The agent registry may summarize total, active, completed/failed/blocked, terminal, and per-role assignment counts. Unknown provider telemetry remains unknown. Fan-out warnings are policy signals, not fabricated provider measurements.
 

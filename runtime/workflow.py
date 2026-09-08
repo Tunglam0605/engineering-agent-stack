@@ -4,6 +4,7 @@ import uuid
 
 from .lifecycle import ACTIVE_STATES, GoalStore, LifecycleGate, _utc_now
 from .workflow_state import approval_action, bounded_text, evidence_map, revision_number, strict_json, timestamp
+from .reliability import bounded_handoff, classify_failure
 
 
 class Workflow:
@@ -32,6 +33,7 @@ class Workflow:
         state = store.load()
         return {'goal_id': state.goal_id, 'revision': state.revision,
                 'checkpoint': state.workflow['checkpoint'], 'suspect': self.gate.suspects(state),
+                'recovery': {a.assignment_id: a.recovery for a in state.assignments if a.recovery},
                 'recovery_requires': ['revision-scoped approval', 'prior executor stopped evidence'],
                 'dispatch_authorized': False}
 
@@ -91,11 +93,21 @@ class Workflow:
             state = store._load_unlocked()
             receipt = self.receipt(state, approval_id, 'recover', assignment_id)
             if receipt:
+                if 'replacement_assignment_id' in receipt:
+                    raise ValueError('approval already used for replacement')
                 return receipt
             self.require_approval(state, approval_id, 'recover', assignment_id)
             item = next((a for a in state.assignments if a.assignment_id == assignment_id), None)
             if item is None or item.state not in ACTIVE_STATES:
                 raise ValueError('recovery requires an active assignment; use approved transition for terminal state')
+            if self.gate.resolved_task(state, item.role, item.task_domain, item.write_scope):
+                raise ValueError('resolved failed task remains with parent; cannot reset recovery budget')
+            if item.recovery:
+                recovery = item.recovery
+                if recovery['phase'] != 'resume-ready' or recovery['resumes'] >= 2 or recovery['replacements']:
+                    raise ValueError('resume budget exhausted or recovery is not resume-ready; escalate to parent')
+                recovery['resumes'] += 1
+                recovery['phase'] = 'resuming'
             # Operator evidence permits reconciliation even before the suspicion threshold.
             item.state = 'pending'
             item.updated_at = _utc_now()
@@ -103,6 +115,84 @@ class Workflow:
             receipt = self.record_receipt(state, approval_id, 'recover', item)
             store._save_unlocked(state)
             return receipt
+
+    def transport(self, store, assignment_id, event, evidence, revision):
+        """Record parent-observed failures/results; never resume or spawn natively."""
+        evidence = bounded_text(evidence)
+        if event not in {'failure', 'resume-success', 'resume-failed'}:
+            raise ValueError('unsupported transport event')
+        with store.locked():
+            state = store._load_unlocked()
+            self.check_revision(state, revision)
+            item = next((a for a in state.assignments if a.assignment_id == assignment_id), None)
+            if item is None or item.state not in ACTIVE_STATES:
+                raise ValueError('transport observation requires an active assignment')
+            recovery = item.recovery
+            if event == 'failure':
+                reason = classify_failure(evidence)
+                if recovery and recovery['phase'] != 'healthy':
+                    # Reconnecting notifications do not start a new attempt or reset budgets.
+                    if reason == 'TRANSPORT_CORRUPTION' and recovery['reason'] == 'TRANSIENT_TRANSPORT':
+                        recovery.update(reason=reason, evidence=evidence)
+                        store._save_unlocked(state)
+                    return dict(recovery)
+                recovery = dict(recovery or {'resumes': 0, 'replacements': 0, 'handoff': None})
+                recovery.update(reason=reason, evidence=evidence, phase='resume-ready')
+                if reason == 'AGENT_FAILURE' or recovery['replacements'] or recovery['resumes'] >= 2:
+                    recovery['phase'] = 'escalated'
+            else:
+                if not recovery or recovery['phase'] != 'resuming':
+                    raise ValueError('resume result requires an outstanding resume')
+                recovery = dict(recovery)
+                recovery['evidence'] = evidence
+                if event == 'resume-success':
+                    recovery['phase'] = 'healthy'
+                else:
+                    reason = classify_failure(evidence)
+                    if reason == 'AGENT_FAILURE':
+                        recovery.update(reason=reason, phase='escalated')
+                    else:
+                        if reason == 'TRANSPORT_CORRUPTION':
+                            recovery['reason'] = reason
+                        recovery['phase'] = ('replacement-ready' if recovery['reason'] == 'TRANSPORT_CORRUPTION'
+                                             or recovery['resumes'] >= 2 else 'resume-ready')
+            item.recovery = recovery
+            store._save_unlocked(state)
+            return dict(recovery)
+
+    def replace_child(self, store, assignment_id, approval_id, handoff):
+        handoff = bounded_handoff(handoff)
+        with store.locked():
+            state = store._load_unlocked()
+            receipt = self.receipt(state, approval_id, 'recover', assignment_id)
+            if receipt:
+                if 'replacement_assignment_id' not in receipt:
+                    raise ValueError('approval already used for resume')
+                return {'assignment_id': receipt['replacement_assignment_id'], 'dispatch_authorized': False}
+            self.require_approval(state, approval_id, 'recover', assignment_id)
+            item = next((a for a in state.assignments if a.assignment_id == assignment_id), None)
+            if (item is None or item.state not in ACTIVE_STATES or not item.recovery
+                    or item.recovery['phase'] != 'replacement-ready' or item.recovery['replacements']):
+                raise ValueError('single replacement requires failed resume; otherwise escalate to parent')
+            # Evaluate against the retired executor, in memory, before committing anything.
+            item.state = 'failed'
+            item.recovery['phase'] = 'replaced'
+            decision = self.gate.evaluate(state, role=item.role, task_domain=item.task_domain,
+                                          write_scope=item.write_scope, change_set=item.change_set)
+            if decision.action != 'SPAWN':
+                raise ValueError('replacement blocked by lifecycle policy: ' + '; '.join(decision.reasons))
+            from .lifecycle import GoalAssignment
+            child = GoalAssignment(assignment_id=decision.proposed_assignment_id, role=item.role,
+                                   task_domain=item.task_domain, state='pending', write_scope=list(item.write_scope),
+                                   change_set=item.change_set,
+                                   recovery={**item.recovery, 'phase': 'healthy', 'replacements': 1, 'handoff': handoff})
+            state.assignments.append(child)
+            state.next_sequence += 1
+            # Existing recover receipt format binds approval to its original assignment.
+            receipt = self.record_receipt(state, approval_id, 'recover', item)
+            state.workflow['receipts'][-1].update(state='pending', replacement_assignment_id=child.assignment_id)
+            store._save_unlocked(state)
+            return {'assignment_id': child.assignment_id, 'dispatch_authorized': False}
 
     def export(self, store: GoalStore):
         with store.locked():

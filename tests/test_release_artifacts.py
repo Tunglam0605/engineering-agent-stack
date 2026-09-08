@@ -14,6 +14,7 @@ import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
+from validate_release_tag import package_version
 
 
 class ReleaseArtifactTests(unittest.TestCase):
@@ -21,27 +22,27 @@ class ReleaseArtifactTests(unittest.TestCase):
         self.temporary = tempfile.TemporaryDirectory()
         self.addCleanup(self.temporary.cleanup)
         self.dist = Path(self.temporary.name)
-        self.version = "0.6.2"
+        self.version = package_version()
         self.commit = "a" * 40
-        self.wheel = self.dist / "engineering_agent_stack-0.6.2-py3-none-any.whl"
-        self.sdist = self.dist / "engineering_agent_stack-0.6.2.tar.gz"
+        self.wheel = self.dist / f"engineering_agent_stack-{self.version}-py3-none-any.whl"
+        self.sdist = self.dist / f"engineering_agent_stack-{self.version}.tar.gz"
         resources = ROOT / "runtime/capabilities/resources/extensions"
         self.members = {
             "runtime/capabilities/resources/extensions/" + p.relative_to(resources).as_posix(): p.read_bytes()
             for p in resources.rglob("*") if p.is_file()
         }
-        self.members["eas_cli/version.py"] = b'__version__ = "0.6.2"\n'
-        self.metadata = b"Name: engineering-agent-stack\nVersion: 0.6.2\n"
+        self.members["eas_cli/version.py"] = f'__version__ = "{self.version}"\n'.encode()
+        self.metadata = f"Name: engineering-agent-stack\nVersion: {self.version}\n".encode()
         self.write_archives()
 
     def write_archives(self):
         with zipfile.ZipFile(self.wheel, "w") as archive:
             for name, data in self.members.items():
                 archive.writestr(name, data)
-            archive.writestr("engineering_agent_stack-0.6.2.dist-info/METADATA", self.metadata)
+            archive.writestr(f"engineering_agent_stack-{self.version}.dist-info/METADATA", self.metadata)
         with tarfile.open(self.sdist, "w:gz") as archive:
             for name, data in dict(self.members, **{"PKG-INFO": self.metadata}).items():
-                entry = tarfile.TarInfo("engineering_agent_stack-0.6.2/" + name)
+                entry = tarfile.TarInfo(f"engineering_agent_stack-{self.version}/" + name)
                 entry.size = len(data)
                 archive.addfile(entry, io.BytesIO(data))
 
@@ -106,9 +107,9 @@ class ReleaseArtifactTests(unittest.TestCase):
         self.commit = "b" * 40
         self.assertNotEqual(self.command("verify", digest).returncode, 0)
         self.commit = "a" * 40
-        self.version = "0.6.3"
+        self.version = "99.0.0"
         self.assertNotEqual(self.command("verify", digest).returncode, 0)
-        self.version = "0.6.2"
+        self.version = package_version()
         self.assertNotEqual(self.command("verify", "").returncode, 0)
         self.assertNotEqual(self.command("verify").returncode, 0)
 

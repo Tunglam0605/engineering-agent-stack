@@ -1,0 +1,15 @@
+version: 1
+purpose: bounded-child-handoff-or-result
+required_fields: [summary, evidence, files, commands, risks, next_action]
+additional_fields: false
+text_fields: [summary, next_action]
+text_max_chars: 4096
+list_fields: [evidence, files, commands, risks]
+list_max_items: 32
+list_item_max_chars: 1024
+serialized_max_chars: 16384
+notes:
+  - Python runtime.reliability.bounded_handoff enforces these bounds.
+  - Evidence and large logs use path or artifact references, not raw transcripts.
+  - Preserve required evidence through references; never silently truncate it.
+  - Commands report validation performed; the packet grants no execution authority.

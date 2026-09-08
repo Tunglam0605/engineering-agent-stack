@@ -64,8 +64,11 @@ class GoalAssignment:
     created_at: str = field(default_factory=_utc_now)
     updated_at: str = field(default_factory=_utc_now)
     attempt_started_at: Optional[str] = None
+    recovery: Optional[dict] = None
 
     def __post_init__(self) -> None:
+        from .reliability import validate_recovery
+        validate_recovery(self.recovery)
         self.assignment_id = _nonempty("assignment_id", self.assignment_id)
         self.role = _nonempty("role", self.role)
         self.task_domain = _nonempty("task_domain", self.task_domain)
@@ -95,6 +98,7 @@ class GoalAssignment:
             created_at=payload["created_at"],
             updated_at=payload["updated_at"],
             attempt_started_at=payload.get("attempt_started_at"),
+            recovery=payload.get("recovery"),
         )
 
 
@@ -206,6 +210,7 @@ class LifecyclePolicy:
     stale_after_seconds: int
     timeout_after_seconds: int
     approval_ttl_seconds: int
+    max_active_children: int = 2
 
     @classmethod
     def from_repository(cls, root: Path) -> "LifecyclePolicy":
@@ -218,6 +223,7 @@ class LifecyclePolicy:
             raise ValueError("routing policy must use resume-before-spawn")
         values = {
             "max_parallel_readers": limits.get("default_max_parallel_readers"),
+            "max_active_children": limits.get("default_max_active_children", 2),
             "max_parallel_writers": limits.get("default_max_parallel_writers"),
             "soft_limit": limits.get("soft_max_child_assignments_per_goal"),
             "hard_limit": limits.get("hard_max_child_assignments_per_goal"),
@@ -233,6 +239,8 @@ class LifecyclePolicy:
                 raise ValueError(name + " must be a positive integer")
         if values["hard_limit"] < values["soft_limit"]:
             raise ValueError("hard_limit must be >= soft_limit")
+        if values['max_active_children'] > 4:
+            raise ValueError('max_active_children must be within 1..4')
         return cls(**values)
 
 
@@ -469,6 +477,11 @@ class LifecycleGate:
     def _same_scope(left: List[str], right: List[str]) -> bool:
         return tuple(sorted(left)) == tuple(sorted(right))
 
+    def resolved_task(self, state, role, task_domain, scopes):
+        return any(item.recovery and item.recovery['phase'] == 'resolved' and item.role == role
+                   and item.task_domain.casefold() == task_domain.casefold()
+                   and self._same_scope(item.write_scope, scopes) for item in state.assignments)
+
     def evaluate(
         self,
         state: GoalState,
@@ -534,6 +547,11 @@ class LifecycleGate:
         if self.suspects(state):
             return decision('ESCALATE', ['suspect executor requires explicit reconciliation before dispatch'])
 
+        if any(item.recovery and item.recovery['phase'] not in {'healthy', 'replaced', 'resolved'} for item in state.assignments):
+            return decision('ESCALATE', ['transport recovery barrier; reconcile before dispatch'])
+        if self.resolved_task(state, role, task_domain, scopes):
+            return decision('ESCALATE', ['resolved failed task remains with parent; recovery budget cannot reset'])
+
         exact = [
             item
             for item in state.assignments
@@ -552,6 +570,12 @@ class LifecycleGate:
             return decision("REUSE", ["resume-before-spawn active match"], active_exact[-1].assignment_id)
 
         candidates = exact
+        if counters['active'] >= self.policy.max_active_children:
+            if not writer and counters['active_readers'] >= self.policy.max_parallel_readers:
+                return decision('ESCALATE', ['reader capacity reached; wait at scheduling barrier'])
+            if writer and counters['active_writers'] >= self.policy.max_parallel_writers:
+                return decision('ESCALATE', ['writer capacity reached; wait at scheduling barrier'])
+            return decision('ESCALATE', ['active child capacity reached; wait at scheduling barrier'])
         if role == "reviewer" and change_set is not None:
             review_matches = [
                 item
@@ -730,11 +754,25 @@ class LifecycleGate:
                         # Return historical acknowledgement without another state write.
                         return GoalAssignment.from_dict({**asdict(item), 'state': receipt['state']})
                 suspect = any(s['assignment_id'] == assignment_id for s in self.suspects(state))
+                if item.recovery and item.recovery['phase'] in {'replaced', 'resolved'} and new_state in {'pending', 'running', 'completed'}:
+                    raise ValueError('retired recovery assignment cannot be reactivated')
+                if new_state in ACTIVE_STATES and self.resolved_task(state, item.role, item.task_domain, item.write_scope):
+                    raise ValueError('resolved failed task remains with parent; cannot reactivate historical assignment')
+                if new_state in ACTIVE_STATES and old != new_state and any(
+                        other.recovery and other.recovery['phase'] not in {'healthy', 'replaced', 'resolved'}
+                        for other in state.assignments):
+                    raise ValueError('transport recovery barrier; reconcile before dispatch')
+                if item.recovery and item.recovery['phase'] not in {'healthy', 'replaced'}:
+                    if new_state in {'pending', 'running', 'completed'}:
+                        raise ValueError('transport recovery must be reconciled through workflow')
                 risky = (suspect or (old in ACTIVE_STATES and new_state in {'failed', 'blocked'})
                          or (old in {'failed', 'blocked'} and new_state != old)
                          or (old == 'running' and new_state == 'pending'))
                 if risky or approval_id:
                     flow.require_approval(state, approval_id, action, assignment_id)
+                if item.recovery and item.recovery['phase'] not in {'replaced', 'resolved'} and new_state in {'failed', 'blocked'}:
+                    flow.require_approval(state, approval_id, action, assignment_id)
+                    item.recovery['phase'] = 'resolved'
                 if old not in ACTIVE_STATES and new_state in ACTIVE_STATES:
                     counters = self._counters(state)
                     writer = self._role_is_writer(item.role)
@@ -753,6 +791,8 @@ class LifecycleGate:
                         raise ValueError("writer capacity reached; cannot reactivate assignment")
                     if not writer and counters["active_readers"] >= self.policy.max_parallel_readers:
                         raise ValueError("reader capacity reached; cannot reactivate assignment")
+                    if counters['active'] >= self.policy.max_active_children:
+                        raise ValueError('active child capacity reached; cannot reactivate assignment')
                 item.state = new_state
                 item.updated_at = _utc_now()
                 if old not in ACTIVE_STATES and new_state in ACTIVE_STATES or old == 'running' and new_state == 'pending':

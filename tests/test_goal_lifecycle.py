@@ -380,7 +380,7 @@ class GoalCliTests(unittest.TestCase):
             project = Path(tmp)
             subprocess.run(["git", "init", "-q", str(project)], check=True)
             self.run_cli(["goal", "init", "capacity"], project)
-            for index in range(3):
+            for index in range(LifecycleGate(ROOT).policy.max_active_children):
                 spawn = self.run_cli([
                     "goal", "gate", "capacity", "--role", "scout", "--domain", "d{}".format(index), "--commit"
                 ], project)

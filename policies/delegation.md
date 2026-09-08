@@ -8,6 +8,11 @@
 6. Workers do not recursively delegate by default.
 7. The orchestrator owns integration and final completion claims.
 
+Default to two active children total and wait at a scheduling barrier when capacity is occupied.
+Transport recovery retains reservations until explicit reconciliation. Use the bounded
+[child handoff contract](../schemas/child-handoff.yaml) for recovery/result packets; reference
+large raw logs by path/artifact. See [workflow recovery](../docs/WORKFLOW.md#transport-and-session-recovery-v063).
+
 ## Delegation preflight
 
 Within stack-controlled orchestration, a delegated route is not approved for dispatch until provider-neutral preflight resolves it. The preflight checks role availability, semantic profile compatibility, provider child-agent capability, concrete model resolution, recursion policy, write ownership, active write-scope conflicts, context budget, and required independent review. `scripts/resolve_delegation.py` is the reference executable gate. Native provider calls that bypass this gate are outside this enforcement path and remain governed by provider runtime permissions plus parent instructions.

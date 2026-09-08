@@ -114,5 +114,9 @@ def validate_workflow(value, revision, assignment_ids):
             expected = 'pending' if receipt['action'] == 'recover' else receipt['action'].split(':')[1]
             if receipt['state'] != expected:
                 raise ValueError('receipt state mismatch')
+            replacement = receipt.get('replacement_assignment_id')
+            if replacement is not None and (receipt['action'] != 'recover'
+                    or replacement not in assignment_ids or replacement == receipt['assignment_id']):
+                raise ValueError('invalid replacement receipt target')
     except (KeyError, TypeError) as exc:
         raise ValueError('malformed workflow evidence') from exc

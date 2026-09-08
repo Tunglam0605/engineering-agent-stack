@@ -20,6 +20,16 @@ assignment_required_fields:
   - updated_at
 assignment_optional_fields:
   - attempt_started_at
+  - recovery
+recovery:
+  fields: [reason, evidence, phase, resumes, replacements, handoff]
+  reasons: [TRANSIENT_TRANSPORT, TRANSPORT_CORRUPTION, AGENT_FAILURE]
+  phases: [healthy, resume-ready, resuming, replacement-ready, replaced, escalated, resolved]
+  max_resumes: 2
+  max_replacements: 1
+  evidence_max_chars: 4096
+  handoff_contract: child-handoff.yaml
+  enforcement: locked-workflow-transactions-no-native-dispatch
 decision_values:
   - SPAWN
   - REUSE

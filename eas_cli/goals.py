@@ -229,6 +229,14 @@ def goal_workflow(args) -> int:
                                args.reason, args.executor_stopped_evidence)
     elif command == 'recover':
         payload = flow.recover(store, args.assignment_id, args.approval)
+    elif command == 'transport':
+        payload = flow.transport(store, args.assignment_id, args.event, args.evidence, args.revision)
+    elif command == 'replace-child':
+        from runtime.workflow_state import strict_json
+        if args.handoff.stat().st_size > 65536:
+            raise ValueError('handoff file exceeds 65536 bytes')
+        payload = flow.replace_child(store, args.assignment_id, args.approval,
+                                     strict_json(args.handoff.read_text(encoding='utf-8')))
     elif command == 'plan':
         payload = flow.plan(store)
     elif command == 'export':

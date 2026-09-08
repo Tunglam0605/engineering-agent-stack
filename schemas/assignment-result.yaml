@@ -17,6 +17,7 @@ confidence_values:
   - medium
   - high
 notes:
+  - Recovery handoffs use the additional bounded child-handoff.yaml contract.
   - Results should be concise and evidence-oriented.
   - Raw transcripts are not a result contract.
   - A writer must report all changed paths.

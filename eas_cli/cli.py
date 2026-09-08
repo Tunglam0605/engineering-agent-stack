@@ -126,7 +126,7 @@ def build_parser() -> argparse.ArgumentParser:
     goal_bind_parser.add_argument("--revision", type=int, required=True)
     goal_bind_parser.add_argument("--json", action="store_true")
 
-    for command in ('checkpoint', 'plan', 'approve', 'recover', 'export'):
+    for command in ('checkpoint', 'plan', 'approve', 'recover', 'export', 'transport', 'replace-child'):
         workflow = goal_sub.add_parser(command, help='durable workflow ' + command)
         workflow.add_argument('goal_id')
         workflow.add_argument('--project', type=Path, default=Path.cwd())
@@ -146,6 +146,15 @@ def build_parser() -> argparse.ArgumentParser:
         elif command == 'recover':
             workflow.add_argument('assignment_id')
             workflow.add_argument('--approval', required=True)
+        elif command == 'transport':
+            workflow.add_argument('assignment_id')
+            workflow.add_argument('--event', required=True, choices=('failure', 'resume-success', 'resume-failed'))
+            workflow.add_argument('--evidence', required=True)
+            workflow.add_argument('--revision', required=True, type=int)
+        elif command == 'replace-child':
+            workflow.add_argument('assignment_id')
+            workflow.add_argument('--approval', required=True)
+            workflow.add_argument('--handoff', type=Path, required=True, help='bounded handoff JSON file')
 
     return parser
 

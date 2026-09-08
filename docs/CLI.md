@@ -190,3 +190,9 @@ Initializes the existing EAS project-managed Codex artifacts and creates tracked
 Explicitly migrates a legacy or drifted goal to the current project capability snapshot. Migration is revision-checked and refused while assignments are active.
 
 Configured v0.6 projects require the same snapshot digest for stack-controlled goal gate/transition/checkpoint/approval/recovery/export paths. Projects without `.eas/project.toml` retain v0.5 lifecycle behavior.
+# v0.6.3 reliability operations
+
+`eas goal transport GOAL ASSIGNMENT --event failure|resume-success|resume-failed --evidence TEXT --revision N`
+records bounded failure/result evidence. `eas goal replace-child GOAL ASSIGNMENT --approval ID --handoff FILE`
+reserves a single replacement after failed resume, subject to existing lifecycle checks. Neither
+operation dispatches native children. See [workflow recovery](WORKFLOW.md#transport-and-session-recovery-v063).

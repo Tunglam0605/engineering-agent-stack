@@ -6,6 +6,18 @@ All notable project changes will be documented here.
 
 No unreleased changes.
 
+## [0.6.3] - 2026-09-08
+
+### Hardened
+
+- Classify transient transport, encrypted-output corruption and agent failures separately in durable assignment recovery evidence.
+- Resume before replacement with at most two resumes and one replacement per lineage; retain stopped-executor approvals, revision checks, fanout limits and reconnect capacity reservations.
+- Default to two active children total (existing routing policy permits 1..4); unresolved recovery creates a scheduling barrier.
+- Require bounded summary/evidence/files/commands/risks/next-action handoffs for replacement, referencing large logs by artifact or path.
+- Add goal transport/replacement operations and installed-wheel transport recovery smoke coverage.
+
+This hardens EAS orchestration contracts. It does not intercept Codex App reconnects or repair upstream encrypted stream decoding. Exactly seven core roles and the frozen runtime/capability architecture remain; no personal managed-install changes are required or performed.
+
 ## [0.6.2] - 2026-09-08
 
 ### Hardened

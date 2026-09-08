@@ -56,6 +56,19 @@ def main():
         assert len(trace['state']['workflow']['receipts']) == 1
         assert trace['observations_transactional'] is False
         assert cli('plan', 'smoke')['suspect'] == []
+        plan = cli('plan', 'smoke')
+        failure = cli('transport', 'smoke', 'a-0001', '--event', 'failure',
+                      '--revision', str(plan['revision']), '--evidence', 'Reconnecting 5/5')
+        assert failure['reason'] == 'TRANSIENT_TRANSPORT'
+        plan = cli('plan', 'smoke')
+        approval = cli('approve', 'smoke', '--action', 'recover', '--target', 'a-0001',
+                       '--revision', str(plan['revision']), '--approver', 'offline-smoke-operator',
+                       '--reason', 'resume fixture', '--executor-stopped-evidence', 'No native executor exists')
+        cli('recover', 'smoke', 'a-0001', '--approval', approval['id'])
+        plan = cli('plan', 'smoke')
+        result = cli('transport', 'smoke', 'a-0001', '--event', 'resume-success',
+                     '--revision', str(plan['revision']), '--evidence', 'artifact:verified-fixture')
+        assert result['phase'] == 'healthy' and result['resumes'] == 1
         dirty = subprocess.run(['git', 'status', '--porcelain'], cwd=project,
                                capture_output=True, text=True, check=True)
         assert not dirty.stdout
