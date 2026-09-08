@@ -1,0 +1,137 @@
+name: Release EAS
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  validate-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.9 compatibility floor
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.9"
+
+      - name: Install validation dependencies
+        run: python -m pip install -r requirements-dev.txt
+
+      - name: Verify tag and release candidate
+        run: |
+          python scripts/validate_release_tag.py --tag "$GITHUB_REF_NAME"
+          python -m compileall -q scripts runtime eas_cli tests
+          python -m unittest discover -s tests -v
+          python scripts/validate_structure.py
+          python scripts/validate_provenance.py
+          python scripts/validate_agents.py
+          python scripts/evaluate_routing.py
+          python scripts/validate_task_suite.py
+          python scripts/validate_benchmarks.py
+          python scripts/generate_codex_adapter.py --check
+          sh -n install.sh
+          git diff --check
+
+      - name: Build and smoke-test Python 3.9 package
+        run: |
+          python -m pip install build
+          rm -rf dist
+          python -m build
+          python -m venv /tmp/eas-package-smoke
+          /tmp/eas-package-smoke/bin/python -m pip install --disable-pip-version-check dist/*.whl
+          /tmp/eas-package-smoke/bin/eas version
+          /tmp/eas-package-smoke/bin/python scripts/generate_codex_adapter.py --check
+          /tmp/eas-package-smoke/bin/python -c "import yaml, tomli, eas_cli; assert eas_cli.__version__ == '0.3.0'"
+
+      - name: Offline acceptance
+        run: python scripts/acceptance_core.py --offline --report /tmp/eas-release-acceptance.md
+
+  validate-windows:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.9 compatibility floor
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.9"
+
+      - name: Install validation dependencies
+        run: python -m pip install -r requirements-dev.txt
+
+      - name: Verify tag and deterministic tests
+        shell: pwsh
+        run: |
+          python scripts/validate_release_tag.py --tag "$env:GITHUB_REF_NAME"
+          python -m unittest discover -s tests -v
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $errors = $null
+          [void][System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path .\install.ps1), [ref]$null, [ref]$errors)
+          if ($errors.Count) { $errors | ForEach-Object { Write-Error $_.Message }; exit 1 }
+
+      - name: Build and smoke-test Python 3.9 package
+        shell: pwsh
+        run: |
+          python -m pip install build
+          if (Test-Path .\dist) { Remove-Item .\dist -Recurse -Force }
+          python -m build
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $smoke = Join-Path $env:RUNNER_TEMP "eas-package-smoke"
+          python -m venv $smoke
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $py = Join-Path $smoke "Scripts\python.exe"
+          $eas = Join-Path $smoke "Scripts\eas.exe"
+          $wheel = (Get-ChildItem .\dist\*.whl | Select-Object -First 1).FullName
+          & $py -m pip install --disable-pip-version-check $wheel
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          & $eas version
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          & $py .\scripts\generate_codex_adapter.py --check
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          & $py -c "import yaml, tomli, eas_cli; assert eas_cli.__version__ == '0.3.0'"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Windows offline acceptance
+        shell: pwsh
+        run: |
+          & .\scripts\acceptance-test.ps1 -Offline -Report "$env:RUNNER_TEMP\eas-release-acceptance.md"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+  publish:
+    needs: [validate-linux, validate-windows]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.9
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.9"
+
+      - name: Install build dependency
+        run: python -m pip install build
+
+      - name: Re-verify tag/version
+        run: python scripts/validate_release_tag.py --tag "$GITHUB_REF_NAME"
+
+      - name: Build distribution
+        run: python -m build
+
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" dist/* --generate-notes --title "Engineering Agent Stack $GITHUB_REF_NAME"

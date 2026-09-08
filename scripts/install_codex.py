@@ -36,7 +36,15 @@ REQUIRED_CONFIG_PATHS = (
 
 
 def read_text(path: Path) -> str:
-    return path.read_text(encoding="utf-8")
+    # newline="" disables universal-newline translation so user-owned AGENTS.md
+    # bytes round-trip across mixed LF/CRLF files.
+    with path.open("r", encoding="utf-8", newline="") as handle:
+        return handle.read()
+
+
+def write_text(path: Path, text: str) -> None:
+    with path.open("w", encoding="utf-8", newline="") as handle:
+        handle.write(text)
 
 
 def target_root(args: argparse.Namespace) -> Path:
@@ -104,15 +112,17 @@ def merge_managed_block(existing: str, block: str) -> str:
     end = existing.find(MANAGED_END)
     if (start == -1) != (end == -1):
         raise ValueError("AGENTS.md contains only one Engineering Agent Stack managed marker")
+    normalized_block = block.rstrip()
     if start != -1:
         end += len(MANAGED_END)
-        prefix = existing[:start].rstrip()
-        suffix = existing[end:].lstrip()
-        parts = [part for part in (prefix, block, suffix) if part]
-        return "\n\n".join(parts).rstrip() + "\n"
-    if not existing.strip():
-        return block.rstrip() + "\n"
-    return existing.rstrip() + "\n\n" + block.rstrip() + "\n"
+        # Replace only the managed span. Prefix/suffix bytes are user-owned and
+        # may contain meaningful indentation, trailing spaces, or EOF style.
+        return existing[:start] + normalized_block + existing[end:]
+    if existing == "":
+        return normalized_block + "\n"
+    # For new installs, prepend a fixed two-newline separator. The complete
+    # pre-existing file remains an untouched suffix and can be restored exactly.
+    return normalized_block + "\n\n" + existing
 
 
 def check_project_instructions(project: Path) -> list[str]:
@@ -172,7 +182,7 @@ def install_project_instructions(project: Path, *, dry_run: bool) -> None:
         backup = agents_md.with_name("AGENTS.md.engineering-agent-stack.bak")
         shutil.copy2(agents_md, backup)
         print(f"backup: {backup}")
-    agents_md.write_text(merged, encoding="utf-8")
+    write_text(agents_md, merged)
 
 
 def install(root: Path, *, force: bool, dry_run: bool, project: Path | None = None, project_instructions: bool = False) -> int:

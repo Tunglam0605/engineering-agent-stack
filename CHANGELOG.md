@@ -4,7 +4,17 @@ All notable project changes will be documented here.
 
 ## [Unreleased]
 
+No unreleased changes.
+
+## [0.3.0] - 2026-09-08
+
 ### Added
+- Stable `eas` distribution CLI with `version`, `doctor`, `status`, `install`, `init`, `check`, `update`, and `uninstall`.
+- Windows PowerShell and POSIX one-line bootstrap installers using a managed source checkout under `~/.codex/engineering-agent-stack`.
+- Python package metadata and the `eas = eas_cli.cli:main` console entry point with a Python 3.9 compatibility floor and PyYAML as the adapter-generation runtime dependency and `tomli` conditionally on Python <3.11.
+- Read-only structured health/status output with provider health explicitly left unknown unless probed separately.
+- Drift-aware lifecycle tests for project initialization, update refusal, and ownership-safe uninstall.
+- `docs/CLI.md`, `docs/DISTRIBUTION.md`, and tagged-release workflow.
 - Research Wave 2 analysis covering OpenAI Agents SDK, Microsoft Agent Framework, AutoGen, LangGraph, Deep Agents, CrewAI, smolagents and OpenHands.
 - Authoritative `openai/codex` implementation/public-contract research notes.
 - Seven provider-neutral core role definitions and semantic contract validation.
@@ -29,6 +39,10 @@ All notable project changes will be documented here.
 - `can1357/oh-my-pi` conceptual research note and provenance entry for runtime-resolution/observability patterns.
 
 ### Changed
+- README is now product-oriented: one-line installation and first-use workflow come before internal architecture/research details.
+- v0.3 keeps the seven core roles stable and moves domain presets/extensions to the next roadmap phase.
+- Managed upgrades require clean `main`, fast-forward only, adapter drift verification, compatible personal configuration, and no locally modified managed roles.
+- Bootstrap installers do not silently modify PATH and delegate v0.3+ updates to `eas update`.
 - Repository comparison matrix remains the source-of-truth list for acknowledged research inputs.
 - `config/model-profiles.yaml` uses `gpt-5.6-sol` for the critical candidate while retaining Astra as benchmark-only.
 - Scout and researcher retain the Luna cost tier but use medium reasoning as the current quality-floor candidate.
@@ -45,6 +59,17 @@ All notable project changes will be documented here.
 - Windows acceptance, installation, roadmap, and adapter documentation now reflect the split live-test architecture and the 2026-09-07 `codex-cli 0.153.4` results.
 
 ### Fixed
+- Windows bootstrap keeps detected Python commands array-safe even when only `python`/`python3` is available.
+- Bootstrap creates a managed `.venv`, supplies PyYAML for adapter generation, and supplies `tomli` on Python 3.9/3.10, so a clean supported interpreter is sufficient.
+- `eas init` resolves nested invocation paths to the Git repository root.
+- Invalid explicit `EAS_REPO` values refuse instead of falling back to another checkout.
+- v0.3 bootstrap ref behavior is intentionally main-only; unsupported refs are rejected instead of being inconsistently updated.
+- Release tags must match the package version and pass Python 3.9 Linux + Windows gates before the publish job receives write permission.
+- Linux and Windows release gates now build the distribution, install the wheel into a clean Python 3.9 venv, run `eas version`, and execute adapter generation before publish.
+- Update rollback failures are surfaced explicitly instead of being silently ignored.
+- Uninstall preserves unrelated `AGENTS.md` indentation/whitespace outside the managed block.
+- `eas update` refuses incomplete personal role installations instead of creating missing managed roles.
+- Project instruction install/uninstall preserves mixed LF/CRLF user-owned `AGENTS.md` bytes outside the managed block.
 - Generated installations no longer hide `spawn_agent` from code-mode sessions through `non_code_mode_only = true`.
 - Spawn telemetry and reports no longer treat zero public JSONL `spawn_agent` items as proof that no child was spawned.
 - The installation guide no longer directs extended provider coverage through the stack-owned acceptance wrapper.

@@ -8,6 +8,14 @@ A routing decision should minimize unnecessary compute while preserving the qual
 
 ## Layers
 
+### 0. Distribution layer
+
+`eas_cli/`, `install.ps1`, and `install.sh` are the operational surface for installation, project initialization, health/status, guarded updates, and ownership-aware uninstall. This layer does not redefine role semantics or provider execution; it manages the artifacts that expose the stack to Codex.
+
+The recommended personal distribution is source-managed under `~/.codex/engineering-agent-stack`, with seven generated role files under `~/.codex/agents/` and a launcher under `~/.local/bin/`. Update and uninstall are deliberately conservative so distribution automation never becomes an implicit overwrite mechanism.
+
+See [`DISTRIBUTION.md`](DISTRIBUTION.md).
+
 ### 1. Orchestration layer
 
 Responsibilities:

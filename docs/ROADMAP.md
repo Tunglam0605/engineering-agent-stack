@@ -1,105 +1,92 @@
 # Roadmap
 
-## v0.0.x — Research foundation
+Engineering Agent Stack keeps the **seven core roles stable** unless benchmark evidence shows that a new role improves engineering quality enough to justify additional routing and maintenance complexity.
 
-Status: **exit criteria reached; research remains continuous.**
+## v0.1 — Core agent foundation
 
-- reference repositories analyzed with comparison matrix ✅
-- common patterns and anti-patterns documented ✅
-- provider-neutral role/result schemas drafted ✅
-- routing, context, escalation and verification policies documented ✅
-- upstream research lineage/acknowledgements explicit ✅
-- provenance policy for adapted/vendored material ✅
+Status: **completed foundation.**
 
-## v0.1.0 — Core agents
+- seven provider-neutral core roles
+- role/schema validation
+- deterministic direct-vs-delegate routing fixtures
+- generated Codex adapter
+- safe project/personal installer
+- managed project `AGENTS.md` orchestration block
+- stack-owned Windows acceptance
+- provider/runtime diagnostic split
+- provenance and acknowledgements gates
 
-Status: **stack-owned candidate acceptance passed on Windows; provider delegation remains a known runtime limitation before tag review.**
+## v0.2 — Runtime-first controls
 
-Completed:
+Status: **completed foundation; empirical optimization remains continuous.**
 
-- seven core roles ✅
-- semantic contract validation ✅
-- deterministic Codex adapter generation/drift gate ✅
-- direct-vs-delegate routing fixtures ✅
-- safe project-scoped installer ✅
-- managed parent orchestration instructions for project `AGENTS.md` ✅
-- one-command Windows acceptance harness ✅
-- offline Windows GitHub Actions acceptance ✅
-- observable public-JSONL spawn-event/model/reasoning telemetry normalization ✅
-- acknowledgements/provenance CI gates ✅
-- live Windows stack-owned acceptance on `codex-cli 0.153.4` ✅
-- direct-first trivial edit with zero public JSONL spawn events observed ✅
-- bounded one-file write correctness and exact scope ✅
-- first real token/latency acceptance traces ✅
+- provider-neutral delegation preflight
+- `PASS / REJECT / ESCALATE` semantics
+- resolved execution-plan contract
+- bounded write ownership and recursion checks
+- agent registry/status
+- bounded context packets
+- controlled full-context vs bounded-context benchmark harness
+- strict request and runtime typing
+- provider/model-profile separation
+- Python 3.9 compatibility floor
 
-Remaining before a v0.1.0 tag:
-
-- independently review the release-critical hardening changes
-- decide whether to tag with the documented Codex provider limitation or wait for an upstream fix
-- rerun the basic provider probe when the provider is healthy; on 2026-09-07 Scout returned a read-only summary but no public JSONL spawn item, while Implementer ended with a final provider message reporting `502 Bad Gateway` and no edit; both exposed collaboration calls but no completed `spawn_agent` item
-- confirm runtime custom-role selection and child model/role telemetry after a child spawn completes
-- run the extended role probe only after the basic provider probe is healthy
-
-## v0.2.0 — Efficiency controls
-
-Status: **runtime-first foundation implemented; repeated provider experiments remain in progress.**
-
-Completed foundation:
-
-- normalized benchmark/run-capture contracts ✅
-- experiment plan linked to controlled tasks ✅
-- controlled synthetic engineering tasks ✅
-- deterministic text/test graders ✅
-- clean workspace materialization ✅
-- Codex `exec --json` usage/latency capture ✅
-- observable `spawn_agent` telemetry normalization ✅
-- adaptive input/work/result budget policy ✅
-- raw-trace/local-workspace safety policy ✅
-- executable provider-neutral delegation preflight/planning gate with PASS / REJECT / ESCALATE evidence ✅
-- resolved execution-plan contract separating role/profile/provider/model ✅
-- lightweight agent registry/status JSON + text surface ✅
-- bounded context-packet contract plus a controlled harness that materializes different full/bounded prompts ✅
-- `oh-my-pi` conceptual research/provenance note for runtime-resolution patterns ✅
-
-Remaining:
+Ongoing evidence work:
 
 - repeated real Codex runs
-- repeated full-context vs bounded-context packet runs with real provider token/latency measurements
-- explicit context/result-budget measurements
-- semantic compute-tier benchmark
+- context/token/latency measurements
+- Luna/Terra/Sol task-level quality/cost comparisons
 - natural-language routing/classifier evaluation
-- escalation regression cases
-- token, latency, quality, rework, and escalation measurements
-- task-level Luna/Terra/Sol cost comparison
-- repeated experiment matrix runner and decision report
-- at least three repetitions per candidate/task before default changes
+- escalation regression fixtures
+- repeated experiment reports before default model/routing changes
 
-## v0.3.0 — Engineering specialists
+## v0.3 — Distribution and operational safety
+
+Status: **stable release target.**
+
+- `eas` CLI
+- Windows and POSIX one-line bootstrap
+- read-only `doctor` and `status`
+- safe `install`, `init`, and `check`
+- drift-aware `uninstall`
+- guarded fast-forward `update`
+- managed source checkout
+- Python package metadata and console entry point
+- product-oriented README and CLI/distribution docs
+- Linux/Windows distribution smoke tests
+- tagged release workflow
+
+The core remains seven roles. v0.3 is about making the existing stack easy to install, inspect, update, and remove safely.
+
+## v0.4 — Extensions and presets
 
 Candidates:
 
-- Embedded Firmware Engineer
-- STM32 Debugger
-- Realtime Systems Reviewer
-- ROS 2 Engineer
-- Robotics Integration Engineer
-- Developer Tooling Engineer
+- extension manifest/schema
+- `embedded` preset
+- `ros2` / robotics preset
+- security/release preset
+- capability discovery
+- Codex plugin/skill packaging where it adds value
 
-A specialist is accepted only if repeated domain tasks show enough improvement over the generic core stack to justify routing and maintenance complexity.
+A preset augments the seven core roles; it does not create a duplicate agent taxonomy by default.
 
-## v0.4.0 — Evaluation and portability
+## v0.5 — Team distribution
 
-- multiple provider adapters
-- routing accuracy benchmark
-- cross-version compatibility checks
-- specialist-vs-core ablation studies
-- provider-independent installer abstraction
+Candidates:
 
-## v1.0.0 — Stable stack
+- version pin / lock file
+- organization presets
+- policy inheritance
+- offline/internal mirrors
+- audit/export reports
+- managed team rollout
+
+## v1.0 — Stable platform contract
 
 - stable canonical schemas
-- reproducible installer/generator
-- documented release process
-- benchmark-backed default routing
-- migration strategy for model/provider changes
-- provenance/third-party notice process included in release checklist
+- migration policy
+- benchmark-backed routing defaults
+- reproducible release/distribution process
+- cross-provider compatibility contract
+- third-party/provenance release checklist

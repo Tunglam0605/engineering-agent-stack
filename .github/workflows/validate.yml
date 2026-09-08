@@ -3,6 +3,7 @@ name: Validate agent stack
 on:
   push:
     branches: [main]
+    tags: ["v*"]
   pull_request:
 
 jobs:
@@ -21,7 +22,7 @@ jobs:
         run: python -m pip install -r requirements-dev.txt
 
       - name: Compile Python sources
-        run: python -m compileall -q scripts runtime tests
+        run: python -m compileall -q scripts runtime eas_cli tests
 
       - name: Smoke-test locale-independent subprocess capture
         run: |
@@ -57,6 +58,19 @@ jobs:
           python scripts/install_codex.py --project /tmp/eas-codex-project --project-instructions --dry-run
           python scripts/install_codex.py --project /tmp/eas-codex-project --project-instructions
           python scripts/install_codex.py --project /tmp/eas-codex-project --project-instructions --check
+
+      - name: Smoke-test EAS distribution CLI
+        run: |
+          python -m eas_cli version
+          python -m eas_cli doctor --json > /tmp/eas-doctor.json
+          python -m pip install . --no-deps --no-build-isolation
+          eas version
+          sh -n install.sh
+          mkdir -p /tmp/eas-cli-project
+          git -C /tmp/eas-cli-project init
+          python -m eas_cli init /tmp/eas-cli-project
+          python -m eas_cli check --project /tmp/eas-cli-project --project-instructions
+          python -m eas_cli uninstall --project /tmp/eas-cli-project --project-instructions
 
       - name: Smoke-test controlled task tooling
         run: |
@@ -104,6 +118,15 @@ jobs:
       - name: Run Python 3.9 deterministic unit tests
         shell: pwsh
         run: python -m unittest discover -s tests -v
+
+      - name: Smoke-test EAS distribution CLI on Windows
+        shell: pwsh
+        run: |
+          python -m eas_cli version
+          python -m eas_cli doctor --json
+          $errors = $null
+          [void][System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path .\install.ps1), [ref]$null, [ref]$errors)
+          if ($errors.Count) { $errors | ForEach-Object { Write-Error $_.Message }; exit 1 }
 
       - name: Smoke-test UTF-8 subprocess capture on Windows
         shell: pwsh

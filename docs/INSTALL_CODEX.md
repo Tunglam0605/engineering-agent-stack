@@ -1,95 +1,138 @@
 # Install into Codex
 
-The Codex adapter is generated from provider-neutral roles and semantic compute profiles. Do not hand-edit generated role TOMLs in `adapters/codex/agents/`.
+Engineering Agent Stack v0.3 has two installation surfaces:
 
-## 1. Generate and validate
+1. **recommended full-stack bootstrap** — clones a managed source checkout, installs the seven generated roles, verifies them, and creates an `eas` launcher;
+2. **advanced source installer** — `scripts/install_codex.py`, useful for contributors, CI, and tightly controlled project installs.
+
+Generated role TOMLs under `adapters/codex/agents/` are build artifacts. Do not hand-edit them.
+
+## Recommended: one-line bootstrap
+
+### Windows PowerShell
 
 ```powershell
-py scripts\generate_codex_adapter.py
-py scripts\generate_codex_adapter.py --check
+irm https://raw.githubusercontent.com/Tunglam0605/engineering-agent-stack/main/install.ps1 | iex
+& "$HOME\.local\bin\eas.cmd" doctor
 ```
 
-On Linux/macOS, use `python` instead of `py`.
+### Linux / macOS
 
-## 2. Project-scoped installation
-
-Recommended for the first real-world trial.
-
-Windows PowerShell:
-
-```powershell
-py scripts\install_codex.py --project C:\path\to\your\project --dry-run --project-instructions
-py scripts\install_codex.py --project C:\path\to\your\project --project-instructions
-py scripts\install_codex.py --project C:\path\to\your\project --project-instructions --check
+```bash
+curl -fsSL https://raw.githubusercontent.com/Tunglam0605/engineering-agent-stack/main/install.sh | sh
+~/.local/bin/eas doctor
 ```
 
-This installs generated roles into `<project>/.codex/agents/*.toml` and, with `--project-instructions`, manages one clearly marked Engineering Agent Stack block inside `<project>/AGENTS.md`.
+The bootstrap uses `~/.codex/engineering-agent-stack` as the managed checkout, `~/.codex/engineering-agent-stack/.venv` as an isolated Python runtime, and `~/.local/bin` for the launcher. The managed runtime carries PyYAML for adapter generation; Python 3.9/3.10 also gets the required `tomli` compatibility dependency there. It **does not modify PATH**.
 
-The parent-orchestration block is important: child roles alone do not teach the parent Codex session the direct-first, selective-delegation, independent-review, and write-ownership policy.
+See [`DISTRIBUTION.md`](DISTRIBUTION.md) for lifecycle and update safety.
 
-If `<project>/.codex/config.toml` does not exist, the installer creates it from the generated example. If a config already exists, the installer does not rewrite it; dry-run and installation reject malformed or incompatible TOML before writing roles or project instructions and point to the generated example for a manual merge. `--check` parses the effective TOML and requires agents, Multi-Agent V2, wait support, and code-mode delegation. The generated example also enables spawn-agent model overrides and visible spawn metadata for diagnostics, but those knobs are optional and do not determine named-role CodeMode compatibility.
+## Initialize a project
 
-If `AGENTS.md` already exists, only the managed Engineering Agent Stack block is added or refreshed. The original file is preserved and a backup named `AGENTS.md.engineering-agent-stack.bak` is created before a managed-block write.
-
-## 3. Windows one-command acceptance
-
-After installing development dependencies:
+From a Git repository:
 
 ```powershell
-py -m pip install -r requirements-dev.txt
+eas init C:\path\to\project
+```
+
+or:
+
+```bash
+cd /path/to/project
+eas init
+```
+
+This installs generated roles into `<project>/.codex/agents/`, creates `<project>/.codex/config.toml` only when missing, and manages one clearly marked Engineering Agent Stack block in `<project>/AGENTS.md`.
+
+Existing `AGENTS.md` content outside the managed block is preserved.
+
+Verify:
+
+```powershell
+eas check --project C:\path\to\project --project-instructions
+```
+
+## Personal lifecycle
+
+```powershell
+eas install --dry-run
+eas install
+eas check --personal
+eas doctor
+```
+
+Existing differing role files cause installation to stop before writes. `--force` is available only for deliberate replacement after reviewing local differences. The underlying installer creates backups for forced role replacement.
+
+The installer never force-merges an existing `config.toml`; malformed or incompatible configuration is refused and must be merged manually.
+
+## Update
+
+```powershell
+eas update --check
+eas update
+```
+
+Update requires a clean managed source checkout on `main`, refuses ahead/diverged branches, refuses local managed-role drift, and uses fast-forward only.
+
+## Uninstall
+
+Project scope:
+
+```powershell
+eas uninstall --project C:\path\to\project --project-instructions
+```
+
+Personal scope:
+
+```powershell
+eas uninstall --personal
+```
+
+Uninstall removes only canonical EAS-managed role files. It preserves `config.toml`, unrelated custom agents, and unrelated `AGENTS.md` content. A drifted managed role causes the operation to refuse before deleting any managed role.
+
+## Advanced source installer
+
+Contributors can still call the lower-level installer directly:
+
+```powershell
+py -3.9 scripts\install_codex.py --project C:\path\to\project --project-instructions --dry-run
+py -3.9 scripts\install_codex.py --project C:\path\to\project --project-instructions
+py -3.9 scripts\install_codex.py --project C:\path\to\project --project-instructions --check
+```
+
+Personal:
+
+```powershell
+py -3.9 scripts\install_codex.py --personal --dry-run
+py -3.9 scripts\install_codex.py --personal
+py -3.9 scripts\install_codex.py --personal --check
+```
+
+On Linux/macOS use `python3` or `python`.
+
+## Acceptance and provider diagnostics
+
+Stack-owned release acceptance:
+
+```powershell
 .\scripts\acceptance-test.ps1
 ```
 
-No-model/offline mode:
+Offline:
 
 ```powershell
 .\scripts\acceptance-test.ps1 -Offline
 ```
 
-Provider-owned child delegation is tested separately from release acceptance:
+Provider-owned child delegation remains a separate diagnostic:
 
 ```powershell
 .\scripts\provider-probe.ps1
-.\scripts\provider-probe.ps1 -Extended
 ```
 
-See [`ACCEPTANCE_WINDOWS.md`](ACCEPTANCE_WINDOWS.md).
+A provider probe may fail because of upstream service availability while deterministic installer/routing/runtime release gates remain healthy.
 
-## 4. Personal installation
-
-Only after project-scoped smoke tests pass:
-
-```powershell
-py scripts\install_codex.py --personal --dry-run
-py scripts\install_codex.py --personal
-py scripts\install_codex.py --personal --check
-```
-
-Project orchestration instructions are intentionally not installed for personal scope because each target repository may already have different project constraints.
-
-## Safe overwrite behavior
-
-Existing differing role files cause installation to stop before writes. Use `--force` only after reviewing local differences. Forced replacement creates a `.bak` copy of every differing agent file first.
-
-The installer never force-merges an existing `config.toml` because silently rewriting unrelated Codex configuration is unsafe.
-
-The managed `AGENTS.md` block uses explicit markers so stack instructions can be refreshed without replacing unrelated project instructions.
-
-## Automated smoke-test sequence
-
-The Windows stack-owned acceptance test checks:
-
-1. repository validators and generated adapter drift
-2. seven project-scoped custom-agent files
-3. parent orchestration instructions
-4. project-scoped installer consistency
-5. trivial direct-first edit with zero `spawn_agent` events observed in public JSONL (not proof that no child ran)
-6. bounded write correctness and exact one-file scope across unstaged, staged, and untracked paths
-7. token and latency telemetry for the live model calls
-
-The separate basic provider probe invokes Scout and Implementer children. Its extended mode additionally invokes Researcher, Debugger, Test Engineer, Reviewer, and Architect. Provider probe results diagnose the current Codex runtime and do not change the stack-owned release result.
-
-## Current candidate mapping
+## Current candidate model mapping
 
 | Role | Candidate |
 |---|---|
@@ -101,4 +144,4 @@ The separate basic provider probe invokes Scout and Implementer children. Its ex
 | Reviewer | GPT-5.6 Terra / high |
 | Architect | GPT-5.6 Sol / high |
 
-These are benchmark candidates, not permanent role identities.
+These are benchmark candidates, not role identities.

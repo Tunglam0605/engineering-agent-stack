@@ -1,304 +1,318 @@
 # Engineering Agent Stack
 
-> Research-driven, provider-aware engineering agents focused on **quality per unit of cost**, not maximum agent count.
+> Turn Codex into a bounded engineering team: **7 focused roles, direct-first routing, safe writes, independent verification, and a small distribution CLI.**
 
-[![Status](https://img.shields.io/badge/status-v0.2%20runtime%20candidate-orange)](#roadmap)
+[![Status](https://img.shields.io/badge/status-v0.3.0%20stable-blue)](#release-status)
+[![CI](https://github.com/Tunglam0605/engineering-agent-stack/actions/workflows/validate.yml/badge.svg)](https://github.com/Tunglam0605/engineering-agent-stack/actions/workflows/validate.yml)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
+[![Python](https://img.shields.io/badge/python-3.9%2B-blue)](pyproject.toml)
 
-## Why this project exists
+Engineering Agent Stack (EAS) is a compact orchestration and policy layer for Codex. It does **not** replace Codex and it does not try to maximize agent count. It gives Codex a small engineering team with explicit responsibilities, bounded write behavior, verification rules, runtime contracts, and repeatable installation.
 
-AI coding systems become wasteful when every task receives the strongest model, every problem spawns multiple agents, or every worker inherits a large context. This repository studies strong community and official implementations, extracts measurable patterns, and turns them into a small engineering stack.
+## Install
 
-```text
-maximize:   quality / (cost × latency)
-subject to: quality >= required threshold for the task risk
+### Windows PowerShell
+
+```powershell
+irm https://raw.githubusercontent.com/Tunglam0605/engineering-agent-stack/main/install.ps1 | iex
 ```
 
-The stack optimizes **routing, context, evidence, verification, and escalation** rather than maximizing agent count.
+Then run:
 
-## Design principles
+```powershell
+& "$HOME\.local\bin\eas.cmd" doctor
+```
 
-1. **Direct-first** — trivial/reversible work should not pay delegation overhead.
-2. **Role != compute profile != provider** — expertise, budget, and runtime remain separate.
-3. **Risk-adjusted routing** — escalate only when uncertainty or failure cost justifies it.
-4. **Bounded/isolated context** — send the smallest useful context and return evidence, not transcripts.
-5. **Adaptive budgets** — constrain waste, not evidence required for correctness.
-6. **Deterministic coordination, bounded autonomy** — the parent owns decomposition, integration, and stop/escalate decisions.
-7. **Independent verification** — high-risk or release-critical behavior gets independent assurance.
-8. **Safe parallelism** — parallelize independent read-heavy work; partition or serialize writes.
-9. **Runtime-enforced permissions** — sandbox/tool controls are security boundaries; prompts are not.
-10. **Evidence before completion** — use the narrowest validation that can prove the claim.
-11. **Benchmark before belief** — model/routing choices remain candidates until measured.
-12. **Visible provenance** — upstream research influence is credited and directly reused material requires license-aware provenance.
+### Linux / macOS
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Tunglam0605/engineering-agent-stack/main/install.sh | sh
+~/.local/bin/eas doctor
+```
+
+The bootstrap installs a managed source checkout under `~/.codex/engineering-agent-stack`, creates an isolated `.venv` runtime, installs the seven generated Codex roles, validates the installation, and creates an `eas` launcher under `~/.local/bin`.
+
+**EAS does not silently modify your PATH.** Add `~/.local/bin` to PATH yourself if you want to run `eas` from anywhere.
+
+## Start using it
+
+Initialize a Git repository:
+
+```powershell
+cd C:\path\to\your\project
+& "$HOME\.local\bin\eas.cmd" init
+codex
+```
+
+On Linux/macOS:
+
+```bash
+cd /path/to/your/project
+eas init
+codex
+```
+
+`eas init` installs project-scoped Codex role files and one managed orchestration block inside `AGENTS.md`. Existing project instructions outside that block are preserved.
+
+Then give Codex the engineering task normally:
+
+```text
+Find the root cause of this failure and fix it.
+Use Engineering Agent Stack policy: direct-first, bounded writes,
+targeted verification, and independent review when risk requires it.
+```
+
+## The seven roles
+
+| Role | Responsibility | Default capability | Compute candidate |
+|---|---|---|---|
+| **Scout** | repository discovery and call-flow mapping | read-only | Luna / medium |
+| **Researcher** | current authoritative external evidence | read + network intent | Luna / medium |
+| **Implementer** | smallest approved implementation | bounded write + test | Terra / medium |
+| **Debugger** | evidence-first root cause and remediation | bounded write + test | Terra / high |
+| **Test Engineer** | narrowest meaningful verification | test artifacts + test | Terra / medium |
+| **Reviewer** | independent correctness/regression review | read + test | Terra / high |
+| **Architect** | critical architecture/safety decisions | read-only | Sol / high |
+
+A **role is not a model**. Role, compute profile, provider, and concrete model remain separate so routing can change after benchmarks without changing the engineering contract.
+
+## Direct-first orchestration
+
+EAS defaults to doing small, reversible work directly. Delegation is used only when task shape, uncertainty, or risk justifies the overhead.
+
+```text
+Task
+ |
+ +--> DIRECT ---------------------------> verify
+ |
+ +--> DELEGATE
+        |
+        v
+   role + profile
+        |
+        v
+   preflight
+   PASS / REJECT / ESCALATE
+        |
+        v
+   execution
+        |
+        v
+   verification / review
+```
+
+Current policy keeps parallelism conservative:
+
+```text
+maximum parallel readers: 4
+default parallel writer ownership: 1 scope owner
+recursive delegation: disabled
+```
+
+## `eas` CLI
+
+```text
+eas version
+eas doctor
+eas status
+eas install
+eas init [PROJECT]
+eas check
+eas update [--check]
+eas uninstall
+```
+
+Useful examples:
+
+```powershell
+# Read-only health report
+eas doctor
+
+# Machine-readable automation output
+eas doctor --json
+eas status --json
+
+# Preview a personal install
+eas install --dry-run
+
+# Initialize one repository
+eas init C:\Projects\robot
+
+# Verify project-managed roles + orchestration block
+eas check --project C:\Projects\robot --project-instructions
+
+# Check whether the managed checkout is behind
+eas update --check
+
+# Safe fast-forward update
+eas update
+
+# Remove only EAS-managed project roles/instructions
+eas uninstall --project C:\Projects\robot --project-instructions
+```
+
+See [`docs/CLI.md`](docs/CLI.md) for the command contract.
+
+## Safety model
+
+EAS treats prompts as instructions, not security boundaries. Important constraints are represented in code/configuration and validated wherever the provider exposes an enforceable boundary.
+
+Key guarantees in the repository tooling:
+
+- existing incompatible Codex config is refused rather than rewritten;
+- project `AGENTS.md` uses managed markers and preserves unrelated content;
+- uninstall removes only role files that still match EAS-generated artifacts;
+- drifted managed roles cause uninstall/update to refuse before destructive action;
+- update requires a clean `main` checkout and uses fast-forward only;
+- update never overwrites locally modified managed role files;
+- update refuses partial personal role installations rather than creating missing managed roles;
+- provider telemetry that is unavailable remains **unknown**, not fabricated;
+- only `PASS` from the repository preflight API can produce a resolved execution plan.
+
+The Python preflight gate is an explicit repository/runtime tool. It does **not** claim to transparently intercept every native Codex `spawn_agent` call.
+
+## Provider health is separate from stack health
+
+Codex child-agent service availability can fail independently of EAS. `eas doctor` therefore does not probe a provider by default.
+
+```text
+EAS core         HEALTHY
+Codex install    HEALTHY
+Provider         UNKNOWN / DEGRADED
+```
+
+Use `scripts/provider-probe.ps1` when you explicitly want provider/runtime diagnostics. A provider `502 Bad Gateway` does not invalidate deterministic repository, installer, routing, or safety tests.
+
+## For Codex: install this repo for me
+
+You can also give Codex the repository URL and ask it to install EAS:
+
+```text
+Install Engineering Agent Stack from:
+https://github.com/Tunglam0605/engineering-agent-stack.git
+
+Read the repository installation docs first.
+Do not overwrite an incompatible ~/.codex/config.toml.
+Run a dry-run before installation, then run the installer check and eas doctor.
+```
 
 ## Architecture
 
 ```text
-User / Task
-    |
-    v
-Classification + Routing Policy
-    |
-    +--> DIRECT -------------------------------> verify
-    |
-    +--> DELEGATE
-             |
-             v
-       Delegation Preflight
-        PASS | REJECT | ESCALATE
-             |
-             v
-       Resolved Execution Plan
-             |
-             v
-        Provider Adapter
-             |
-             v
-           Execution
-             |
-             +--> Agent Registry / Status
-             +--> observed telemetry/evidence
-             |
-             v
-       Quality Gate -> Result / Escalation / Block
+User task
+   |
+   v
+Classification / direct-first routing
+   |
+   v
+Delegation preflight
+   |
+   +-- REJECT
+   +-- ESCALATE
+   +-- PASS
+         |
+         v
+Resolved execution plan
+         |
+         v
+Provider adapter
+         |
+         v
+Execution
+         |
+         +--> registry / telemetry
+         |
+         v
+Quality gate
 ```
 
-Canonical layers:
+Repository layout:
 
 ```text
-ROLE             What expertise/responsibility is needed?
-COMPUTE PROFILE  How much model/reasoning budget is justified?
-PROVIDER         Which runtime/model executes it?
-POLICY           When may it run, write, escalate, or stop?
-EVAL             Does the route preserve required quality?
-BENCHMARK        At what token, cost, and latency budget?
-PROVENANCE       Where did the design influence/material come from?
+eas_cli/         distribution CLI: health, lifecycle, update and status
+agents/          provider-neutral core role definitions
+config/          semantic compute profiles and deterministic routing policy
+policies/        delegation, context, escalation and quality rules
+runtime/         provider-neutral preflight, plan, registry and context contracts
+adapters/        provider-specific generated artifacts
+benchmarks/      controlled quality/cost/latency experiments
+research/        source analysis and provenance
+schemas/         stable machine-readable contracts
+scripts/         installer, acceptance, probes and developer utilities
+tests/           deterministic regression coverage
+docs/            architecture, CLI, distribution and contributor guidance
 ```
 
-## Repository layout
+See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 
-```text
-agents/          Provider-neutral role definitions and specialist catalog
-config/          Semantic compute profiles and routing policy
-policies/        Delegation, escalation, context and quality rules
-runtime/         Provider-neutral preflight, resolved-plan, registry and context-packet contracts
-research/        Source analysis, primary-source notes, patterns and anti-patterns
-schemas/         Stable role/result/benchmark contracts
-evals/           Routing and quality evaluation fixtures
-benchmarks/      Controlled cost/latency/quality experiments
-adapters/        Provider/tool-specific integration layers
-scripts/         Validation, installation, acceptance, probes and evaluation tooling
-docs/            Architecture, provenance, installation, acceptance and roadmap
-```
+## Development
 
-## Quick start — Windows + Codex
-
-Install development dependencies:
+Python 3.9 is the compatibility floor.
 
 ```powershell
-py -m pip install -r requirements-dev.txt
+py -3.9 -m pip install -r requirements-dev.txt
+py -3.9 -m unittest discover -s tests -v
+py -3.9 scripts\validate_structure.py
+py -3.9 scripts\validate_provenance.py
+py -3.9 scripts\validate_agents.py
+py -3.9 scripts\evaluate_routing.py
+py -3.9 scripts\validate_task_suite.py
+py -3.9 scripts\validate_benchmarks.py
+py -3.9 scripts\generate_codex_adapter.py --check
+git diff --check
 ```
 
-Validate the repository:
+Build/install the CLI locally:
 
 ```powershell
-py scripts\validate_structure.py
-py scripts\validate_provenance.py
-py scripts\validate_agents.py
-py scripts\evaluate_routing.py
-py scripts\validate_task_suite.py
-py scripts\validate_benchmarks.py
-py scripts\generate_codex_adapter.py --check
+py -3.9 -m pip install .
+eas version
+eas doctor
 ```
 
-Install into one project first:
-
-```powershell
-py scripts\install_codex.py `
-  --project C:\path\to\your\project `
-  --project-instructions
-```
-
-`--project-instructions` manages one clearly marked Engineering Agent Stack block inside the target project's `AGENTS.md`.
-
-### Stack-owned release acceptance
-
-Normal live release gate:
+Stack-owned Windows acceptance:
 
 ```powershell
 .\scripts\acceptance-test.ps1
 ```
 
-Offline/no-model gate:
-
-```powershell
-.\scripts\acceptance-test.ps1 -Offline
-```
-
-The release gate checks repository, routing, installer, direct-first behavior, and exact bounded write scope in a disposable sandbox. It **does not require provider child spawning or child-model routing to pass**.
-
-### Codex provider/runtime probe
-
-Test `spawn_agent`, custom-role selection, Multi-Agent V2 behavior, and child-model telemetry separately:
+Provider/runtime diagnostic:
 
 ```powershell
 .\scripts\provider-probe.ps1
 ```
 
-Extended role probe:
+## Research and benchmarks
 
-```powershell
-.\scripts\provider-probe.ps1 -Extended
-```
+EAS is research-driven. Routing and model mappings remain benchmark candidates rather than role identity.
 
-A provider probe may fail while the stack-owned release gate remains green. That separation prevents upstream Codex runtime behavior from falsely marking the stack itself as broken.
+The project studies and credits upstream work including OpenAI Codex, agency-agents, oh-my-codex, oh-my-pi, OpenAI Agents SDK, Microsoft Agent Framework, AutoGen, LangGraph, Deep Agents, CrewAI, smolagents, OpenHands and others.
 
-Retained local evidence from 2026-09-07 shows the stack-owned live gate passing on Windows with `codex-cli 0.153.4`, while the basic provider probe remained diagnostic-only and unhealthy because public spawn evidence was unavailable and the Implementer path reported an upstream `502 Bad Gateway`. Scout remained read-only, the parent did not silently perform the failed delegated edit, and Extended was not run after the basic probe failed. Collaboration counts, token usage, latency, and other provider telemetry are run-specific; use the report produced by the current acceptance/probe command for exact measurements. See [`docs/ACCEPTANCE_WINDOWS.md`](docs/ACCEPTANCE_WINDOWS.md).
+See:
 
-See [`docs/ACCEPTANCE_WINDOWS.md`](docs/ACCEPTANCE_WINDOWS.md) and [`docs/INSTALL_CODEX.md`](docs/INSTALL_CODEX.md).
+- [`ACKNOWLEDGEMENTS.md`](ACKNOWLEDGEMENTS.md)
+- [`docs/PROVENANCE.md`](docs/PROVENANCE.md)
+- [`research/matrix/repository-comparison.yaml`](research/matrix/repository-comparison.yaml)
+- [`benchmarks/README.md`](benchmarks/README.md)
 
-## Core roles — v0.1 candidate
+## Release status
 
-| Role | Primary responsibility | Default access | Codex candidate |
-|---|---|---|---|
-| Scout | repository discovery/call-flow mapping | read-only | Luna / medium |
-| Researcher | current primary-source technical evidence | read-only + network intent | Luna / medium |
-| Implementer | bounded approved implementation | workspace-write | Terra / medium |
-| Debugger | evidence-first root cause/remediation | workspace-write | Terra / high |
-| Test Engineer | targeted validation/failure evidence | test/build | Terra / medium |
-| Reviewer | independent correctness/regression review | read-only | Terra / high |
-| Architect | high-risk system decisions/trade-offs | read-only | Sol / high |
+**v0.3.0** focuses on distribution and operational safety:
 
-Canonical definitions live under [`agents/core/`](agents/core/). Model names never define role identity.
+- stable `eas` CLI;
+- Windows and POSIX bootstrap installers;
+- read-only `doctor` / `status`;
+- safe project initialization;
+- drift-aware uninstall;
+- guarded fast-forward update;
+- Python package metadata;
+- CI/package smoke coverage;
+- product-oriented installation documentation.
 
-## Runtime-first v0.2 contracts
+The core remains deliberately small at seven roles. Domain extensions/presets are deferred until benchmark evidence justifies their maintenance cost.
 
-The repository now exposes an executable provider-neutral **preflight/planning gate** for stack-controlled delegation:
-
-```text
-route -> preflight -> resolved execution plan -> provider adapter -> execution -> status/telemetry -> quality gate
-```
-
-Use the gate explicitly before a delegated provider call:
-
-```powershell
-py scripts\resolve_delegation.py `
-  --request schemas\delegation-request.example.yaml `
-  --format json
-```
-
-Exit codes are `0=PASS`, `3=REJECT`, `4=ESCALATE`, and `2=invalid request`. YAML scalar types are strict: for example, the string `"false"` is rejected rather than coerced to boolean false. Only `PASS` produces a resolved execution plan.
-
-This Python gate **does not automatically intercept arbitrary native `spawn_agent` calls made inside a normal Codex session**. Provider adapters and parent orchestration must invoke/enforce the stack contract when using this path; Codex sandbox/tool controls remain the actual runtime permission boundary.
-
-`runtime/preflight.py` rejects hard capability/policy violations and escalates unresolved budget/review gates. Codex-specific reasoning overrides are read from `adapters/codex/role-profiles.yaml` rather than duplicated into the runtime layer. `runtime/registry.py` exposes concise human-readable status plus JSON while keeping unavailable token/latency data as unknown. `runtime/context_packet.py` provides the bounded-evidence experiment foundation; the controlled harness now materializes genuinely different full-context and bounded-context prompts, but no universal efficiency win is claimed without repeated quality-gated provider runs.
-
-Render a captured registry snapshot with:
-
-```powershell
-py scripts\agent_status.py --input status.json --format text
-py scripts\agent_status.py --input status.json --format json
-```
-
-Provider adapters remain responsible for provider-specific execution details. The canonical runtime contracts do not make Codex behavior the definition of a role.
-
-## Adaptive token/context budget
-
-The stack separates three concerns:
-
-```text
-INPUT CONTEXT  -> bounded to relevant task evidence
-WORK BUDGET    -> adaptive; do not starve correctness
-RESULT BUDGET  -> compressed evidence instead of transcript dumps
-```
-
-Suggested result sizes are **soft/adaptive**, not hard total-token quotas. Critical, realtime, safety, security, or release evidence may exceed ordinary result targets when necessary.
-
-See [`policies/context-budget.md`](policies/context-budget.md).
-
-## Codex telemetry boundary
-
-Codex JSONL is treated as provider telemetry, not as a stack-owned release invariant. The normalizer accepts current `collab_tool_call` spawn items and older/experimental `collab_agent_tool_call` traces.
-
-When exposed, the capture pipeline records:
-
-```text
-agent_spawns  # compatibility name: spawn_agent events observed in public JSONL
-agent_spawn_thread_ids
-agent_spawn_models
-agent_spawn_roles
-input/output/reasoning tokens
-latency
-```
-
-Current Codex builds may omit child model/role metadata or other internal activity from public JSONL. Missing optional telemetry is not fabricated, and `agent_spawns = 0` means only that zero spawn events were observed in that stream; it does not prove no child was spawned. Provider/runtime diagnostics remain separate from the stack-owned release gate.
-
-See [`research/sources/openai-codex-exec-jsonl.md`](research/sources/openai-codex-exec-jsonl.md).
-
-## Controlled benchmark suite
-
-`benchmarks/tasks/index.yaml` defines the initial `controlled-v1` suite for repeated model/routing comparisons. It covers repository discovery, bounded implementation, seeded reviewer regressions, and direct-vs-delegated trivial work.
-
-```powershell
-py scripts\validate_task_suite.py
-```
-
-Quality is evaluated **before** token/cost/latency preference. See [`benchmarks/README.md`](benchmarks/README.md) and [`docs/EVALUATION.md`](docs/EVALUATION.md).
-
-## Research method
-
-Every source is evaluated on taxonomy, role contract, delegation, model routing, context, concurrency/write ownership, verification, escalation, cost control, observability, and portability.
-
-Patterns are classified as **ADOPT**, **ADAPT**, **EXPERIMENT**, **REJECT**, or **HISTORICAL**. The implementation is a local synthesis; research sources are not treated as anonymous idea pools.
-
-### Upstream projects studied
-
-- [`openai/codex`](https://github.com/openai/codex)
-- [`msitarzewski/agency-agents`](https://github.com/msitarzewski/agency-agents)
-- [`Yeachan-Heo/oh-my-codex`](https://github.com/Yeachan-Heo/oh-my-codex)
-- [`can1357/oh-my-pi`](https://github.com/can1357/oh-my-pi)
-- [`infiquetra/infiquetra-codex-plugins`](https://github.com/infiquetra/infiquetra-codex-plugins)
-- [`trailofbits/codex-config`](https://github.com/trailofbits/codex-config)
-- [`KevinBigham/codex-safe-starter`](https://github.com/KevinBigham/codex-safe-starter)
-- [`awslabs/cli-agent-orchestrator`](https://github.com/awslabs/cli-agent-orchestrator)
-- [`openai/openai-agents-python`](https://github.com/openai/openai-agents-python)
-- [`microsoft/agent-framework`](https://github.com/microsoft/agent-framework)
-- [`microsoft/autogen`](https://github.com/microsoft/autogen)
-- [`langchain-ai/langgraph`](https://github.com/langchain-ai/langgraph)
-- [`langchain-ai/deepagents`](https://github.com/langchain-ai/deepagents)
-- [`crewAIInc/crewAI`](https://github.com/crewAIInc/crewAI)
-- [`huggingface/smolagents`](https://github.com/huggingface/smolagents)
-- [`OpenHands/OpenHands`](https://github.com/OpenHands/OpenHands)
-
-Detailed lineage and thanks: [`ACKNOWLEDGEMENTS.md`](ACKNOWLEDGEMENTS.md).
-
-Rules for conceptual references, adapted material, vendored material, generated material, and license-aware reuse: [`docs/PROVENANCE.md`](docs/PROVENANCE.md).
-
-## Validation
-
-GitHub Actions validates Linux repository behavior and an **offline Windows stack-owned acceptance run**. CI also includes a Windows UTF-8 subprocess regression so Codex JSONL capture cannot silently fall back to cp1252.
-
-Provider delegation probes are intentionally not executed as release-blocking CI because they depend on external authenticated Codex runtime behavior.
-
-## Roadmap
-
-- **v0.0.x — Research foundation:** exit criteria reached; research remains continuous.
-- **v0.1.0 — Core agents:** stack-owned release acceptance, installer, routing and role contracts; provider delegation remains an observed adapter capability.
-- **v0.2.0 — Runtime efficiency controls:** provider-neutral delegation preflight/resolution, lightweight status, bounded context-packet experiments, repeated real traces, and compute/routing evaluation.
-- **v0.3.0 — Engineering specialists:** Embedded, STM32, ROS 2, Robotics, and tooling roles only when benchmarks justify them.
-- **v0.4.0 — Evaluation/portability:** multiple provider adapters, routing accuracy, compatibility checks, specialist-vs-core ablations.
-- **v1.0.0 — Stable stack:** benchmark-backed defaults, reproducible installer, migration strategy, compatibility policy.
-
-See [`docs/ROADMAP.md`](docs/ROADMAP.md).
-
-## Acknowledgements and attribution
-
-This repository is deliberately built from **credited research**, not unattributed copying. Thank you to the maintainers and contributors of the upstream projects listed above for publishing work that the engineering community can inspect, compare, challenge, and learn from.
-
-The upstream repositories are treated as conceptual research inputs unless a local file explicitly records adapted or vendored material. Direct reuse must preserve upstream license/notice requirements and exact provenance before merge.
-
-No endorsement, sponsorship, or affiliation by any upstream project is implied.
+See [`docs/ROADMAP.md`](docs/ROADMAP.md) and [`CHANGELOG.md`](CHANGELOG.md).
 
 ## License
 
-MIT for this repository's original material. Third-party material, if ever adapted or vendored, remains subject to its upstream license and the provenance rules above.
+MIT. See [`LICENSE`](LICENSE).

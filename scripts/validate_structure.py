@@ -7,8 +7,8 @@ import sys
 ROOT = Path(__file__).resolve().parents[1]
 
 REQUIRED = [
-    "README.md", "ACKNOWLEDGEMENTS.md", "AGENTS.md", "CHANGELOG.md", "CONTRIBUTING.md", "requirements-dev.txt",
-    "docs/ARCHITECTURE.md", "docs/ROADMAP.md", "docs/EVALUATION.md", "docs/INSTALL_CODEX.md", "docs/ACCEPTANCE_WINDOWS.md", "docs/PROVENANCE.md",
+    "README.md", "ACKNOWLEDGEMENTS.md", "AGENTS.md", "CHANGELOG.md", "CONTRIBUTING.md", "requirements-dev.txt", "pyproject.toml", "install.ps1", "install.sh", ".github/workflows/release.yml",
+    "docs/ARCHITECTURE.md", "docs/ROADMAP.md", "docs/EVALUATION.md", "docs/INSTALL_CODEX.md", "docs/CLI.md", "docs/DISTRIBUTION.md", "docs/ACCEPTANCE_WINDOWS.md", "docs/PROVENANCE.md",
     "research/README.md", "research/matrix/repository-comparison.yaml", "research/patterns/wave-2-synthesis.md", "research/anti-patterns/over-orchestration.md",
     "research/sources/openai-codex-subagents.md", "research/sources/openai-codex-exec-jsonl.md", "research/sources/openai-models-2026-09-07.md",
     "config/model-profiles.yaml", "config/routing-policy.yaml",
@@ -16,16 +16,17 @@ REQUIRED = [
     "schemas/agent-contract.yaml", "schemas/assignment-result.yaml", "schemas/benchmark-record.yaml", "schemas/run-capture.yaml", "schemas/benchmark-task.yaml",
     "schemas/delegation-request.yaml", "schemas/delegation-request.example.yaml", "schemas/delegation-preflight.yaml", "schemas/resolved-execution-plan.yaml", "schemas/agent-status.yaml", "schemas/context-packet-benchmark.yaml",
     "runtime/__init__.py", "runtime/contracts.py", "runtime/preflight.py", "runtime/registry.py", "runtime/context_packet.py",
+    "eas_cli/__init__.py", "eas_cli/__main__.py", "eas_cli/version.py", "eas_cli/paths.py", "eas_cli/health.py", "eas_cli/operations.py", "eas_cli/cli.py",
     "agents/core/README.md", "agents/specialists/README.md",
     "evals/README.md", "evals/routing-cases.yaml",
     "benchmarks/README.md", "benchmarks/experiment-plan.yaml", "benchmarks/run-manifest.example.yaml", "benchmarks/fixtures/codex-exec-events.jsonl", "benchmarks/fixtures/context-packet-minimal.yaml", "benchmarks/tasks/README.md", "benchmarks/tasks/index.yaml",
     "adapters/codex/README.md", "adapters/codex/role-profiles.yaml", "adapters/codex/config.toml.example", "adapters/codex/AGENTS.md.example",
     "scripts/validate_structure.py", "scripts/validate_provenance.py", "scripts/validate_agents.py", "scripts/evaluate_routing.py", "scripts/validate_benchmarks.py", "scripts/validate_task_suite.py", "scripts/summarize_benchmarks.py",
-    "scripts/generate_codex_adapter.py", "scripts/install_codex.py",
+    "scripts/generate_codex_adapter.py", "scripts/install_codex.py", "scripts/eas.py", "scripts/validate_release_tag.py",
     "scripts/acceptance_core.py", "scripts/acceptance_test_codex.py", "scripts/acceptance-test.ps1",
     "scripts/provider_probe_codex.py", "scripts/provider-probe.ps1",
     "scripts/codex_capture_lib.py", "scripts/benchmark_task_lib.py", "scripts/normalize_codex_exec.py", "scripts/capture_codex_exec.py", "scripts/promote_run_capture.py", "scripts/prepare_benchmark_task.py", "scripts/grade_benchmark_task.py", "scripts/agent_status.py", "scripts/resolve_delegation.py",
-    "tests/test_runtime_first.py",
+    "tests/test_runtime_first.py", "tests/test_cli_distribution.py",
 ]
 
 CORE_ROLES = ["scout", "researcher", "implementer", "debugger", "test-engineer", "reviewer", "architect"]
@@ -60,7 +61,7 @@ def main():
     print(
         "OK: {} required artifacts present; {} core roles, {} research notes, {} controlled benchmark tasks, "
         "provenance controls, split stack/provider acceptance tooling, Codex installation/capture tooling, "
-        "and adapter artifacts are structurally complete.".format(
+        "distribution CLI/bootstrap artifacts, and adapter artifacts are structurally complete.".format(
             len(paths), len(CORE_ROLES), len(REFERENCE_NOTES), len(CONTROLLED_TASKS)
         )
     )
