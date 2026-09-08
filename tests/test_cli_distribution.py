@@ -437,6 +437,12 @@ class CliDistributionTests(unittest.TestCase):
         self.assertEqual(bad.returncode, 1, bad.stdout + bad.stderr)
         self.assertIn("does not match package version", bad.stdout)
 
+    def test_validation_workflow_uses_isolated_package_build(self) -> None:
+        workflow = (ROOT / ".github" / "workflows" / "validate.yml").read_text(encoding="utf-8")
+
+        self.assertIn("python -m pip install . --no-deps", workflow)
+        self.assertNotIn("--no-build-isolation", workflow)
+
     def test_release_workflow_requires_linux_windows_and_scoped_publish_permission(self) -> None:
         workflow = (ROOT / ".github" / "workflows" / "release.yml").read_text(encoding="utf-8")
 

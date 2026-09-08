@@ -63,7 +63,7 @@ jobs:
         run: |
           python -m eas_cli version
           python -m eas_cli doctor --json > /tmp/eas-doctor.json
-          python -m pip install . --no-deps --no-build-isolation
+          python -m pip install . --no-deps
           eas version
           sh -n install.sh
           mkdir -p /tmp/eas-cli-project
