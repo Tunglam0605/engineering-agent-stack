@@ -81,7 +81,7 @@ lifecycle:
 concurrency:
   strategy: adaptive
   provider_session_cap: 4
-  default_reader_mode: balanced
+  default_reader_mode: conservative
   default_writer_mode: conservative
   modes:
     conservative: 2
@@ -92,8 +92,8 @@ limits:
   default_max_parallel_readers: 4
   default_max_parallel_writers: 1
   recursive_delegation: false
-  soft_max_child_assignments_per_goal: 8
-  hard_max_child_assignments_per_goal: 12
+  soft_max_child_assignments_per_goal: 6
+  hard_max_child_assignments_per_goal: 8
   default_max_architect_assignments_per_goal: 1
   default_max_reviewer_assignments_per_change_set: 1
   max_same_role_domain_scope_active: 1
@@ -101,6 +101,6 @@ notes:
   - Rule order is significant; the first matching rule wins.
   - Critical risk is gated before normal task-shape routing; an independent critical review remains a reviewer task at the critical profile.
   - This file routes already-classified signals. Natural-language task classification is evaluated separately.
-  - Adaptive concurrency selects an effective active-child cap of 2/3/4; the provider session cap is 4 and writer ownership remains serialized.
+  - Adaptive concurrency selects an effective active-child cap of 2/3/4; normal coding prefers 1-2 active children, the provider session cap is 4, and writer ownership remains serialized.
   - Lifecycle limits are orchestration policy, not a claim that provider-native spawn APIs are transparently intercepted.
   - At the soft goal budget, reconcile/reuse existing children before any new spawn; at the hard ordinary-spawn ceiling, integrate, serialize, or escalate instead of creating more children.

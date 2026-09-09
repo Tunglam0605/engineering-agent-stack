@@ -248,7 +248,7 @@ def render_config_example(
             "# Custom roles are discovered from sibling `agents/*.toml` files by current public Codex releases.",
             "# Use the public [agents] surface only; do not enable experimental features.multi_agent_v2.",
             "# Live Codex 0.153.4 A/B acceptance reproduced encrypted child-output failures with V2 enabled.",
-            "# Codex exposes a four-child session ceiling; EAS adaptively schedules 2/3/4 and keeps writer ownership serialized.",
+            "# Codex exposes a four-child session ceiling; EAS auto uses conservative=2, with balanced=3/read-heavy=4 explicit, and keeps writer ownership serialized.",
             "",
             "[agents]",
             "enabled = true",

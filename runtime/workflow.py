@@ -2,7 +2,9 @@
 from datetime import datetime, timedelta, timezone
 import uuid
 
-from .lifecycle import ACTIVE_STATES, GoalStore, LifecycleGate, _utc_now
+from .lifecycle import (
+    ACTIVE_STATES, GoalStore, LifecycleGate, _record_efficiency, _refresh_peak_active, _utc_now,
+)
 from .workflow_state import approval_action, bounded_text, evidence_map, revision_number, strict_json, timestamp
 from .reliability import bounded_handoff, classify_failure
 
@@ -112,6 +114,9 @@ class Workflow:
             item.state = 'pending'
             item.updated_at = _utc_now()
             item.attempt_started_at = item.updated_at
+            _record_efficiency(state, 'resume_attempts')
+            _record_efficiency(state, 'retry_attempts')
+            _refresh_peak_active(state)
             receipt = self.record_receipt(state, approval_id, 'recover', item)
             store._save_unlocked(state)
             return receipt
@@ -189,6 +194,9 @@ class Workflow:
                                    recovery={**item.recovery, 'phase': 'healthy', 'replacements': 1, 'handoff': handoff})
             state.assignments.append(child)
             state.next_sequence += 1
+            _record_efficiency(state, 'spawned_assignments')
+            _record_efficiency(state, 'replacement_assignments')
+            _refresh_peak_active(state)
             # Existing recover receipt format binds approval to its original assignment.
             receipt = self.record_receipt(state, approval_id, 'recover', item)
             state.workflow['receipts'][-1].update(state='pending', replacement_assignment_id=child.assignment_id)
@@ -220,6 +228,7 @@ class Workflow:
                     complete = False
                     warnings.append('Invalid observational JSONL line {}: {}'.format(number, exc))
             return {'format': 'eas-goal-trace', 'version': 1, 'state': state.as_dict(),
+                    'efficiency': self.gate.efficiency(state),
                     'state_authoritative': True, 'observations': observations,
                     'observations_transactional': False, 'observations_complete': complete,
                     'observations_completeness_scope': 'readable records only; missing events cannot be detected',

@@ -31,8 +31,8 @@
 
 ### Concurrency and context
 
-- Resume before spawn when role/domain/scope are materially the same and the existing child remains useful.
-- The Codex session ceiling is 4; treat it as a ceiling, not the normal fan-out. Normal work should prefer 1-2 children. EAS advisory modes are `conservative=2`, `balanced=3`, `read-heavy=4`; use `read-heavy=4` only for genuinely independent read-only tasks with bounded results.
+- Reuse before spawn: when role/domain/scope are materially the same and the existing child remains useful, use native follow-up/resume on that child instead of creating retry/round2/final-retry workers. Before creating another worker, inspect active/done children and prefer the existing specialist when its context is still relevant.
+- The Codex session ceiling is 4; treat it as a ceiling, not the normal fan-out. Normal coding should prefer 1-2 active children and the smallest useful total child count. EAS advisory modes are `conservative=2`, `balanced=3`, `read-heavy=4`; use `balanced=3` only for genuinely independent work and `read-heavy=4` only for genuinely independent read-only tasks with bounded results.
 - Writer ownership remains serialized at 1 unless explicitly proven safe with disjoint scopes. Do not fan out tightly coupled writes.
 - Send the smallest useful child context. Prefer explicit task, constraints, file/symbol references, and acceptance criteria over copying the full conversation or source tree.
 - Child results should contain concise summary, evidence, changed paths, validation, risks/blockers, and next action; keep raw logs in referenced files/artifacts.
@@ -46,7 +46,7 @@
 
 ### Goal-level guardrails
 
-- Treat 8 child assignments in one durable goal as a soft reconciliation point and 12 child assignments as the ordinary hard fan-out ceiling.
+- Treat 6 child assignments in one durable goal as a soft reconciliation point and 8 child assignments as the ordinary hard fan-out ceiling. At the soft point, inspect history and reuse existing children before justifying any further spawn.
 - Architect is normally one consultation per goal; use one independent reviewer per meaningful change-set. Prefer follow-up/reuse for unchanged scope.
 - High-risk or release-critical changes require meaningful validation and independent review before completion.
 

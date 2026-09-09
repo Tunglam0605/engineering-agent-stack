@@ -881,17 +881,17 @@ class LifecyclePolicyTests(unittest.TestCase):
         self.assertEqual(policy["lifecycle"]["reuse_strategy"], "resume-before-spawn")
         self.assertEqual(policy["limits"]["default_max_parallel_readers"], 4)
         self.assertEqual(policy["limits"]["default_max_parallel_writers"], 1)
-        self.assertEqual(policy["limits"]["soft_max_child_assignments_per_goal"], 8)
-        self.assertEqual(policy["limits"]["hard_max_child_assignments_per_goal"], 12)
+        self.assertEqual(policy["limits"]["soft_max_child_assignments_per_goal"], 6)
+        self.assertEqual(policy["limits"]["hard_max_child_assignments_per_goal"], 8)
         self.assertEqual(policy["limits"]["default_max_architect_assignments_per_goal"], 1)
         self.assertEqual(policy["limits"]["default_max_reviewer_assignments_per_change_set"], 1)
         self.assertEqual(policy["limits"]["max_same_role_domain_scope_active"], 1)
 
         parent = (ROOT / "adapters" / "codex" / "AGENTS.md.example").read_text(encoding="utf-8")
         for phrase in (
-            "Resume before spawn",
+            "Reuse before spawn",
+            "6 child assignments",
             "8 child assignments",
-            "12 child assignments",
             "one consultation per goal",
             "one independent reviewer per meaningful change-set",
         ):

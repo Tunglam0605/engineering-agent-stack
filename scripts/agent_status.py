@@ -19,8 +19,8 @@ def main() -> int:
     parser.add_argument("--input", type=Path, required=True, help="JSON status snapshot")
     parser.add_argument("--format", choices=("text", "json"), default="text")
     parser.add_argument("--summary", action="store_true", help="include goal fan-out summary")
-    parser.add_argument("--soft-limit", type=int, default=8)
-    parser.add_argument("--hard-limit", type=int, default=12)
+    parser.add_argument("--soft-limit", type=int, default=6)
+    parser.add_argument("--hard-limit", type=int, default=8)
     parser.add_argument("--goal-id", help="parent assignment id to summarize when snapshot contains multiple goals")
     args = parser.parse_args()
     try:

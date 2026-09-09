@@ -75,7 +75,10 @@ class ProjectIdentityAttributionTests(unittest.TestCase):
         self.assertLessEqual(len(parent), 6000)
         self.assertIn("Codex own native child lifecycle and transport", parent)
         self.assertIn("Ordinary child delegation does **not** require an EAS goal registry", parent)
-        self.assertIn("Normal work should prefer 1-2 children", parent)
+        self.assertIn("Normal coding should prefer 1-2 active children", parent)
+        self.assertIn("Reuse before spawn", parent)
+        self.assertIn("6 child assignments", parent)
+        self.assertIn("8 child assignments", parent)
         self.assertNotIn("Use `eas goal transport`", parent)
 
         for path in sorted((ROOT / "adapters" / "codex" / "agents").glob("*.toml")):

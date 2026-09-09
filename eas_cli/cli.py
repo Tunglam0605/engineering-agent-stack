@@ -7,7 +7,7 @@ import sys
 from typing import Optional, Sequence
 
 from .health import doctor_payload, render_payload, status_payload
-from .goals import goal_bind_capabilities, goal_gate, goal_init, goal_status, goal_transition, goal_workflow
+from .goals import goal_bind_capabilities, goal_efficiency, goal_gate, goal_init, goal_status, goal_transition, goal_workflow
 from .operations import init_project, run_installer, uninstall, update_source
 from .capabilities import (
     initialize_profile_and_snapshot, preset_check, preset_detect, preset_list,
@@ -96,6 +96,11 @@ def build_parser() -> argparse.ArgumentParser:
     goal_status_parser.add_argument("goal_id")
     goal_status_parser.add_argument("--project", type=Path, default=Path.cwd())
     goal_status_parser.add_argument("--json", action="store_true")
+
+    goal_efficiency_parser = goal_sub.add_parser("efficiency", help="show read-only per-goal agent efficiency metrics")
+    goal_efficiency_parser.add_argument("goal_id")
+    goal_efficiency_parser.add_argument("--project", type=Path, default=Path.cwd())
+    goal_efficiency_parser.add_argument("--json", action="store_true")
 
     goal_gate_parser = goal_sub.add_parser("gate", help="decide REUSE/SPAWN/ESCALATE/REJECT before child dispatch")
     goal_gate_parser.add_argument("goal_id")
@@ -239,6 +244,8 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
                 return goal_init(args.goal_id, args.project, as_json=args.json)
             if args.goal_command == "status":
                 return goal_status(args.goal_id, args.project, as_json=args.json)
+            if args.goal_command == "efficiency":
+                return goal_efficiency(args.goal_id, args.project, as_json=args.json)
             if args.goal_command == "gate":
                 return goal_gate(
                     args.goal_id, args.project, role=args.role, task_domain=args.domain,

@@ -109,7 +109,8 @@ class TransportRecoveryTests(unittest.TestCase):
     def test_parallel_gate_reserves_balanced_three_children(self):
         def spawn(index):
             return self.gate.evaluate_and_commit(GoalStore(self.store.project, 'transport'),
-                role='scout', task_domain='other-' + str(index), write_scope=[])[0].action
+                role='scout', task_domain='other-' + str(index), write_scope=[],
+                concurrency_mode='balanced')[0].action
         with ThreadPoolExecutor(max_workers=4) as pool:
             actions = list(pool.map(spawn, range(4)))
         self.assertEqual(actions.count('SPAWN'), 2)

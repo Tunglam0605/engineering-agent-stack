@@ -104,7 +104,13 @@ Transitions a committed assignment among `pending`, `running`, `completed`, `fai
 
 ### `eas goal status GOAL_ID [--json]`
 
-Shows total/active assignments, reader/writer concurrency, per-role counts, soft/hard budget state, and assignment details.
+Shows total/active assignments, reader/writer concurrency, per-role counts, soft/hard budget state, assignment details, and the current efficiency summary.
+
+### `eas goal efficiency GOAL_ID [--project PATH] [--json]`
+
+Read-only efficiency view for an initialized durable goal. It reports assignment count, spawned assignments, committed reuse decisions, resume/retry attempts, replacements, combined reused-or-resumed count, peak active children, and whether tracking covers the full goal history. Provider `tokens`, `cost`, and `latency_ms` remain `null` unless EAS has explicit evidence; the command never estimates or fabricates usage. Reading efficiency does not mutate goal state or revision.
+
+Legacy pre-v0.6.6 goal files are loaded safely with `tracking_complete=false`; their existing assignment count is preserved, while historical reuse/retry/peak values that were never recorded are not invented. The next mutation persists the partial-tracking marker.
 
 Committed mutations use a per-goal transaction lock plus state revision/CAS, so concurrent callers cannot silently lose assignments or bypass writer capacity. A lock timeout fails closed and does not auto-delete a possibly live lock.
 
@@ -192,9 +198,9 @@ Explicitly migrates a legacy or drifted goal to the current project capability s
 
 Configured v0.6 projects require the same snapshot digest for stack-controlled goal gate/transition/checkpoint/approval/recovery/export paths. Projects without `.eas/project.toml` retain v0.5 lifecycle behavior.
 
-## Codex subagent compatibility and adaptive concurrency (v0.6.5)
+## Codex subagent compatibility and adaptive concurrency (v0.6.6)
 
-EAS uses the public Codex `[agents]` surface with `max_concurrent_threads_per_session = 4` as a provider/session ceiling. The EAS lifecycle gate then applies adaptive effective caps of 2/3/4 rather than treating four as the normal fan-out. Do not enable the legacy experimental `[features.multi_agent_v2]` table: live Codex 0.153.4 A/B acceptance reproduced encrypted child-output failures when it was enabled. `eas` installation checks reject `features.multi_agent_v2.enabled=true`.
+EAS uses the public Codex `[agents]` surface with `max_concurrent_threads_per_session = 4` only as a provider/session ceiling. In v0.6.6, `auto` resolves to `conservative=2` for both readers and writers, so normal coding stays at 1-2 active children. `balanced=3` requires an explicit independent-work decision; `read-heavy=4` is for independent read-only work with bounded results. The durable goal gate reconciles at 6 assignments and rejects ordinary new children at 8. Do not enable the legacy experimental `[features.multi_agent_v2]` table: live Codex 0.153.4 A/B acceptance reproduced encrypted child-output failures when it was enabled. `eas` installation checks reject `features.multi_agent_v2.enabled=true`.
 
 For an existing personal install, remove that experimental table (or set `enabled = false`) and verify Codex with `--strict-config` before running live subagent acceptance.
 

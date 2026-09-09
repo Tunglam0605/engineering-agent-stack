@@ -98,7 +98,7 @@ def validate_config(config_path: Path) -> list[str]:
     multi_agent_v2 = features.get("multi_agent_v2") if isinstance(features, dict) else None
     if isinstance(multi_agent_v2, dict) and multi_agent_v2.get("enabled") is True:
         problems.append(
-            f"{config_path}: features.multi_agent_v2.enabled=true is incompatible with EAS v0.6.5; "
+            f"{config_path}: features.multi_agent_v2.enabled=true is incompatible with EAS v0.6.6; "
             "remove the experimental table or set enabled=false"
         )
     return problems

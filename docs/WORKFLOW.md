@@ -1,8 +1,14 @@
 # Durable workflow and recovery
 
-> **Opt-in advanced service.** Ordinary Codex child delegation in v0.6.5 uses the native `spawn_agent` / wait-follow-up / result path and does not require an EAS goal registry. Use the commands in this document only when a durable goal has been intentionally initialized or when an operator explicitly wants audited checkpoint/approval/recovery state. Codex remains the owner of native child transport and session lifecycle.
+> **Opt-in advanced service.** Ordinary Codex child delegation in v0.6.6 uses the native `spawn_agent` / wait-follow-up / result path and does not require an EAS goal registry. Use the commands in this document only when a durable goal has been intentionally initialized or when an operator explicitly wants audited checkpoint/approval/recovery state. Codex remains the owner of native child transport and session lifecycle.
 
 v0.5.0 stores parent-stage checkpoints, approval attestations and consumption receipts in the same atomic snapshot as assignments. State lives in Git metadata (`.git/eas/goals`, or the worktree's resolved Git directory), so goal operations do not dirty source files. Python 3.9 remains supported.
+
+## Efficiency evidence (v0.6.6)
+
+Durable goals persist lightweight orchestration counters in the authoritative goal state. `eas goal efficiency GOAL --json` is read-only and reports spawned assignments, committed reuse decisions, resume/retry attempts, replacements and peak active children. `eas goal export` embeds the same summary. Provider token/cost/latency fields are intentionally unknown (`null`) unless explicit provider evidence is available; EAS does not infer them. Pre-v0.6.6 goals are marked `tracking_complete=false` so missing historical reuse/retry data is not fabricated.
+
+The efficiency counters are orchestration evidence, not a billing system. Their purpose is to expose unnecessary fan-out and prove reuse/recovery budgets are behaving as designed.
 
 ## Checkpoint and inspect
 

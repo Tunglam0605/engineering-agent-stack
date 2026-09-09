@@ -35,8 +35,8 @@ class LifecycleGateTests(unittest.TestCase):
         reader_auto = self.gate.evaluate(
             GoalState("goal-adaptive-reader"), role="scout", task_domain="scan", write_scope=[]
         )
-        self.assertEqual(reader_auto.justification["resolved_concurrency_mode"], "balanced")
-        self.assertEqual(reader_auto.counters["effective_max_active_children"], 3)
+        self.assertEqual(reader_auto.justification["resolved_concurrency_mode"], "conservative")
+        self.assertEqual(reader_auto.counters["effective_max_active_children"], 2)
 
         reader_heavy = self.gate.evaluate(
             GoalState("goal-adaptive-heavy"), role="researcher", task_domain="sources",
@@ -66,8 +66,8 @@ class LifecycleGateTests(unittest.TestCase):
     def test_soft_and_hard_goal_budgets_are_executable_and_justified(self) -> None:
         soft = GoalState(
             "goal-soft",
-            assignments=[self.assignment(i, "scout", "domain-{}".format(i)) for i in range(1, 9)],
-            next_sequence=9,
+            assignments=[self.assignment(i, "scout", "domain-{}".format(i)) for i in range(1, 7)],
+            next_sequence=7,
         )
         blocked = self.gate.evaluate(soft, role="researcher", task_domain="external-api", write_scope=[])
         self.assertEqual(blocked.action, "ESCALATE")
@@ -87,8 +87,8 @@ class LifecycleGateTests(unittest.TestCase):
 
         hard = GoalState(
             "goal-hard",
-            assignments=[self.assignment(i, "scout", "domain-{}".format(i)) for i in range(1, 13)],
-            next_sequence=13,
+            assignments=[self.assignment(i, "scout", "domain-{}".format(i)) for i in range(1, 9)],
+            next_sequence=9,
         )
         rejected = self.gate.evaluate(hard, role="researcher", task_domain="new-source", write_scope=[])
         self.assertEqual(rejected.action, "REJECT")
@@ -409,11 +409,13 @@ class GoalCliTests(unittest.TestCase):
             self.run_cli(["goal", "init", "capacity"], project)
             for index in range(LifecycleGate(ROOT).policy.balanced_cap):
                 spawn = self.run_cli([
-                    "goal", "gate", "capacity", "--role", "scout", "--domain", "d{}".format(index), "--commit"
+                    "goal", "gate", "capacity", "--role", "scout", "--domain", "d{}".format(index),
+                    "--concurrency-mode", "balanced", "--commit"
                 ], project)
                 self.assertEqual(spawn.returncode, 0, spawn.stdout + spawn.stderr)
             blocked = self.run_cli([
-                "goal", "gate", "capacity", "--role", "researcher", "--domain", "extra", "--json"
+                "goal", "gate", "capacity", "--role", "researcher", "--domain", "extra",
+                "--concurrency-mode", "balanced", "--json"
             ], project)
             self.assertEqual(blocked.returncode, 4)
             self.assertEqual(json.loads(blocked.stdout)["action"], "ESCALATE")

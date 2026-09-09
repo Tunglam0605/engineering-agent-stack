@@ -6,6 +6,20 @@ All notable project changes will be documented here.
 
 No unreleased changes.
 
+## [0.6.6] - 2026-09-09
+
+### Added
+
+- Add persisted per-goal efficiency evidence for spawned assignments, reuse decisions, resume/retry attempts, replacement assignments and peak active children. Provider token, cost and latency fields remain explicitly `null` unless externally evidenced.
+- Add read-only `eas goal efficiency GOAL_ID [--json]` reporting. Goal trace export and status include the same deterministic efficiency summary.
+- Add regression coverage for budget 6/8, conservative default concurrency, reuse-before-spawn persistence, corruption retry/replacement idempotency and efficiency CLI behavior.
+
+### Changed
+
+- Change `auto` reader scheduling from `balanced=3` to `conservative=2`; `balanced=3` and `read-heavy=4` remain explicit opt-in ceilings for genuinely independent work. Writer ownership remains serialized at one.
+- Tighten durable fan-out from soft/hard `8/12` to `6/8` and strengthen native Codex guidance to inspect/reuse existing specialists instead of creating retry/round2/final-retry workers.
+- Preserve the v0.6.5 Codex-native stable path and exactly seven canonical roles; v0.6.6 reduces agent proliferation rather than adding agents or another runtime.
+
 ## [0.6.5] - 2026-09-08
 
 ### Added

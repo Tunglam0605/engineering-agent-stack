@@ -148,7 +148,7 @@ Classify
                                   done                      escalate
 ```
 
-## Codex-native stable baseline (v0.6.5)
+## Codex-native stable baseline (v0.6.5, retained in v0.6.6)
 
 For ordinary Codex subagent work, the default runtime path deliberately stays close to the proven v0.3 shape:
 
@@ -162,6 +162,10 @@ parent Codex
 ```
 
 Codex owns child process/session lifecycle and transport. EAS does not insert checkpoint, approval, capability-snapshot or recovery machinery into every native child call. Those services remain available for stack-controlled or explicitly initialized durable goals, where their stronger audit/recovery contract is useful. This single-owner boundary avoids competing lifecycle controllers while preserving EAS role intelligence and guardrails.
+
+## Agent efficiency layer (v0.6.6)
+
+The native execution boundary is unchanged. v0.6.6 reduces unnecessary fan-out by making conservative two-child scheduling the `auto` default, persisting reuse/recovery efficiency counters for durable goals, and tightening durable fan-out to soft/hard 6/8. `balanced=3` and `read-heavy=4` remain explicit opt-in ceilings rather than defaults. Efficiency telemetry does not estimate provider token, cost or latency data.
 
 ## Concurrency and lifecycle
 

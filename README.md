@@ -2,7 +2,7 @@
 
 > Turn Codex into a bounded engineering team: **7 focused roles, direct-first routing, safe writes, independent verification, and a small distribution CLI.**
 
-[![Status](https://img.shields.io/badge/status-v0.6.5%20stable-blue)](#release-status)
+[![Status](https://img.shields.io/badge/status-v0.6.6%20stable-blue)](#release-status)
 [![CI](https://github.com/Tunglam0605/engineering-agent-stack/actions/workflows/validate.yml/badge.svg)](https://github.com/Tunglam0605/engineering-agent-stack/actions/workflows/validate.yml)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.9%2B-blue)](pyproject.toml)
@@ -117,12 +117,13 @@ Task
 Current policy keeps parallelism conservative:
 
 ```text
-maximum active children: 2 (configurable 1..4)
-maximum parallel readers: 3
+normal active children: 1-2 by default
+balanced concurrency: up to 3 only for independent work
+read-heavy ceiling: up to 4 only for independent read-only work
 default parallel writer ownership: 1 scope owner
-soft child-assignment budget: 8 per goal
-hard ordinary-spawn ceiling: 12 per goal
-resume-before-spawn: enabled
+soft child-assignment budget: 6 per goal
+hard ordinary-spawn ceiling: 8 per goal
+reuse-before-spawn: enabled
 recursive delegation: disabled
 ```
 
@@ -148,6 +149,7 @@ eas goal bind-capabilities GOAL_ID --revision N
 eas goal gate GOAL_ID --role ROLE --domain DOMAIN [--scope PATH] [--commit]
 eas goal transition GOAL_ID ASSIGNMENT_ID STATE
 eas goal status GOAL_ID [--json]
+eas goal efficiency GOAL_ID [--json]
 ```
 
 Useful examples:
@@ -388,6 +390,8 @@ Writer roles require `--scope`. Use `--fresh-context --reason TEXT` only when a 
 Checkpoint verification/review evidence with `eas goal checkpoint`, inspect interruption with `eas goal plan`, then record explicit stopped-executor evidence with `eas goal approve` before `eas goal recover`. Recovery preserves the assignment ID. See the [workflow and recovery guide](docs/WORKFLOW.md) for the complete sequence and enforcement boundary.
 
 ## Release status
+
+**v0.6.6** focuses on **Agent Efficiency & Budget**: normal `auto` scheduling now defaults to the conservative two-child profile for readers and writers, same-role/domain/scope work is reused before spawning retry/round2/final-retry workers, and durable goals reconcile at 6 assignments with an ordinary hard ceiling of 8. The new read-only `eas goal efficiency` view reports persisted spawned/reused/resumed/retry/replacement/peak-active counters while leaving provider token/cost/latency values explicitly unknown unless evidence exists. All seven roles remain available, Codex still owns native spawn/wait/transport/result, and 3/4-way concurrency remains opt-in for genuinely independent work.
 
 **v0.6.5** adds canonical creator attribution and adaptive 2/3/4 advisory concurrency, while restoring a **Codex-native stable path** as the default: Codex owns `spawn_agent`, wait/follow-up, child transport, and result delivery; EAS supplies roles, routing/context policy, identity, and optional durable guardrails. The four-child value is only a provider/session ceiling. Normal work should prefer 1-2 children, and durable EAS goal/recovery machinery is opt-in rather than required for ordinary subagent calls.
 

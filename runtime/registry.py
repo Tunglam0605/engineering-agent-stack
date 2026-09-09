@@ -80,8 +80,8 @@ class AgentRegistry:
     def summary(
         self,
         *,
-        soft_limit: int = 8,
-        hard_limit: int = 12,
+        soft_limit: int = 6,
+        hard_limit: int = 8,
         goal_id: Optional[str] = None,
     ) -> dict:
         self._validate_limit("soft_limit", soft_limit)
@@ -136,8 +136,8 @@ class AgentRegistry:
     def summary_text(
         self,
         *,
-        soft_limit: int = 8,
-        hard_limit: int = 12,
+        soft_limit: int = 6,
+        hard_limit: int = 8,
         goal_id: Optional[str] = None,
     ) -> str:
         summary = self.summary(soft_limit=soft_limit, hard_limit=hard_limit, goal_id=goal_id)

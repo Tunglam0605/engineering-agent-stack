@@ -25,17 +25,17 @@ effective active children           = adaptive 2 / 3 / 4
   balanced                          = 3
   read-heavy                        = 4 (read-only only)
 parallel writers                    <= 1 scope owner
-soft child-assignment budget        = 8 per goal
-hard ordinary-spawn ceiling         = 12 per goal
+soft child-assignment budget        = 6 per goal
+hard ordinary-spawn ceiling         = 8 per goal
 same role + same domain + same scope active       <= 1
 architect consultation default      = 1 per goal
 reviewer default                    = 1 per meaningful change-set
 recursive delegation                = disabled
 ```
 
-The soft budget is a reconciliation point, not a success target. At 8 child assignments, the parent should inspect completed/active work, merge overlapping investigations, prefer follow-up on existing children, and state why any additional spawn is still useful.
+The soft budget is a reconciliation point, not a success target. At 6 child assignments, the parent should inspect completed/active work, merge overlapping investigations, prefer follow-up on existing children, and state why any additional spawn is still useful.
 
-The hard ceiling applies to ordinary orchestration. At 12 child assignments, stop creating ordinary new children and integrate, serialize, or escalate. Explicit diagnostic instructions and a required independent safety/release review may override the ceiling only when the parent records the reason.
+The hard ceiling applies to ordinary orchestration. At 8 child assignments, stop creating ordinary new children and integrate, serialize, or escalate. Explicit diagnostic instructions and a required independent safety/release review may override the ceiling only when the parent records the reason.
 
 ## Expensive-role reuse
 

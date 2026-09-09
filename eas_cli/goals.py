@@ -76,6 +76,21 @@ def _render(payload: dict, as_json: bool) -> None:
         if target:
             print("Assignment: " + target)
         return
+    if payload.get("command") == "goal-efficiency":
+        print(
+            "Efficiency {}: assignments={}, spawned={}, reused={}, resumed={}, retries={}, replacements={}, peak_active={}".format(
+                payload["goal_id"], payload["assignment_count"], payload["spawned_assignments"],
+                payload["reuse_decisions"], payload["resume_attempts"], payload["retry_attempts"],
+                payload["replacement_assignments"], payload["peak_active_children"],
+            )
+        )
+        if not payload["tracking_complete"]:
+            print("Tracking: partial (pre-v0.6.6 history may be undercounted)")
+        print("Provider usage: tokens={}, cost={}, latency_ms={}".format(
+            payload["provider_usage"]["tokens"], payload["provider_usage"]["cost"],
+            payload["provider_usage"]["latency_ms"],
+        ))
+        return
     if payload.get("command") == "goal-init":
         print("Goal initialized: {} -> {}".format(payload["goal_id"], payload["state_path"]))
         return
@@ -117,6 +132,16 @@ def goal_status(goal_id: str, project: Path, *, as_json: bool = False) -> int:
             binding["status"] = "PROJECT_SNAPSHOT_ERROR"
             binding["error"] = str(exc)
     payload = {"command": "goal-status", **gate.summary(state), "capability_binding": binding}
+    _render(payload, as_json)
+    return 0
+
+
+def goal_efficiency(goal_id: str, project: Path, *, as_json: bool = False) -> int:
+    project_root = _git_root(project)
+    store = GoalStore(project_root, goal_id)
+    state = store.load()
+    gate = LifecycleGate(resolve_repo(required=True))
+    payload = {"command": "goal-efficiency", **gate.efficiency(state)}
     _render(payload, as_json)
     return 0
 

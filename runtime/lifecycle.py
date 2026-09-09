@@ -54,6 +54,65 @@ def _normalize_scopes(scopes: object) -> List[str]:
     return [_canonical_scope(item) for item in scopes]
 
 
+_EFFICIENCY_COUNTERS = (
+    "spawned_assignments",
+    "reuse_decisions",
+    "resume_attempts",
+    "retry_attempts",
+    "replacement_assignments",
+    "peak_active_children",
+)
+
+
+def _empty_efficiency(*, tracking_complete: bool = True, spawned: int = 0, peak: int = 0) -> dict:
+    return {
+        "version": 1,
+        "tracking_complete": tracking_complete,
+        "spawned_assignments": spawned,
+        "reuse_decisions": 0,
+        "resume_attempts": 0,
+        "retry_attempts": 0,
+        "replacement_assignments": 0,
+        "peak_active_children": peak,
+        "provider_usage": {"tokens": None, "cost": None, "latency_ms": None},
+    }
+
+
+def _validate_efficiency(value: object) -> dict:
+    if not isinstance(value, dict):
+        raise ValueError("efficiency must be an object")
+    required = {"version", "tracking_complete", *_EFFICIENCY_COUNTERS, "provider_usage"}
+    if set(value) != required or value.get("version") != 1 or type(value.get("tracking_complete")) is not bool:
+        raise ValueError("invalid efficiency evidence fields")
+    for key in _EFFICIENCY_COUNTERS:
+        item = value.get(key)
+        if type(item) is not int or item < 0:
+            raise ValueError("efficiency counter must be a non-negative integer: " + key)
+    provider = value.get("provider_usage")
+    if not isinstance(provider, dict) or set(provider) != {"tokens", "cost", "latency_ms"}:
+        raise ValueError("provider_usage must contain tokens, cost and latency_ms")
+    for key, item in provider.items():
+        if item is not None and (not isinstance(item, (int, float)) or isinstance(item, bool) or item < 0):
+            raise ValueError("provider usage must be null or a non-negative number: " + key)
+    return {
+        **value,
+        "provider_usage": dict(provider),
+    }
+
+
+def _record_efficiency(state: "GoalState", counter: str, amount: int = 1) -> None:
+    if counter not in _EFFICIENCY_COUNTERS or counter == "peak_active_children":
+        raise ValueError("unsupported efficiency counter: " + counter)
+    if type(amount) is not int or amount < 0:
+        raise ValueError("efficiency increment must be a non-negative integer")
+    state.efficiency[counter] += amount
+
+
+def _refresh_peak_active(state: "GoalState") -> None:
+    active = sum(1 for item in state.assignments if item.state in ACTIVE_STATES)
+    state.efficiency["peak_active_children"] = max(state.efficiency["peak_active_children"], active)
+
+
 @dataclass
 class GoalAssignment:
     assignment_id: str
@@ -118,6 +177,7 @@ class GoalState:
     updated_at: str = field(default_factory=_utc_now)
     workflow: dict = field(default_factory=empty_workflow)
     capability_snapshot_digest: Optional[str] = None
+    efficiency: Optional[dict] = None
 
     def __post_init__(self) -> None:
         self.goal_id = _validate_goal_id(self.goal_id)
@@ -140,6 +200,20 @@ class GoalState:
             if not re.fullmatch(r'a-[0-9]{4,}', ident) or int(ident[2:]) >= self.next_sequence:
                 raise ValueError('assignment id must precede next_sequence')
         validate_workflow(self.workflow, self.revision, set(ids))
+        if self.efficiency is None:
+            current_active = sum(1 for item in self.assignments if item.state in ACTIVE_STATES)
+            self.efficiency = _empty_efficiency(
+                tracking_complete=not bool(self.assignments),
+                spawned=len(self.assignments),
+                peak=current_active,
+            )
+        self.efficiency = _validate_efficiency(self.efficiency)
+        if self.efficiency["spawned_assignments"] < len(self.assignments):
+            # Assignment count is authoritative and directly knowable. If a legacy/test caller
+            # mutated assignments without going through the gate, preserve compatibility but
+            # mark historical efficiency tracking as partial rather than fabricating old events.
+            self.efficiency["spawned_assignments"] = len(self.assignments)
+            self.efficiency["tracking_complete"] = False
         if self.capability_snapshot_digest is not None and (
             not isinstance(self.capability_snapshot_digest, str)
             or not re.fullmatch(r"[0-9a-f]{64}", self.capability_snapshot_digest)
@@ -157,6 +231,7 @@ class GoalState:
             "updated_at": self.updated_at,
             "assignments": [asdict(item) for item in self.assignments],
             "workflow": self.workflow,
+            "efficiency": self.efficiency,
         }
         if version == 3:
             payload["capability_snapshot_digest"] = self.capability_snapshot_digest
@@ -182,6 +257,7 @@ class GoalState:
             assignments=[GoalAssignment.from_dict(item) for item in assignments],
             workflow=payload['workflow'] if payload['version'] in (2, 3) else payload.get('workflow', empty_workflow()),
             capability_snapshot_digest=payload.get("capability_snapshot_digest"),
+            efficiency=payload.get("efficiency"),
         )
 
 
@@ -220,7 +296,7 @@ class LifecyclePolicy:
     conservative_cap: int = 2
     balanced_cap: int = 3
     read_heavy_cap: int = 4
-    default_reader_mode: str = "balanced"
+    default_reader_mode: str = "conservative"
     default_writer_mode: str = "conservative"
 
     def effective_active_cap(self, *, writer: bool, mode: str = "auto") -> tuple[str, int]:
@@ -745,6 +821,8 @@ class LifecycleGate:
         )
         state.assignments.append(assignment)
         state.next_sequence += 1
+        _record_efficiency(state, "spawned_assignments")
+        _refresh_peak_active(state)
         store._save_unlocked(state)
         store._append_event_unlocked(
             "assignment_spawned",
@@ -794,6 +872,9 @@ class LifecycleGate:
                     change_set=change_set,
                 )
             else:
+                if result.action == "REUSE":
+                    _record_efficiency(state, "reuse_decisions")
+                    store._save_unlocked(state)
                 store._append_event_unlocked("gate_decision", result.as_dict())
             return result, assignment
 
@@ -862,9 +943,18 @@ class LifecycleGate:
                         effective_active_cap = self.policy.conservative_cap
                     if counters['active'] >= effective_active_cap:
                         raise ValueError('active child capacity reached for assignment concurrency mode; cannot reactivate assignment')
+                reactivating = old not in ACTIVE_STATES and new_state in ACTIVE_STATES
+                retrying = (old in {'failed', 'blocked'} and new_state in ACTIVE_STATES) or (
+                    old == 'running' and new_state == 'pending'
+                )
                 item.state = new_state
                 item.updated_at = _utc_now()
-                if old not in ACTIVE_STATES and new_state in ACTIVE_STATES or old == 'running' and new_state == 'pending':
+                if reactivating:
+                    _record_efficiency(state, 'resume_attempts')
+                if retrying:
+                    _record_efficiency(state, 'retry_attempts')
+                _refresh_peak_active(state)
+                if reactivating or old == 'running' and new_state == 'pending':
                     item.attempt_started_at = item.updated_at
                 if approval_id:
                     flow.record_receipt(state, approval_id, action, item)
@@ -884,6 +974,23 @@ class LifecycleGate:
             state = store._load_unlocked()
             return self._transition_locked(store, state, assignment_id, new_state, approval_id)
 
+    def efficiency(self, state: GoalState) -> dict:
+        metrics = _validate_efficiency(state.efficiency)
+        return {
+            "goal_id": state.goal_id,
+            "revision": state.revision,
+            "assignment_count": len(state.assignments),
+            "spawned_assignments": metrics["spawned_assignments"],
+            "reuse_decisions": metrics["reuse_decisions"],
+            "resume_attempts": metrics["resume_attempts"],
+            "retry_attempts": metrics["retry_attempts"],
+            "replacement_assignments": metrics["replacement_assignments"],
+            "reused_or_resumed": metrics["reuse_decisions"] + metrics["resume_attempts"],
+            "peak_active_children": metrics["peak_active_children"],
+            "tracking_complete": metrics["tracking_complete"],
+            "provider_usage": dict(metrics["provider_usage"]),
+        }
+
     def summary(self, state: GoalState) -> dict:
         counters = self._counters(state)
         if counters["total"] >= self.policy.hard_limit:
@@ -900,4 +1007,5 @@ class LifecycleGate:
             "assignments": [asdict(item) for item in state.assignments],
             "suspect": self.suspects(state),
             "checkpoint": state.workflow['checkpoint'],
+            "efficiency": self.efficiency(state),
         }

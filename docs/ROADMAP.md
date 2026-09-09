@@ -90,7 +90,7 @@ Checkpoints do not rewind state or dispatch work. Native executor termination, a
 
 ## v0.6 — Extensions and presets
 
-Status: **v0.6.0 released; capability architecture frozen. v0.6.5 adds canonical creator attribution and adaptive 2/3/4 scheduling without changing the seven-role or declarative-capability boundaries. v0.6.4 removes the failing experimental Codex multi-agent compatibility path; v0.6.3 adds bounded transport recovery. v0.6.2 hardens exact-artifact release promotion and pins official Node 24 Actions, retaining v0.6.1 isolated wheel verification. No v0.7 scope is included.** See the [v0.6 research checkpoint](../research/v0.6/research-checkpoint.md) and [research package](../research/v0.6/README.md) for evidence, proposed boundaries, and implementation sequence.
+Status: **v0.6.0 released; capability architecture frozen. v0.6.6 reduces agent proliferation with reuse-first 6/8 budgets, conservative auto concurrency and persisted efficiency evidence; v0.6.5 added canonical creator attribution and adaptive 2/3/4 ceilings without changing the seven-role or declarative-capability boundaries. v0.6.4 removes the failing experimental Codex multi-agent compatibility path; v0.6.3 adds bounded transport recovery. v0.6.2 hardens exact-artifact release promotion and pins official Node 24 Actions, retaining v0.6.1 isolated wheel verification. No v0.7 scope is included.** See the [v0.6 research checkpoint](../research/v0.6/research-checkpoint.md) and [research package](../research/v0.6/README.md) for evidence, proposed boundaries, and implementation sequence.
 
 Implemented scope:
 

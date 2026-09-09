@@ -189,8 +189,8 @@ def main() -> int:
             failures.append("routing policy: concurrency.strategy must be adaptive")
         if concurrency.get("provider_session_cap") != 4:
             failures.append("routing policy: concurrency.provider_session_cap must be 4")
-        if concurrency.get("default_reader_mode") != "balanced":
-            failures.append("routing policy: concurrency.default_reader_mode must be balanced")
+        if concurrency.get("default_reader_mode") != "conservative":
+            failures.append("routing policy: concurrency.default_reader_mode must be conservative")
         if concurrency.get("default_writer_mode") != "conservative":
             failures.append("routing policy: concurrency.default_writer_mode must be conservative")
         if modes != {"conservative": 2, "balanced": 3, "read-heavy": 4}:
