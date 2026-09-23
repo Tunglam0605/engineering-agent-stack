@@ -21,9 +21,9 @@ notes
 
 Key experiments:
 
-- Luna vs Terra for repository scanning
-- Terra medium vs high for implementation/debugging
-- Terra high vs Sol high for review on high-risk cases
+- GPT-6 Luna vs GPT-5.6 Luna migration baseline for repository scanning
+- GPT-6 Sol vs GPT-5.6 Terra for implementation/debugging, with GPT-6 Luna/high as an optimization candidate
+- GPT-6 Sol vs GPT-5.6 Terra for high-risk review, plus GPT-6 Sol high/xhigh and GPT-6 Astra critical comparisons
 - single-agent vs delegated discovery
 - direct vs delegated trivial work
 - full-context vs bounded-context delegation
@@ -53,8 +53,8 @@ Materialize a clean run workspace with:
 ```bash
 python scripts/prepare_benchmark_task.py \
   --task-id scout-symbol-001 \
-  --experiment-id scout-luna-vs-terra \
-  --model gpt-5.6-luna \
+  --experiment-id scout-gpt6-luna-migration \
+  --model gpt-6-luna \
   --reasoning-effort medium \
   --profile cheap
 ```

@@ -7,7 +7,7 @@ comparison_rule:
   reject_below_threshold: true
   prefer_lower_compute_when_quality_is_equivalent: true
 experiments:
-  - id: scout-luna-vs-terra
+  - id: scout-gpt6-luna-migration
     role: scout
     task_families:
       - repository-discovery
@@ -16,13 +16,13 @@ experiments:
       - scout-symbol-001
     candidates:
       - profile: cheap
-        model_family: luna
-        reasoning: low
+        model: gpt-5.6-luna
+        reasoning: medium
       - profile: cheap
-        model_family: luna
+        model: gpt-6-luna
         reasoning: medium
       - profile: standard
-        model_family: terra
+        model: gpt-6-sol
         reasoning: medium
     measures:
       - quality_score
@@ -31,7 +31,7 @@ experiments:
       - latency_ms
       - agent_invocations
 
-  - id: implementer-terra-effort
+  - id: implementer-gpt6-routing
     role: implementer
     task_families:
       - bounded-bug-fix
@@ -40,10 +40,13 @@ experiments:
       - implementer-bounded-bug-001
     candidates:
       - profile: standard
-        model_family: terra
+        model: gpt-5.6-terra
         reasoning: medium
-      - profile: deep
-        model_family: terra
+      - profile: standard
+        model: gpt-6-sol
+        reasoning: medium
+      - profile: standard
+        model: gpt-6-luna
         reasoning: high
     measures:
       - quality_score
@@ -52,7 +55,7 @@ experiments:
       - output_tokens
       - latency_ms
 
-  - id: reviewer-terra-vs-sol
+  - id: reviewer-gpt6-sol-migration
     role: reviewer
     task_families:
       - regression-review
@@ -62,10 +65,38 @@ experiments:
       - reviewer-regression-001
     candidates:
       - profile: deep
-        model_family: terra
+        model: gpt-5.6-terra
+        reasoning: high
+      - profile: deep
+        model: gpt-6-sol
+        reasoning: high
+    measures:
+      - quality_score
+      - defect_recall
+      - false_positive_rate
+      - input_tokens
+      - output_tokens
+      - latency_ms
+
+  - id: architect-gpt6-critical
+    role: architect
+    task_families:
+      - architecture-review
+      - release-critical-assurance
+    task_ids:
+      - reviewer-regression-001
+    candidates:
+      - profile: critical
+        model: gpt-5.6-sol
         reasoning: high
       - profile: critical
-        model_family: sol
+        model: gpt-6-sol
+        reasoning: high
+      - profile: critical
+        model: gpt-6-sol
+        reasoning: xhigh
+      - profile: critical
+        model: gpt-6-astra
         reasoning: high
     measures:
       - quality_score

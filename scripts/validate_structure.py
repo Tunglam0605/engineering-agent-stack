@@ -10,7 +10,7 @@ REQUIRED = [
     "README.md", "ACKNOWLEDGEMENTS.md", "AGENTS.md", "CHANGELOG.md", "CONTRIBUTING.md", "requirements-dev.txt", "pyproject.toml", "install.ps1", "install.sh", ".github/workflows/release.yml",
     "docs/ARCHITECTURE.md", "docs/ROADMAP.md", "docs/PROJECT_IDENTITY.md", "docs/EVALUATION.md", "docs/INSTALL_CODEX.md", "docs/CLI.md", "docs/DISTRIBUTION.md", "docs/ACCEPTANCE_WINDOWS.md", "docs/PROVENANCE.md",
     "research/README.md", "research/matrix/repository-comparison.yaml", "research/patterns/wave-2-synthesis.md", "research/anti-patterns/over-orchestration.md",
-    "research/sources/openai-codex-subagents.md", "research/sources/openai-codex-exec-jsonl.md", "research/sources/openai-models-2026-09-07.md",
+    "research/sources/openai-codex-subagents.md", "research/sources/openai-codex-exec-jsonl.md", "research/sources/openai-models-2026-09-07.md", "research/sources/openai-models-2026-09-23.md",
     "config/model-profiles.yaml", "config/routing-policy.yaml", "config/project-identity.yaml",
     "policies/delegation.md", "policies/context-budget.md", "policies/escalation.md", "policies/quality-gates.md",
     "schemas/agent-contract.yaml", "schemas/project-identity.yaml", "schemas/assignment-result.yaml", "schemas/benchmark-record.yaml", "schemas/run-capture.yaml", "schemas/benchmark-task.yaml",

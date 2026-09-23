@@ -1,6 +1,6 @@
 version: 3
 status: candidate
-verified_against_openai_docs: 2026-09-07
+verified_against_openai_docs: 2026-09-23
 principle: role-and-compute-profile-are-independent
 profiles:
   cheap:
@@ -11,7 +11,10 @@ profiles:
       - high-volume bounded work
     reasoning: low
     candidate_models:
-      openai: gpt-5.6-luna
+      openai: gpt-6-luna
+    benchmark_baselines:
+      openai:
+        - gpt-5.6-luna
     escalation_to: standard
   standard:
     purpose:
@@ -21,7 +24,13 @@ profiles:
       - routine technical research
     reasoning: medium
     candidate_models:
-      openai: gpt-5.6-terra
+      openai: gpt-6-sol
+    benchmark_candidates:
+      openai:
+        - gpt-6-luna
+    benchmark_baselines:
+      openai:
+        - gpt-5.6-terra
     escalation_to: deep
   deep:
     purpose:
@@ -30,7 +39,13 @@ profiles:
       - high-confidence independent review
     reasoning: high
     candidate_models:
-      openai: gpt-5.6-terra
+      openai: gpt-6-sol
+    benchmark_candidates:
+      openai:
+        - gpt-6-luna
+    benchmark_baselines:
+      openai:
+        - gpt-5.6-terra
     escalation_to: critical
   critical:
     purpose:
@@ -40,14 +55,20 @@ profiles:
       - release-critical assurance
     reasoning: high
     candidate_models:
-      openai: gpt-5.6-sol
+      openai: gpt-6-sol
     benchmark_candidates:
       openai:
         - gpt-6-astra
+    benchmark_baselines:
+      openai:
+        - gpt-5.6-sol
     escalation_to: null
 notes:
   - Candidate model mappings are not role identity.
-  - GPT-5.6 Sol's current API model ID is `gpt-5.6-sol`; `gpt-5.6` is a documented alias.
-  - GPT-6 Astra is not a default because its higher per-token price must be justified by measured task-level quality/cost gain.
+  - GPT-6 Sol and GPT-6 Luna model IDs and reasoning tiers were revalidated against OpenAI documentation on 2026-09-23.
+  - GPT-6 Luna is the default cheap/high-volume tier; standard, deep and critical initially resolve to GPT-6 Sol.
+  - GPT-6 Luna remains a benchmark candidate for standard/deep work and must clear the same quality threshold before any wider promotion.
+  - GPT-6 Astra remains a critical benchmark candidate rather than a default; use it only when measured task-level quality justifies the higher cost.
+  - GPT-5.6 mappings are retained as benchmark baselines for migration evidence, not as current defaults.
   - Provider adapters may select equivalent models according to measured quality, latency, availability and cost.
   - All mappings remain benchmark-gated and must be revalidated when provider models or pricing change.

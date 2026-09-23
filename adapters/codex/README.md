@@ -2,7 +2,7 @@
 
 Status: **v0.1 candidate — generated, drift-checked, and installable**
 
-Last checked against current public Codex subagent documentation and `openai/codex` source: **2026-09-07**.
+Last checked against current public Codex subagent documentation and `openai/codex` source: **2026-09-23**.
 
 ## Purpose
 
@@ -104,15 +104,15 @@ The parent owns decomposition, context allocation, integration, escalation and f
 
 | Role | Semantic profile | Current Codex candidate |
 |---|---|---|
-| Scout | cheap + medium reasoning override | GPT-5.6 Luna / medium |
-| Researcher | cheap + medium reasoning override | GPT-5.6 Luna / medium |
-| Implementer | standard | GPT-5.6 Terra / medium |
-| Debugger | deep | GPT-5.6 Terra / high |
-| Test Engineer | standard | GPT-5.6 Terra / medium |
-| Reviewer | deep | GPT-5.6 Terra / high |
-| Architect | critical | GPT-5.6 Sol / high |
+| Scout | cheap + medium reasoning override | GPT-6 Luna / medium |
+| Researcher | cheap + medium reasoning override | GPT-6 Luna / medium |
+| Implementer | standard | GPT-6 Sol / medium |
+| Debugger | deep | GPT-6 Sol / high |
+| Test Engineer | standard | GPT-6 Sol / medium |
+| Reviewer | deep | GPT-6 Sol / high |
+| Architect | critical | GPT-6 Sol / high |
 
-These are benchmark candidates, not permanent role identities.
+These are benchmark-gated defaults, not permanent role identities. GPT-5.6 remains in the benchmark plan only as migration baseline evidence; GPT-6 Luna promotion beyond the cheap tier must clear the same quality threshold before becoming a default.
 
 ## Permission caveat
 

@@ -2,7 +2,7 @@
 
 > Turn Codex into a bounded engineering team: **7 focused roles, direct-first routing, safe writes, independent verification, and a small distribution CLI.**
 
-[![Status](https://img.shields.io/badge/status-v0.6.6%20stable-blue)](#release-status)
+[![Status](https://img.shields.io/badge/status-v0.6.7%20stable-blue)](#release-status)
 [![CI](https://github.com/Tunglam0605/engineering-agent-stack/actions/workflows/validate.yml/badge.svg)](https://github.com/Tunglam0605/engineering-agent-stack/actions/workflows/validate.yml)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.9%2B-blue)](pyproject.toml)
@@ -79,13 +79,13 @@ targeted verification, and independent review when risk requires it.
 
 | Role | Responsibility | Default capability | Compute candidate |
 |---|---|---|---|
-| **Scout** | repository discovery and call-flow mapping | read-only | Luna / medium |
-| **Researcher** | current authoritative external evidence | read + network intent | Luna / medium |
-| **Implementer** | smallest approved implementation | bounded write + test | Terra / medium |
-| **Debugger** | evidence-first root cause and remediation | bounded write + test | Terra / high |
-| **Test Engineer** | narrowest meaningful verification | test artifacts + test | Terra / medium |
-| **Reviewer** | independent correctness/regression review | read + test | Terra / high |
-| **Architect** | critical architecture/safety decisions | read-only | Sol / high |
+| **Scout** | repository discovery and call-flow mapping | read-only | GPT-6 Luna / medium |
+| **Researcher** | current authoritative external evidence | read + network intent | GPT-6 Luna / medium |
+| **Implementer** | smallest approved implementation | bounded write + test | GPT-6 Sol / medium |
+| **Debugger** | evidence-first root cause and remediation | bounded write + test | GPT-6 Sol / high |
+| **Test Engineer** | narrowest meaningful verification | test artifacts + test | GPT-6 Sol / medium |
+| **Reviewer** | independent correctness/regression review | read + test | GPT-6 Sol / high |
+| **Architect** | critical architecture/safety decisions | read-only | GPT-6 Sol / high |
 
 A **role is not a model**. Role, compute profile, provider, and concrete model remain separate so routing can change after benchmarks without changing the engineering contract.
 
@@ -390,6 +390,8 @@ Writer roles require `--scope`. Use `--fresh-context --reason TEXT` only when a 
 Checkpoint verification/review evidence with `eas goal checkpoint`, inspect interruption with `eas goal plan`, then record explicit stopped-executor evidence with `eas goal approve` before `eas goal recover`. Recovery preserves the assignment ID. See the [workflow and recovery guide](docs/WORKFLOW.md) for the complete sequence and enforcement boundary.
 
 ## Release status
+
+**v0.6.7** refreshes the benchmark-gated OpenAI model routing for the GPT-6 generation: Scout/Researcher resolve to GPT-6 Luna at medium reasoning, while Implementer/Test Engineer use GPT-6 Sol medium and Debugger/Reviewer/Architect use GPT-6 Sol high. GPT-5.6 stays only as migration baseline evidence, GPT-6 Astra remains a critical benchmark candidate, and the seven-role/direct-first/lifecycle/capability contracts are unchanged. The benchmark plan explicitly tests whether GPT-6 Luna can safely absorb more standard/deep work before any further default change.
 
 **v0.6.6** focuses on **Agent Efficiency & Budget**: normal `auto` scheduling now defaults to the conservative two-child profile for readers and writers, same-role/domain/scope work is reused before spawning retry/round2/final-retry workers, and durable goals reconcile at 6 assignments with an ordinary hard ceiling of 8. The new read-only `eas goal efficiency` view reports persisted spawned/reused/resumed/retry/replacement/peak-active counters while leaving provider token/cost/latency values explicitly unknown unless evidence exists. All seven roles remain available, Codex still owns native spawn/wait/transport/result, and 3/4-way concurrency remains opt-in for genuinely independent work.
 

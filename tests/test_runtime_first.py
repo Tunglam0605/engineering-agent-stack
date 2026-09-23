@@ -91,7 +91,7 @@ class DelegationPreflightTests(unittest.TestCase):
         result = self.preflight.evaluate(self.request())
 
         self.assertEqual(result.decision, "PASS")
-        self.assertEqual(result.resolved_model, "gpt-5.6-terra")
+        self.assertEqual(result.resolved_model, "gpt-6-sol")
         self.assertEqual(result.resolved_effort, "medium")
         self.assertEqual(result.reasons, [])
 
@@ -99,7 +99,7 @@ class DelegationPreflightTests(unittest.TestCase):
         self.assertEqual(plan.preflight.decision, "PASS")
         self.assertEqual(plan.route.role, "implementer")
         self.assertEqual(plan.compute.provider, "openai")
-        self.assertEqual(plan.compute.model, "gpt-5.6-terra")
+        self.assertEqual(plan.compute.model, "gpt-6-sol")
         self.assertEqual(plan.permissions.write_scope, ["runtime/"])
         self.assertEqual(plan.context_budget.estimated_input_tokens, 600)
 
@@ -219,7 +219,7 @@ class DelegationPreflightTests(unittest.TestCase):
             )
         )
         self.assertEqual(result.decision, "PASS")
-        self.assertEqual(result.resolved_model, "gpt-5.6-luna")
+        self.assertEqual(result.resolved_model, "gpt-6-luna")
         self.assertEqual(result.resolved_effort, "medium")
 
     def test_non_pass_preflight_cannot_build_execution_plan(self) -> None:
@@ -297,7 +297,7 @@ class AgentRegistryTests(unittest.TestCase):
             role="scout",
             profile="cheap",
             provider="openai",
-            model="gpt-5.6-luna",
+            model="gpt-6-luna",
             parent_assignment_id="root-1",
             write_owner=None,
             write_scope=[],
@@ -307,7 +307,7 @@ class AgentRegistryTests(unittest.TestCase):
         payload = json.loads(registry.to_json())
         self.assertIsNone(payload["agents"][0]["telemetry"]["tokens"])
         self.assertIsNone(payload["agents"][0]["telemetry"]["latency_ms"])
-        self.assertIn("child-1 pending scout/cheap openai:gpt-5.6-luna", registry.to_text())
+        self.assertIn("child-1 pending scout/cheap openai:gpt-6-luna", registry.to_text())
         self.assertIn("tokens=? latency=? duration=?", registry.to_text())
 
     def test_registry_tracks_terminal_state_and_known_telemetry(self) -> None:
@@ -321,7 +321,7 @@ class AgentRegistryTests(unittest.TestCase):
                 role="implementer",
                 profile="standard",
                 provider="openai",
-                model="gpt-5.6-terra",
+                model="gpt-6-sol",
                 parent_assignment_id="root-1",
                 write_owner="child-1",
                 write_scope=["runtime/"],
@@ -435,7 +435,7 @@ class AgentRegistryTests(unittest.TestCase):
                 role="scout",
                 profile="cheap",
                 provider="openai",
-                model="gpt-5.6-luna",
+                model="gpt-6-luna",
                 parent_assignment_id=None,
                 write_owner=None,
                 write_scope="runtime/",
@@ -453,7 +453,7 @@ class AgentRegistryTests(unittest.TestCase):
                     "role": "scout",
                     "profile": "cheap",
                     "provider": "openai",
-                    "model": "gpt-5.6-luna",
+                    "model": "gpt-6-luna",
                     "parent_assignment_id": None,
                     "write": False,
                     "telemetry": {},
@@ -721,7 +721,7 @@ class AgentStatusCliTests(unittest.TestCase):
                     "role": "scout",
                     "profile": "cheap",
                     "provider": "openai",
-                    "model": "gpt-5.6-luna",
+                    "model": "gpt-6-luna",
                     "parent_assignment_id": "root-1",
                     "write": {"owner": None, "scope": []},
                     "telemetry": {"duration_ms": None, "tokens": None, "latency_ms": None},
@@ -740,7 +740,7 @@ class AgentStatusCliTests(unittest.TestCase):
                 check=False,
             )
             self.assertEqual(text.returncode, 0, text.stderr)
-            self.assertIn("child-1 running scout/cheap openai:gpt-5.6-luna", text.stdout)
+            self.assertIn("child-1 running scout/cheap openai:gpt-6-luna", text.stdout)
             machine = subprocess.run(
                 [sys.executable, str(script), "--input", str(path), "--format", "json"],
                 cwd=str(ROOT),
@@ -785,7 +785,7 @@ class ContextBenchmarkPreparationTests(unittest.TestCase):
                         "--experiment-id",
                         "context-packet-full-vs-bounded",
                         "--model",
-                        "gpt-5.6-terra",
+                        "gpt-6-sol",
                         "--reasoning-effort",
                         "medium",
                         "--profile",
@@ -832,7 +832,7 @@ class ContextBenchmarkPreparationTests(unittest.TestCase):
                     "--experiment-id",
                     "scout-luna-vs-terra",
                     "--model",
-                    "gpt-5.6-luna",
+                    "gpt-6-luna",
                     "--reasoning-effort",
                     "medium",
                     "--profile",

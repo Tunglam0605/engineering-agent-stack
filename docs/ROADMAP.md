@@ -35,7 +35,7 @@ Ongoing evidence work:
 
 - repeated real Codex runs
 - context/token/latency measurements
-- Luna/Terra/Sol task-level quality/cost comparisons
+- GPT-6 Luna/Sol task-level quality/cost comparisons against retained GPT-5.6 migration baselines
 - natural-language routing/classifier evaluation
 - escalation regression fixtures
 - repeated experiment reports before default model/routing changes
@@ -90,7 +90,7 @@ Checkpoints do not rewind state or dispatch work. Native executor termination, a
 
 ## v0.6 — Extensions and presets
 
-Status: **v0.6.0 released; capability architecture frozen. v0.6.6 reduces agent proliferation with reuse-first 6/8 budgets, conservative auto concurrency and persisted efficiency evidence; v0.6.5 added canonical creator attribution and adaptive 2/3/4 ceilings without changing the seven-role or declarative-capability boundaries. v0.6.4 removes the failing experimental Codex multi-agent compatibility path; v0.6.3 adds bounded transport recovery. v0.6.2 hardens exact-artifact release promotion and pins official Node 24 Actions, retaining v0.6.1 isolated wheel verification. No v0.7 scope is included.** See the [v0.6 research checkpoint](../research/v0.6/research-checkpoint.md) and [research package](../research/v0.6/README.md) for evidence, proposed boundaries, and implementation sequence.
+Status: **v0.6.0 released; capability architecture frozen. v0.6.7 refreshes the benchmark-gated OpenAI model mapping to GPT-6 Luna/Sol without changing role, lifecycle, provider-adapter or declarative-capability contracts. v0.6.6 reduces agent proliferation with reuse-first 6/8 budgets, conservative auto concurrency and persisted efficiency evidence; v0.6.5 added canonical creator attribution and adaptive 2/3/4 ceilings without changing the seven-role or declarative-capability boundaries. v0.6.4 removes the failing experimental Codex multi-agent compatibility path; v0.6.3 adds bounded transport recovery. v0.6.2 hardens exact-artifact release promotion and pins official Node 24 Actions, retaining v0.6.1 isolated wheel verification. The separate v0.7 Team distribution scope remains reserved.** See the [v0.6 research checkpoint](../research/v0.6/research-checkpoint.md) and [research package](../research/v0.6/README.md) for evidence, proposed boundaries, and implementation sequence.
 
 Implemented scope:
 

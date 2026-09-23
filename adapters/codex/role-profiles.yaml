@@ -21,5 +21,6 @@ roles:
   architect:
     profile: critical
 notes:
-  - Scout and researcher keep the Luna cost tier but use medium reasoning as a quality floor for call-path tracing and version-sensitive evidence.
+  - Scout and researcher use the GPT-6 Luna cost tier with medium reasoning as a quality floor for call-path tracing and version-sensitive evidence.
+  - Standard, deep and critical profiles initially resolve to GPT-6 Sol; GPT-6 Luna promotion beyond cheap remains benchmark-gated.
   - All mappings are benchmark candidates and may change without changing canonical role identity.
