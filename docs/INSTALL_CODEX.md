@@ -136,12 +136,12 @@ A provider probe may fail because of upstream service availability while determi
 
 | Role | Candidate |
 |---|---|
-| Scout | GPT-5.6 Luna / medium |
-| Researcher | GPT-5.6 Luna / medium |
-| Implementer | GPT-5.6 Terra / medium |
-| Debugger | GPT-5.6 Terra / high |
-| Test Engineer | GPT-5.6 Terra / medium |
-| Reviewer | GPT-5.6 Terra / high |
-| Architect | GPT-5.6 Sol / high |
+| Scout | GPT-6 Luna / medium |
+| Researcher | GPT-6 Luna / medium |
+| Implementer | GPT-6 Sol / medium |
+| Debugger | GPT-6 Sol / high |
+| Test Engineer | GPT-6 Sol / medium |
+| Reviewer | GPT-6 Sol / high |
+| Architect | GPT-6 Sol / high |
 
-These are benchmark candidates, not role identities.
+These are benchmark-gated defaults, not role identities. GPT-5.6 is retained only as a migration benchmark baseline.
