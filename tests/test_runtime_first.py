@@ -91,7 +91,7 @@ class DelegationPreflightTests(unittest.TestCase):
         result = self.preflight.evaluate(self.request())
 
         self.assertEqual(result.decision, "PASS")
-        self.assertEqual(result.resolved_model, "gpt-5.6-terra")
+        self.assertEqual(result.resolved_model, "gpt-6-sol")
         self.assertEqual(result.resolved_effort, "medium")
         self.assertEqual(result.reasons, [])
 
@@ -219,7 +219,7 @@ class DelegationPreflightTests(unittest.TestCase):
             )
         )
         self.assertEqual(result.decision, "PASS")
-        self.assertEqual(result.resolved_model, "gpt-5.6-luna")
+        self.assertEqual(result.resolved_model, "gpt-6-luna")
         self.assertEqual(result.resolved_effort, "medium")
 
     def test_non_pass_preflight_cannot_build_execution_plan(self) -> None:
