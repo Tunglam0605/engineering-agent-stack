@@ -148,7 +148,7 @@ Classify
                                   done                      escalate
 ```
 
-## Codex-native stable baseline (v0.6.5, retained in v0.6.6)
+## Codex-native stable baseline (v0.6.5, retained in v0.6.7)
 
 For ordinary Codex subagent work, the default runtime path deliberately stays close to the proven v0.3 shape:
 
@@ -167,13 +167,17 @@ Codex owns child process/session lifecycle and transport. EAS does not insert ch
 
 The native execution boundary is unchanged. v0.6.6 reduces unnecessary fan-out by making conservative two-child scheduling the `auto` default, persisting reuse/recovery efficiency counters for durable goals, and tightening durable fan-out to soft/hard 6/8. `balanced=3` and `read-heavy=4` remain explicit opt-in ceilings rather than defaults. Efficiency telemetry does not estimate provider token, cost or latency data.
 
+## Model routing refresh (v0.6.7)
+
+The seven-role contract remains model-independent. The OpenAI Codex adapter now resolves the `cheap` profile to GPT-6 Luna and the `standard`, `deep`, and `critical` profiles to GPT-6 Sol. GPT-6 Astra remains a critical benchmark candidate, while GPT-5.6 Luna/Terra/Sol are retained only as migration baselines. Wider use of GPT-6 Luna is quality-gated by repeated controlled benchmarks rather than cost alone.
+
 ## Concurrency and lifecycle
 
 Parallelism is valuable mainly for independent, read-heavy work. Concurrent write assignments require disjoint path ownership. Shared-file work is serialized unless a future transactional mechanism proves safe.
 
 The lifecycle policy is resume-before-spawn with **adaptive concurrency**. Codex is configured with a provider/session ceiling of four children, while EAS resolves a smaller effective cap per dispatch: `conservative=2`, `balanced=3`, and `read-heavy=4`. `auto` selects conservative scheduling for write-capable work and balanced scheduling for read-only work. If a writer is already active, a read request is downshifted to the conservative combined cap; writer scope ownership remains serialized at one. `read-heavy=4` is reserved for explicitly independent read-only work with bounded output.
 
-The goal still has a soft reconciliation point at eight child assignments and an ordinary hard spawn ceiling at twelve. Architect is normally one consultation per goal and reviewer one independent worker per meaningful change-set; follow-up/resume is preferred when continuity is useful. These are orchestration-policy limits, not a claim that provider-native spawn APIs are automatically intercepted. See `policies/agent-lifecycle.md`.
+The goal has a soft reconciliation point at six child assignments and an ordinary hard spawn ceiling at eight. Architect is normally one consultation per goal and reviewer one independent worker per meaningful change-set; follow-up/resume is preferred when continuity is useful. These are orchestration-policy limits, not a claim that provider-native spawn APIs are automatically intercepted. See `policies/agent-lifecycle.md`.
 
 From v0.4, stack-controlled orchestration can use `runtime/lifecycle.py` / `eas goal gate` as an executable decision boundary. Goal state and JSONL events live under Git metadata so observability does not dirty the worktree. The gate remains opt-in: native provider dispatch that bypasses it is not claimed to be intercepted.
 
