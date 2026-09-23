@@ -6,6 +6,17 @@ All notable project changes will be documented here.
 
 No unreleased changes.
 
+## [0.6.7] - 2026-09-23
+
+### Changed
+
+- Refresh OpenAI model routing after the GPT-6 Sol/Luna release: `cheap` now resolves to `gpt-6-luna`; `standard`, `deep`, and `critical` resolve to `gpt-6-sol`.
+- Preserve the seven-role architecture, semantic compute profiles, direct-first routing, v0.6 lifecycle limits, Codex-native stable path and declarative capability contracts; this is a model-policy refresh, not an orchestration redesign.
+- Keep GPT-6 Astra as a critical benchmark candidate and retain GPT-5.6 Luna/Terra/Sol only as migration baselines.
+- Expand controlled benchmark planning to compare GPT-6 defaults against GPT-5.6 baselines and test GPT-6 Luna/high as a possible future standard-tier optimization.
+- Revalidate the Codex adapter and model IDs against OpenAI documentation dated 2026-09-23.
+- Correct stale architecture prose that still described the pre-v0.6.6 8/12 goal budget; the executable policy remains 6/8.
+
 ## [0.6.6] - 2026-09-09
 
 ### Added
