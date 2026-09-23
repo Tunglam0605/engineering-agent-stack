@@ -126,4 +126,4 @@ The repository now has:
 - real Codex JSONL capture
 - normalized benchmark record promotion and summaries
 
-The next v0.2 milestone is collecting repeated real runs across Luna/Terra/Sol candidate tiers and using those data to justify routing defaults.
+The current model-routing milestone is collecting repeated real runs across GPT-6 Luna/Sol and retained GPT-5.6 migration baselines, then using those data to justify any further promotion of GPT-6 Luna into standard/deep work.
